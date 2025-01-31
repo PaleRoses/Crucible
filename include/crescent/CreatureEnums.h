@@ -1,6 +1,6 @@
 #ifndef CREATURE_ENUMS_H
 #define CREATURE_ENUMS_H
-
+// frustration unending.
 namespace crescent {
 
 enum class CreatureEvent {
