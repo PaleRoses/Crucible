@@ -1,0 +1,2 @@
+/usr/bin/ar qc libcrescent_creatures.a CMakeFiles/crescent_creatures.dir/src/DynamicCreature.cpp.o CMakeFiles/crescent_creatures.dir/src/CreatureStructures.cpp.o CMakeFiles/crescent_creatures.dir/src/CreatureTheme.cpp.o CMakeFiles/crescent_creatures.dir/src/CreatureEnvironment.cpp.o CMakeFiles/crescent_creatures.dir/src/CreatureEvolution.cpp.o
+/usr/bin/ranlib libcrescent_creatures.a

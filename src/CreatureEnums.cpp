@@ -229,6 +229,18 @@ bool isSocial(SocialStructure structure) {
     return structure != SocialStructure::Solitary;
 }
 
+bool isPhasic(Locomotion movement) {
+    return movement == Locomotion::Phaser || movement == Locomotion::Teleporter;
+}
+
+bool isGroundBased(Locomotion movement) {
+    return movement == Locomotion::Walker || movement == Locomotion::Crawler;
+}
+
+bool isAdvancedIntelligence(Intelligence intel) {
+    return intel == Intelligence::Cunning || intel == Intelligence::Sapient;
+}
+
 bool canFly(Locomotion movement) { return movement == Locomotion::Flyer; }
 
 bool isAquatic(Locomotion movement) { return movement == Locomotion::Swimmer; }

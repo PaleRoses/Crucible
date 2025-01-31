@@ -1,6 +1,5 @@
 #ifndef CREATURE_ENUMS_H
 #define CREATURE_ENUMS_H
-// frustration unending.
 namespace crescent {
 
 enum class CreatureEvent {
@@ -22,6 +21,10 @@ enum class Size {
     Huge,
     Colossal
 }; // Added semicolon
+
+enum class AdaptabilityType { Physical, Mental, Environmental, Social };
+
+enum class ValidationStatus { Success, Warning, Error, Critical };
 
 enum class BodyShape {
     Avian,

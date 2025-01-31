@@ -165,9 +165,25 @@ class EnvironmentTraitSystem {
                          const std::string &trait);
 
   private:
-    static const std::unordered_map std::string,
-        std::unordered_map < std::string,
-        EnvironmentTraitInteraction >> interactions;
+    float
+    calculateBaseAdaptationPotential(const std::string &environment) const;
+    void processAdaptationCycle(EnvironmentalData &envData);
+    void processAbilityDevelopment(EnvironmentalData &envData);
+    void updateStressors();
+    void checkLethalConditions(const EnvironmentalData &envData);
+    std::vector<EnvironmentalStressor>
+    generateEnvironmentalStressors(const std::string &environment);
+    float applyStressorModifiers(const EnvironmentalStressor &stressor,
+                                 const std::string &environment);
+    void updateResourceUsage(EnvironmentalData &envData);
+    void calculateSynthesisPotential();
+    float getBaseResourceConsumption(const std::string &resource) const;
+    float getEnvironmentalResourceModifier(const std::string &environment,
+                                           const std::string &resource) const;
+    static const std::unordered_map<
+        std::string,
+        std::unordered_map<std::string, EnvironmentTraitInteraction>>
+        interactions;
 
     /**
      * @brief Initializes interaction data

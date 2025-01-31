@@ -2,6 +2,7 @@
 #define CRESCENT_PRIVATE_SERIALIZER_H
 
 #include "crescent/CreatureEnums.h"
+#include "crescent/CreatureStructures.h"
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>

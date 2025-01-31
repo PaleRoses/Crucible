@@ -1,13 +1,22 @@
 #ifndef CRESCENT_PRIVATE_DATALOADER_H
 #define CRESCENT_PRIVATE_DATALOADER_H
 
+#include "crescent/CreatureEnvironment.h"
 #include "crescent/CreatureStructures.h"
+#include "crescent/CreatureTheme.h"
 #include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 namespace crescent {
+
+// Forward declarations
+struct ThemeDefinition;
+struct EnvironmentData;
+struct TraitDefinition;
+struct Ability;
+
 namespace detail {
 
 class DataLoader {

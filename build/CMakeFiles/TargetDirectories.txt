@@ -1,0 +1,13 @@
+/home/valeria/Documents/Creatures/CrescentCreatures/build/CMakeFiles/crescent_creatures.dir
+/home/valeria/Documents/Creatures/CrescentCreatures/build/CMakeFiles/edit_cache.dir
+/home/valeria/Documents/Creatures/CrescentCreatures/build/CMakeFiles/rebuild_cache.dir
+/home/valeria/Documents/Creatures/CrescentCreatures/build/CMakeFiles/list_install_components.dir
+/home/valeria/Documents/Creatures/CrescentCreatures/build/CMakeFiles/install.dir
+/home/valeria/Documents/Creatures/CrescentCreatures/build/CMakeFiles/install/local.dir
+/home/valeria/Documents/Creatures/CrescentCreatures/build/CMakeFiles/install/strip.dir
+/home/valeria/Documents/Creatures/CrescentCreatures/build/_deps/json-build/CMakeFiles/edit_cache.dir
+/home/valeria/Documents/Creatures/CrescentCreatures/build/_deps/json-build/CMakeFiles/rebuild_cache.dir
+/home/valeria/Documents/Creatures/CrescentCreatures/build/_deps/json-build/CMakeFiles/list_install_components.dir
+/home/valeria/Documents/Creatures/CrescentCreatures/build/_deps/json-build/CMakeFiles/install.dir
+/home/valeria/Documents/Creatures/CrescentCreatures/build/_deps/json-build/CMakeFiles/install/local.dir
+/home/valeria/Documents/Creatures/CrescentCreatures/build/_deps/json-build/CMakeFiles/install/strip.dir
