@@ -1,8 +1,8 @@
 #ifndef CRESCENT_PRIVATE_SERIALIZER_H
 #define CRESCENT_PRIVATE_SERIALIZER_H
 
-#include "crescent/CreatureEnums.h"
-#include "crescent/CreatureStructures.h"
+#include "creature_engine/core/CreatureCore.h"
+#include "creature_engine/core/CreatureEnums.h"
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>

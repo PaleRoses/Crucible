@@ -1,9 +1,9 @@
-#ifndef CRESCENT_PRIVATE_DATALOADER_H
-#define CRESCENT_PRIVATE_DATALOADER_H
+#ifndef CREATURE_ENGINE_PRIVATE_DATALOADER_H
+#define CREATURE_ENGINE_PRIVATE_DATALOADER_H
 
-#include "crescent/CreatureEnvironment.h"
-#include "crescent/CreatureStructures.h"
-#include "crescent/CreatureTheme.h"
+#include "creature_engine/core/CreatureCore.h"
+#include "creature_engine/systems/CreatureTheme.h"
+#include "creature_engine/systems/environment/EnvironmentSystem.h"
 #include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>

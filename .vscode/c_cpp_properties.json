@@ -6,12 +6,13 @@
                 "${workspaceFolder}/include",
                 "${workspaceFolder}/include/crescent",
                 "${workspaceFolder}/include/crescent/private",
-                "${workspaceFolder}/build/_deps/json-src/include"
+                "${workspaceFolder}/build/_deps/json-src/include",
+                "/home/valeria/Documents/Creatures/CrescentCreatures/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/g++",
-            "cStandard": "c17",
-            "cppStandard": "c++20",
+            "cStandard": "c23",
+            "cppStandard": "c++23",
             "intelliSenseMode": "gcc-x64"
         }
     ],

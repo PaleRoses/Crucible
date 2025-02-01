@@ -11,16 +11,9 @@ enum class CreatureEvent {
     StressThreshold,
     Conflict,
     ValidationFailure
-}; // Added semicolon
+};
 
-enum class Size {
-    Tiny,
-    Small,
-    Medium,
-    Large,
-    Huge,
-    Colossal
-}; // Added semicolon
+enum class Size { Tiny, Small, Medium, Large, Huge, Colossal };
 
 enum class AdaptabilityType { Physical, Mental, Environmental, Social };
 
@@ -36,7 +29,7 @@ enum class BodyShape {
     Humanoid,
     Bestial,
     Aberrant
-}; // Added semicolon
+};
 
 enum class Locomotion {
     Walker,
@@ -48,7 +41,7 @@ enum class Locomotion {
     Crawler,
     Floater,
     Slitherer
-}; // Added semicolon
+};
 
 enum class AbilityType {
     Innate,
@@ -59,29 +52,13 @@ enum class AbilityType {
     Offensive,
     Emergent,
     Temporary
-}; // Added semicolon
+};
 
-enum class Intelligence {
-    Mindless,
-    Animal,
-    Cunning,
-    Sapient
-}; // Added semicolon
+enum class Intelligence { Mindless, Animal, Cunning, Sapient };
 
-enum class Aggression {
-    Passive,
-    Defensive,
-    Territorial,
-    Aggressive
-}; // Added semicolon
+enum class Aggression { Passive, Defensive, Territorial, Aggressive };
 
-enum class SocialStructure {
-    Solitary,
-    Pair,
-    Pack,
-    Hive,
-    Swarm
-}; // Added semicolon
+enum class SocialStructure { Solitary, Pair, Pack, Hive, Swarm };
 
 } // namespace crescent
 

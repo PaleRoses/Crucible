@@ -1,8 +1,7 @@
 #ifndef CREATURE_THEME_H
 #define CREATURE_THEME_H
 
-#include "CreatureEnums.h"
-#include "CreatureStructures.h"
+#include "creature_engine/core/CreatureCore.h"
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <optional>
