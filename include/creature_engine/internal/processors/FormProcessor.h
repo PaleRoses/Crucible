@@ -15,7 +15,7 @@ namespace impl {
  *
  * - MutationProcessor::updateMutatedForm
  * - EvolutionProcessor::updateEvolvedForm
- * - EnvironmentProcessor::updateEnvironmentalForm
+ * - EnvironmentalManifestationProcessor::updateEnvironmentalForm
  *
  * @note This is a documentation class - actual form processing is handled
  *       by the respective system processors
