@@ -3,7 +3,7 @@
 
 #include "creature_engine/core/CreatureCore.h"
 #include "creature_engine/systems/CreatureTheme.h"
-#include "creature_engine/systems/environment/EnvironmentSystem.h"
+#include "creature_engine/systems/environment/base/EnvironmentSystem.h"
 #include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>
