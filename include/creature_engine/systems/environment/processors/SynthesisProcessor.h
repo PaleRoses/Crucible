@@ -1,73 +1,63 @@
-// systems/environment/processors/SynthesisProcessor.h
+// processors/SynthesisProcessor.h
 #ifndef CREATURE_ENGINE_ENVIRONMENT_PROCESSORS_SYNTHESIS_PROCESSOR_H
 #define CREATURE_ENGINE_ENVIRONMENT_PROCESSORS_SYNTHESIS_PROCESSOR_H
 
+#include "creature_engine/systems/environment/base/EnvironmentConstants.h"
+#include "creature_engine/systems/environment/interfaces/IEnvironmentProcessor.h"
 #include "creature_engine/systems/environment/types/data/EnvironmentalData.h"
 #include "creature_engine/systems/environment/types/data/SynthesisCapability.h"
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
-namespace crescent {
-namespace environment {
+namespace crescent::environment {
 
-class SynthesisProcessor {
+class SynthesisProcessor : public IEnvironmentProcessor {
   public:
-    // Core synthesis operations
-    static bool canSynthesizeWith(const std::string &trait,
-                                  const std::string &environment,
-                                  const EnvironmentalData &envData);
+    SynthesisProcessor();
 
+    // IEnvironmentProcessor interface implementation
+    void process(EnvironmentalData &data) override;
+    bool canProcess(const EnvironmentalData &data) const override;
+    std::unordered_map<std::string, float>
+    getResourceRequirements() const override;
+    std::string getProcessorName() const override;
+    bool configure(
+        const std::unordered_map<std::string, std::string> &config) override;
+    bool isValid() const override;
+
+    // Existing SynthesisProcessor methods
     static std::optional<SynthesisCapability>
     attemptSynthesis(const std::string &trait, const std::string &environment,
                      const EnvironmentalData &envData);
+
+    static bool canInitiateSynthesis(const std::string &trait,
+                                     const std::string &environment);
 
     static std::vector<std::string>
     getViableSynthesisTargets(const std::string &trait,
                               const EnvironmentalData &envData);
 
-    // Synthesis potential and calculations
-    static void calculateSynthesisPotential(const std::string &trait,
-                                            const EnvironmentalData &envData);
-
-    static float getSynthesisAffinity(const std::string &trait,
-                                      const std::string &environment);
-
-    // Synthesis state management
-    static void updateActiveSynthesis(SynthesisCapability &synthesis,
-                                      const EnvironmentalData &envData);
-
-    static bool validateSynthesisStability(const SynthesisCapability &synthesis,
-                                           const EnvironmentalData &envData);
-
-    // Synthesis compatibility
-    static bool checkSynthesisCompatibility(const std::string &trait,
-                                            const std::string &environment);
-
-    static float calculateSynthesisStrength(const std::string &trait,
-                                            const std::string &environment,
-                                            const EnvironmentalData &envData);
+  protected:
+    void logProcessorActivity(const std::string &message,
+                              const std::string &level = "INFO") const override;
 
   private:
-    // Internal helpers
+    static float calculateSynthesisPotential(const std::string &trait,
+                                             const EnvironmentalData &envData);
+
     static std::unordered_map<std::string, float>
     calculateMaintenanceCosts(const std::string &trait,
                               const std::string &environment);
 
-    static std::vector<std::string>
-    determineGrantedProperties(const std::string &trait,
-                               const std::string &environment,
-                               float synthesisStrength);
-
     static bool validateSynthesisRequirements(const std::string &trait,
                                               const std::string &environment);
 
-    static float
-    calculateBaseSynthesisPotential(const std::string &trait,
-                                    const std::string &environment);
+    bool initialized_;
+    std::unordered_map<std::string, std::string> configuration_;
 };
 
-} // namespace environment
-} // namespace crescent
+} // namespace crescent::environment
 
 #endif
