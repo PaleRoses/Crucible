@@ -1,29 +1,44 @@
-// internal/processors/StressorProcessor.h
-#ifndef CREATURE_ENGINE_INTERNAL_PROCESSORS_STRESSOR_PROCESSOR_H
-#define CREATURE_ENGINE_INTERNAL_PROCESSORS_STRESSOR_PROCESSOR_H
+// StressorProcessor.h
+#ifndef CREATURE_ENGINE_ENVIRONMENT_PROCESSORS_STRESSOR_PROCESSOR_H
+#define CREATURE_ENGINE_ENVIRONMENT_PROCESSORS_STRESSOR_PROCESSOR_H
 
+#include "creature_engine/systems/environment/base/EnvironmentConstants.h"
+#include "creature_engine/systems/environment/types/data/EnvironmentalStressor.h"
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace crescent {
-// Forward declarations
-struct EnvironmentalStressor;
+namespace environment {
 
-namespace impl {
-
-/**
- * @brief Processes environmental stressors and their effects
- */
 class StressorProcessor {
   public:
     static std::vector<EnvironmentalStressor>
-    getEnvironmentStressors(const std::string &environment);
+    generateStressors(const std::string &environment);
+    static float
+    calculateModifiedIntensity(const EnvironmentalStressor &stressor,
+                               const std::string &environment);
+    static EnvironmentalStressor
+    createEvolutionaryStressor(const std::string &evolutionPath);
+    static void modifyStressorByTheme(EnvironmentalStressor &stressor,
+                                      const std::string &theme);
+    static std::vector<EnvironmentalStressor>
+    combineEnvironmentStressors(const std::string &primaryEnv,
+                                const std::string &secondaryEnv);
+    static bool
+    isLethalCombination(const std::vector<EnvironmentalStressor> &stressors);
+    static float calculateCumulativeIntensity(
+        const std::vector<EnvironmentalStressor> &stressors);
 
-    static float getEnvironmentalModifier(const std::string &environment,
-                                          const std::string &source);
+  private:
+    static float calculateBaseStressIntensity(const std::string &environment);
+    static std::unordered_set<std::string>
+    generateStressorEffects(const std::string &source);
+    static bool validateStressorCompatibility(const std::string &env1,
+                                              const std::string &env2);
 };
 
-} // namespace impl
+} // namespace environment
 } // namespace crescent
 
 #endif
