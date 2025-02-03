@@ -5,38 +5,53 @@
 #include "EnvironmentalStressor.h"
 #include "creature_engine/io/SerializationStructures.h"
 #include <nlohmann/json.hpp>
-#include <string>
-#include <unordered_map>
-#include <unordered_set>
-#include <vector>
 
 namespace crescent {
 
-/**
- * @brief Tracks a creature's adaptation state in an environment
- */
 struct EnvironmentalData {
-    std::string environment; // Environment being adapted to
-    float adaptationLevel;   // Current adaptation level (0-1)
-    int exposureTime;        // Time spent in environment
+    std::string environment;
+    std::string creatureId; // Added to track specific creature
 
-    // Active states
-    std::unordered_set<std::string>
-        activeEffects; // Current environmental effects
-    std::unordered_set<std::string>
-        developedAbilities; // Abilities gained from adaptation
-    std::unordered_set<std::string>
-        currentWeaknesses; // Current vulnerabilities
+    // Adaptation and stress tracking
+    float adaptationLevel;
+    float currentStress;
+    int exposureTime;
+    bool isStable;
 
-    // Resource management
-    std::unordered_map<std::string, float>
-        resourceUsage; // Resource consumption rates
-    std::vector<EnvironmentalStressor>
-        activeStressors; // Active environmental pressures
+    // Stress state tracking
+    struct StressState {
+        float accumulatedStress;
+        float stressResistance;
+        std::vector<std::string> activeStressors;
+        std::vector<std::string> developedResistances;
+        bool isIncreasing;
+    } stressState;
 
-    // Synthesis state
-    bool canSynthesizeWith; // Whether synthesis is possible
+    // Trait and ability state
+    struct ExpressionState {
+        std::unordered_set<std::string> activeEffects;
+        std::unordered_set<std::string> developedAbilities;
+        std::unordered_set<std::string> suppressedTraits;
+        std::unordered_set<std::string> enhancedTraits;
+    } expressionState;
 
+    // Resource and capacity tracking
+    struct ResourceState {
+        std::unordered_map<std::string, float> resourceUsage;
+        std::unordered_map<std::string, float> stressImpact;
+        float adaptiveCap;
+        float synthesisThreshold;
+    } resourceState;
+
+    // Synthesis tracking
+    struct SynthesisState {
+        bool canSynthesize;
+        float synthesisProgress;
+        std::vector<std::string> potentialSynthesis;
+        std::unordered_map<std::string, float> synthesisStability;
+    } synthesisState;
+
+    // Serialization
     nlohmann::json
     serializeToJson(const SerializationOptions &options = {}) const;
     static EnvironmentalData deserializeFromJson(const nlohmann::json &data);

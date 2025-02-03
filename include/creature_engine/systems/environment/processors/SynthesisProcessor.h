@@ -2,14 +2,11 @@
 #ifndef CREATURE_ENGINE_ENVIRONMENT_PROCESSORS_SYNTHESIS_PROCESSOR_H
 #define CREATURE_ENGINE_ENVIRONMENT_PROCESSORS_SYNTHESIS_PROCESSOR_H
 
-#include "creature_engine/systems/environment/base/EnvironmentConstants.h"
 #include "creature_engine/systems/environment/interfaces/IEnvironmentProcessor.h"
+#include "creature_engine/systems/environment/stress/StressManager.h"
+#include "creature_engine/systems/environment/stress/StressResponse.h"
 #include "creature_engine/systems/environment/types/data/EnvironmentalData.h"
 #include "creature_engine/systems/environment/types/data/SynthesisCapability.h"
-#include <optional>
-#include <string>
-#include <unordered_map>
-#include <vector>
 
 namespace crescent::environment {
 
@@ -27,35 +24,40 @@ class SynthesisProcessor : public IEnvironmentProcessor {
         const std::unordered_map<std::string, std::string> &config) override;
     bool isValid() const override;
 
-    // Existing SynthesisProcessor methods
-    static std::optional<SynthesisCapability>
-    attemptSynthesis(const std::string &trait, const std::string &environment,
-                     const EnvironmentalData &envData);
+    // Updated synthesis methods
+    std::optional<SynthesisCapability>
+    attemptSynthesis(const std::string &creatureId, const std::string &trait,
+                     const EnvironmentalData &data);
 
-    static bool canInitiateSynthesis(const std::string &trait,
-                                     const std::string &environment);
+    bool canInitiateSynthesis(const std::string &creatureId,
+                              const std::string &trait,
+                              const EnvironmentalData &data) const;
 
-    static std::vector<std::string>
-    getViableSynthesisTargets(const std::string &trait,
-                              const EnvironmentalData &envData);
+    // New stress-aware methods
+    float calculateStressImpactOnSynthesis(const std::string &creatureId,
+                                           const std::string &trait) const;
+
+    bool isStressLevelSuitableForSynthesis(const std::string &creatureId) const;
+
+    std::vector<std::string>
+    getStressUnlockedSynthesis(const std::string &creatureId,
+                               const EnvironmentalData &data) const;
 
   protected:
     void logProcessorActivity(const std::string &message,
                               const std::string &level = "INFO") const override;
 
   private:
-    static float calculateSynthesisPotential(const std::string &trait,
-                                             const EnvironmentalData &envData);
-
-    static std::unordered_map<std::string, float>
-    calculateMaintenanceCosts(const std::string &trait,
-                              const std::string &environment);
-
-    static bool validateSynthesisRequirements(const std::string &trait,
-                                              const std::string &environment);
-
     bool initialized_;
     std::unordered_map<std::string, std::string> configuration_;
+
+    float calculateSynthesisPotential(const std::string &creatureId,
+                                      const std::string &trait,
+                                      const EnvironmentalData &data) const;
+
+    std::unordered_map<std::string, float>
+    calculateStressModifiedCosts(const std::string &creatureId,
+                                 const std::string &trait) const;
 };
 
 } // namespace crescent::environment

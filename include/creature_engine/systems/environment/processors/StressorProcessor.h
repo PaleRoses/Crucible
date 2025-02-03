@@ -1,21 +1,17 @@
-// processors/StressorProcessor.h
-#ifndef CREATURE_ENGINE_ENVIRONMENT_PROCESSORS_STRESSOR_PROCESSOR_H
-#define CREATURE_ENGINE_ENVIRONMENT_PROCESSORS_STRESSOR_PROCESSOR_H
+// processors/ResourceProcessor.h
+#ifndef CREATURE_ENGINE_ENVIRONMENT_PROCESSORS_RESOURCE_PROCESSOR_H
+#define CREATURE_ENGINE_ENVIRONMENT_PROCESSORS_RESOURCE_PROCESSOR_H
 
-#include "creature_engine/systems/environment/base/EnvironmentConstants.h"
 #include "creature_engine/systems/environment/interfaces/IEnvironmentProcessor.h"
+#include "creature_engine/systems/environment/stress/StressEffects.h"
+#include "creature_engine/systems/environment/stress/StressManager.h"
 #include "creature_engine/systems/environment/types/data/EnvironmentalData.h"
-#include "creature_engine/systems/environment/types/data/EnvironmentalStressor.h"
-#include <string>
-#include <unordered_map>
-#include <unordered_set>
-#include <vector>
 
 namespace crescent::environment {
 
-class StressorProcessor : public IEnvironmentProcessor {
+class ResourceProcessor : public IEnvironmentProcessor {
   public:
-    StressorProcessor();
+    ResourceProcessor();
 
     // IEnvironmentProcessor interface implementation
     void process(EnvironmentalData &data) override;
@@ -27,36 +23,36 @@ class StressorProcessor : public IEnvironmentProcessor {
         const std::unordered_map<std::string, std::string> &config) override;
     bool isValid() const override;
 
-    // Existing StressorProcessor methods
-    static std::vector<EnvironmentalStressor>
-    generateStressors(const std::string &environment);
-    static float
-    calculateModifiedIntensity(const EnvironmentalStressor &stressor,
-                               const std::string &environment);
-    static EnvironmentalStressor
-    createEvolutionaryStressor(const std::string &evolutionPath);
-    static void modifyStressorByTheme(EnvironmentalStressor &stressor,
-                                      const std::string &theme);
-    static std::vector<EnvironmentalStressor>
-    combineEnvironmentStressors(const std::string &primaryEnv,
-                                const std::string &secondaryEnv);
-    static bool
-    isLethalCombination(const std::vector<EnvironmentalStressor> &stressors);
-    static float calculateCumulativeIntensity(
-        const std::vector<EnvironmentalStressor> &stressors);
+    // Updated resource methods
+    float calculateConsumptionRate(const std::string &creatureId,
+                                   const std::string &resource,
+                                   const EnvironmentalData &data) const;
+
+    bool checkResourceSufficiency(const std::string &creatureId,
+                                  const EnvironmentalData &data) const;
+
+    // New stress-aware methods
+    void applyStressImpact(const std::string &creatureId,
+                           const std::string &resource,
+                           EnvironmentalData &data);
+
+    float getStressModifiedConsumption(const std::string &creatureId,
+                                       const std::string &resource,
+                                       float baseRate) const;
 
   protected:
     void logProcessorActivity(const std::string &message,
                               const std::string &level = "INFO") const override;
 
   private:
-    static float calculateBaseStressIntensity(const std::string &environment);
-    static std::unordered_set<std::string>
-    generateStressorEffects(const std::string &source);
-    static bool validateStressorCompatibility(const std::string &env1,
-                                              const std::string &env2);
     bool initialized_;
     std::unordered_map<std::string, std::string> configuration_;
+
+    float calculateBaseConsumption(const std::string &resource,
+                                   const EnvironmentalData &data) const;
+
+    float applyStressModifiers(const std::string &creatureId, float baseRate,
+                               const EnvironmentalData &data) const;
 };
 
 } // namespace crescent::environment

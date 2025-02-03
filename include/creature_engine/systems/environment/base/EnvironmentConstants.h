@@ -2,18 +2,49 @@
 #ifndef CREATURE_ENGINE_ENVIRONMENT_BASE_ENVIRONMENT_CONSTANTS_H
 #define CREATURE_ENGINE_ENVIRONMENT_BASE_ENVIRONMENT_CONSTANTS_H
 
-namespace crescent {
-namespace environment {
+#include <nlohmann/json.hpp>
+#include <string>
+#include <unordered_map>
 
-struct Constants {
-    static constexpr float MIN_ADAPTATION_LEVEL = 0.0f;
-    static constexpr float MAX_ADAPTATION_LEVEL = 1.0f;
-    static constexpr float SYNTHESIS_THRESHOLD = 0.8f;
-    static constexpr int MIN_EXPOSURE_TIME = 100;
-    static constexpr float LETHAL_STRESS_THRESHOLD = 0.9f;
+namespace crescent::environment {
+
+class EnvironmentConfig {
+  public:
+    static EnvironmentConfig &getInstance() {
+        static EnvironmentConfig instance;
+        return instance;
+    }
+
+    // Load configuration from file
+    bool loadConfig(const std::string &configPath);
+
+    // Stress thresholds
+    float getStressThreshold(const std::string &thresholdType) const;
+    float getRecoveryRate(const std::string &environmentType) const;
+    float getAdaptationCost(const std::string &adaptationType) const;
+
+    // Time constants
+    int getTimeThreshold(const std::string &thresholdType) const;
+
+    // Resource constants
+    float getResourceCost(const std::string &resourceType) const;
+
+  private:
+    EnvironmentConfig() = default; // Private constructor for singleton
+
+    nlohmann::json configData_;
+    std::unordered_map<std::string, float> stressThresholds_;
+    std::unordered_map<std::string, float> recoveryRates_;
+    std::unordered_map<std::string, float> resourceCosts_;
+    std::unordered_map<std::string, int> timeThresholds_;
+
+    void parseConfig();
 };
 
-} // namespace environment
-} // namespace crescent
+// Example usage:
+// auto& config = EnvironmentConfig::getInstance();
+// float lethalThreshold = config.getStressThreshold("lethal");
+
+} // namespace crescent::environment
 
 #endif

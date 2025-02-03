@@ -10,15 +10,26 @@
 namespace crescent {
 
 /**
- * @brief Represents an environmental pressure or hazard
+ * @brief Represents an environmental pressure or hazard that can drive
+ * adaptation
  */
 struct EnvironmentalStressor {
-    std::string source; // Source of the environmental stress
-    float intensity;    // Stress intensity (0-1)
-    std::unordered_set<std::string>
-        effects;   // Active effects from this stressor
-    bool isLethal; // Whether this stressor can cause fatal harm
+    // Core properties
+    std::string source;     // What's causing the stress
+    float intensity;        // Current stress level (0-1)
+    float accumulationRate; // How fast stress builds up
+    float dissipationRate;  // How fast stress reduces
 
+    // Effect tracking
+    std::unordered_set<std::string> effects; // Current active effects
+    std::unordered_set<std::string>
+        possibleAdaptations; // What it might trigger
+
+    // State flags
+    bool isLethal;     // Can cause extinction
+    bool isContinuous; // Applies constantly vs periodically
+
+    // Serialization
     nlohmann::json
     serializeToJson(const SerializationOptions &options = {}) const;
     static EnvironmentalStressor
