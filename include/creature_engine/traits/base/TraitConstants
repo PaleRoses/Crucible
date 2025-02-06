@@ -10,7 +10,7 @@ enum class TraitCategory {
     Physical,   // Visible physical changes
     Behavioral, // Behavior modifications
     Metabolic,  // Internal processes
-    Sensory,    // Sensing capabilities
+    Sensory,    // Sensing capabilities 
     Defensive,  // Protection mechanisms
     Offensive,  // Attack capabilities
     Adaptive,   // Environmental adaptation
@@ -21,13 +21,13 @@ enum class TraitCategory {
  * @brief Trait origin/source types
  */
 enum class TraitOrigin {
-    Innate,     // Born with trait
-    Evolved,    // Developed through evolution
-    Synthesized // Gained through synthesis
+    Innate,      // Born with trait
+    Evolved,     // Developed through evolution
+    Synthesized  // Gained through synthesis
 };
 
 /**
- * @brief Manifestation type classification
+ * @brief Manifestation type classification 
  */
 enum class ManifestationType {
     Physical,   // Physical appearance
@@ -46,7 +46,7 @@ enum class ManifestationType {
 enum class CompatibilityLevel {
     Incompatible, // Cannot coexist
     Neutral,      // No interaction
-    Synergistic,  // Beneficial interaction
+    Synergistic,  // Beneficial interaction 
     Required      // Must exist together
 };
 
