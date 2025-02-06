@@ -3,14 +3,20 @@
 
 #include "creature_engine/core/base/CreatureExceptions.h"
 #include "creature_engine/core/changes/ChangeTypes.h"
+#include "creature_engine/core/state/CreatureState.h"
+
 #include <deque>
 #include <memory>
 #include <mutex>
-#include <unordered_map>
 #include <vector>
 
 namespace crescent {
 
+/**
+ * @brief Manages and processes changes to creature state
+ *
+ * Handles change validation, batching, history, and application
+ */
 class ChangeProcessor {
   public:
     // Construction/Destruction
@@ -38,15 +44,11 @@ class ChangeProcessor {
     bool canUndo() const;
     bool undo(CreatureState &state);
     void clearHistory();
-
-    // Query operations
     std::vector<FormChange> getRecentChanges(size_t count = 10) const;
+
+    // Change analysis
     bool hasConflictingChanges(const FormChange &change) const;
     std::vector<FormChange> getPendingChanges() const;
-
-    // Configuration
-    void setMaxHistorySize(size_t size);
-    void setValidationLevel(ValidationStatus minLevel);
 
   private:
     // Thread safety
@@ -54,29 +56,26 @@ class ChangeProcessor {
 
     // History tracking
     std::deque<FormChange> history_;
-    size_t maxHistorySize_;
+    static constexpr size_t MAX_HISTORY_SIZE = 100;
 
     // Batch processing
-    bool batchMode_;
+    bool batchMode_{false};
     std::vector<FormChange> pendingChanges_;
 
-    // Configuration
-    ValidationStatus minValidationLevel_;
+    // Validation
+    ValidationStatus minValidationLevel_{ValidationStatus::Warning};
 
-    // Internal processing
+    // Processing helpers
     ChangeResult validateChange(const CreatureState &state,
                                 const FormChange &change) const;
     void applyChange(CreatureState &state, const FormChange &change);
     void recordChange(const FormChange &change);
     void pruneHistory();
 
-    // Conflict resolution
+    // Conflict management
     bool checkConflicts(const FormChange &change) const;
     std::vector<FormChange>
     resolveConflicts(const std::vector<FormChange> &changes) const;
-
-    // Priority handling
-    void sortChangesByPriority(std::vector<FormChange> &changes) const;
     bool isHigherPriority(const FormChange &a, const FormChange &b) const;
 };
 

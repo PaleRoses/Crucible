@@ -2,50 +2,35 @@
 #define CREATURE_ENGINE_CORE_CHANGES_CHANGE_TYPES_H
 
 #include "creature_engine/core/base/CreatureEnums.h"
+#include "creature_engine/traits/base/TraitDefinition.h"
+#include <chrono>
 #include <optional>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 namespace crescent {
 
-// Forward declarations
-class CreatureState;
+struct ChangeSource {
+    std::string sourceType; // "environment", "theme", etc
+    std::string sourceId;   // Specific source identifier
+    float intensity{0.0f};  // Source intensity/strength
+};
 
 struct ChangeMetadata {
     std::string id;                // Unique change identifier
-    ChangeSource source;           // What system requested this
-    ChangePriority priority;       // How important is this change
+    ChangeSource source;           // What triggered this change
+    ChangePriority priority;       // Change importance
     std::string description;       // Human-readable description
-    std::vector<std::string> tags; // For filtering/categorizing changes
+    std::vector<std::string> tags; // For categorization
+    std::chrono::system_clock::time_point timestamp;
 };
 
-struct PhysicalChange {
-    std::optional<Size> size;
-    std::optional<BodyShape> shape;
-    std::vector<std::pair<Locomotion, bool>>
-        locomotionChanges; // add/remove pairs
-
-    // Feature modifications
-    std::unordered_map<std::string, float> featureModifiers;
-    std::unordered_set<std::string> addFeatures;
-    std::unordered_set<std::string> removeFeatures;
-
-    // Adaptation capabilities
-    std::unordered_map<std::string, float> adaptabilityModifiers;
-};
-
-struct AbilityChange {
-    // Direct ability modifications
-    std::vector<Ability> addAbilities;
-    std::vector<std::string> removeAbilities;
-    std::unordered_map<std::string, float> powerModifiers;
-
-    // Capability changes
-    std::unordered_map<std::string, float> effectiveness;
-    std::unordered_set<std::string> unlockRequirements;
-    std::unordered_set<std::string> addSynthesisCompatibility;
+struct SynthesisModification {
+    std::string traitId;
+    int newSynthesisLevel;
+    float synthesisStrength;
+    std::vector<std::string> grantedAbilities;
 };
 
 struct TraitChange {
@@ -53,49 +38,23 @@ struct TraitChange {
     std::vector<TraitDefinition> addTraits;
     std::vector<std::string> removeTraits;
 
-    // Manifestation changes
-    std::unordered_map<std::string, float> traitStrengthModifiers;
-    std::unordered_map<std::string, float> environmentalAffinityModifiers;
+    // Synthesis changes
+    std::vector<SynthesisModification> synthesisChanges;
 
-    // Synthesis and mutation
-    std::unordered_map<std::string, float> synthesisThresholdModifiers;
-    std::unordered_set<std::string> addMutationPaths;
+    // Stress response
+    std::unordered_map<std::string, float> traitStressLevels;
+
+    // Track what traits are suppressed/enhanced by stress
+    std::unordered_set<std::string> suppressedTraits;
+    std::unordered_set<std::string> enhancedTraits;
 };
 
-struct BehaviorChange {
-    std::optional<Intelligence> intelligence;
-    std::optional<Aggression> aggression;
-    std::optional<SocialStructure> socialStructure;
-
-    // Behavior modifications
-    std::unordered_map<std::string, float> behaviorModifiers;
-    std::unordered_set<std::string> addBehaviors;
-    std::unordered_set<std::string> removeBehaviors;
-
-    // Response changes
-    std::unordered_map<std::string, float> stressResponseModifiers;
-    std::unordered_map<std::string, float> environmentalResponseModifiers;
-};
-
-struct FormChange {
-    ChangeMetadata metadata;
-
-    // Core changes - all optional
-    std::optional<PhysicalChange> physical;
-    std::optional<AbilityChange> abilities;
-    std::optional<TraitChange> traits;
-    std::optional<BehaviorChange> behavior;
-
-    // Validation and combination
-    bool isValid() const;
-    bool canCombineWith(const FormChange &other) const;
-    bool conflictsWith(const FormChange &other) const;
-
-    // Undo support
-    std::optional<FormChange> generateUndo() const;
-
-    // Application results
-    ChangeResult apply(CreatureState &state) const;
+enum class ChangeResult {
+    Success,          // Change applied successfully
+    PartialSuccess,   // Some aspects applied
+    ValidationFailed, // Failed validation
+    ConflictDetected, // Conflicts with other changes
+    BatchPending      // Part of uncommitted batch
 };
 
 } // namespace crescent
