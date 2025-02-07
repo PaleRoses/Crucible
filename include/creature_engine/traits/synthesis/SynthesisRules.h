@@ -72,14 +72,16 @@ class SynthesisRules {
                        const std::vector<std::string> &availableTraits) const;
 
     /**
-     * @brief Gets all possible synthesis outcomes for a trait
+     * @brief Gets all possible synthesis outcomes for a trait and catalyst
+     * type.
      */
     std::vector<SynthesisOutcome>
     getPossibleOutcomes(const TraitDefinition &trait,
                         CatalystType catalystType) const;
 
     /**
-     * @brief Calculates synthesis stability
+     * @brief Calculates synthesis stability.  Returns the *resulting* stability
+     * after synthesis.
      */
     float calculateStability(const TraitDefinition &trait,
                              const std::string &synthesizedForm,
@@ -96,9 +98,10 @@ class SynthesisRules {
     bool hasRegisteredPath(const std::string &sourceForm,
                            CatalystType catalystType) const;
 
-    const SynthesisRequirement &
+    const SynthesisRequirement *
     getRequirements(const std::string &sourceForm,
-                    const std::string &targetForm) const;
+                    const std::string &targetForm,
+                    CatalystType catalystType) const;
 
     // Serialization
     nlohmann::json
@@ -112,10 +115,35 @@ class SynthesisRules {
         SynthesisOutcome outcome;
     };
 
-    std::unordered_map std::string,      // Source form
-        std::unordered_map CatalystType, // Catalyst type
-        std::unordered_map std::string,  // Target form
-        SynthesisPath >>> synthesisPaths_;
+    //  More robust key structure for the map.  Using nested maps can be
+    //  cumbersome and less efficient.  A custom key struct is cleaner.
+    struct SynthesisPathKey {
+        std::string sourceForm;
+        CatalystType catalystType;
+        std::string targetForm;
+
+        bool operator==(const SynthesisPathKey &other) const {
+            return sourceForm == other.sourceForm &&
+                   catalystType == other.catalystType &&
+                   targetForm == other.targetForm;
+        }
+
+        struct Hash {
+            std::size_t operator()(const SynthesisPathKey &k) const {
+                using std::hash;
+                using std::size_t;
+
+                return ((hash<std::string>()(k.sourceForm) ^
+                         (hash<int>()(static_cast<int>(k.catalystType))
+                          << 1)) >>
+                        1) ^
+                       (hash<std::string>()(k.targetForm) << 1);
+            }
+        };
+    };
+
+    std::unordered_map<SynthesisPathKey, SynthesisPath, SynthesisPathKey::Hash>
+        synthesisPaths_;
 
     // Stability modifiers
     struct StabilityFactors {

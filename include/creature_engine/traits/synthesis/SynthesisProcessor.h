@@ -1,15 +1,13 @@
 #ifndef CREATURE_ENGINE_TRAITS_SYNTHESIS_SYNTHESIS_PROCESSOR_H
 #define CREATURE_ENGINE_TRAITS_SYNTHESIS_SYNTHESIS_PROCESSOR_H
 
-#include "creature_engine/core/base/CreatureEnums.h"
 #include "creature_engine/io/SerializationStructures.h"
 #include "creature_engine/traits/base/TraitDefinition.h"
-#include "creature_engine/traits/base/TraitEnums.h"
 #include "creature_engine/traits/synthesis/SynthesisRules.h"
+#include "creature_engine/traits/synthesis/SynthesisState.h"
 
 #include <memory>
-#include <nlohmann/json.hpp>
-#include <optional>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -17,53 +15,88 @@
 namespace crescent::traits {
 
 /**
- * @brief Processes trait synthesis based on environmental and stress catalysts
- *
- * Handles the mechanics of trait synthesis, following defined rules and
- * maintaining synthesis state. Coordinates with the rules engine to determine
- * valid synthesis paths.
+ * @brief Result of a synthesis processing operation
+ */
+struct ProcessingResult {
+    bool success;
+    std::string message;
+    std::optional<SynthesisFailureType> failureType;
+    std::optional<SynthesisEvent> event;
+    std::vector<std::string> warnings;
+    float resultingStability;
+};
+
+/**
+ * @brief Processes and coordinates trait synthesis transformations
  */
 class SynthesisProcessor {
   public:
-    // Construction
+    // Construction/Destruction
     SynthesisProcessor();
     explicit SynthesisProcessor(std::shared_ptr<SynthesisRules> rules);
+    ~SynthesisProcessor() = default;
+
+    // Prevent copying, allow moving
+    SynthesisProcessor(const SynthesisProcessor &) = delete;
+    SynthesisProcessor &operator=(const SynthesisProcessor &) = delete;
+    SynthesisProcessor(SynthesisProcessor &&) = default;
+    SynthesisProcessor &operator=(SynthesisProcessor &&) = default;
 
     /**
-     * @brief Attempts to synthesize a trait based on a catalyst
+     * @brief Attempts to synthesize a trait using a catalyst
      * @param trait Trait to synthesize
-     * @param catalystType Type of catalyst triggering synthesis
+     * @param catalystType Type of triggering catalyst
      * @param catalystId Specific catalyst identifier
-     * @param intensity Catalyst intensity
-     * @return Optional containing synthesis result if successful
+     * @param intensity Catalyst strength [0,1]
+     * @return Complete processing result
      */
-    std::optional<SynthesisResult>
-    processSynthesis(const TraitDefinition &trait, CatalystType catalystType,
-                     const std::string &catalystId, float intensity);
+    ProcessingResult processSynthesis(const TraitDefinition &trait,
+                                      CatalystType catalystType,
+                                      const std::string &catalystId,
+                                      float intensity);
 
     /**
-     * @brief Checks if synthesis is possible for a trait/catalyst combination
+     * @brief Updates all active synthesis processes
+     * @param deltaTime Time elapsed since last update
+     * @return Vector of completed or failed syntheses
      */
-    bool canSynthesize(const TraitDefinition &trait, CatalystType catalystType,
-                       const std::string &catalystId) const;
+    std::vector<ProcessingResult> updateSyntheses(float deltaTime);
 
     /**
-     * @brief Gets potential synthesis forms for a trait
+     * @brief Gets potential synthesis paths for a trait
+     * @return Vector of valid target forms and their requirements
      */
-    std::vector<std::string> getPotentialForms(const TraitDefinition &trait,
-                                               CatalystType catalystType) const;
+    struct SynthesisPotential {
+        std::string targetForm;
+        SynthesisRequirement requirements;
+        float estimatedStability;
+    };
+    std::vector<SynthesisPotential>
+    getPotentialPaths(const TraitDefinition &trait,
+                      CatalystType catalystType) const;
 
     /**
-     * @brief Calculates current synthesis stability
+     * @brief Attempts to revert a trait's synthesis
+     * @return Processing result including reversion details
      */
-    float calculateStability(const TraitDefinition &trait,
-                             const std::string &synthesizedForm) const;
+    ProcessingResult revertSynthesis(const TraitDefinition &trait);
+
+    // State queries
+    bool hasActiveSynthesis(const std::string &traitId) const;
+    const SynthesisState *getSynthesisState(const std::string &traitId) const;
+    std::vector<std::string> getTraitsInSynthesis() const;
 
     /**
-     * @brief Attempts to revert a synthesis
-     * @return True if reversion successful
+     * @brief Gets statistics about synthesis processing
      */
-    bool revertSynthesis(const TraitDefinition &trait);
+    struct ProcessingMetrics {
+        size_t activeProcesses;
+        size_t completedSyntheses;
+        size_t failedSyntheses;
+        float averageStability;
+        std::chrono::system_clock::time_point lastUpdate;
+    };
+    ProcessingMetrics getMetrics() const;
 
     // Serialization
     nlohmann::json
@@ -71,25 +104,31 @@ class SynthesisProcessor {
     static SynthesisProcessor deserializeFromJson(const nlohmann::json &data);
 
   private:
+    // Thread safety
+    mutable std::mutex mutex_;
+
+    // Core components
     std::shared_ptr<SynthesisRules> rules_;
+    std::unordered_map<std::string, std::unique_ptr<SynthesisState>>
+        activeStates_;
 
-    // Synthesis tracking
-    struct SynthesisState {
-        std::string currentForm;
-        int synthesisLevel;
-        float stability;
+    // Metrics tracking
+    struct MetricsData {
+        size_t totalCompleted{0};
+        size_t totalFailed{0};
+        float stabilitySum{0.0f};
+        size_t stabilityCount{0};
         std::chrono::system_clock::time_point lastUpdate;
-    };
-    std::unordered_map<std::string, SynthesisState> synthesisStates_;
+    } metrics_;
 
-    // Internal processing
-    bool validateSynthesis(const TraitDefinition &trait,
-                           const std::string &targetForm) const;
-    float calculateSynthesisPotential(const TraitDefinition &trait,
-                                      CatalystType catalystType,
-                                      float intensity) const;
-    void updateSynthesisState(const std::string &traitId,
-                              const SynthesisState &state);
+    // Internal helpers
+    ProcessingResult validateAndPrepare(const TraitDefinition &trait,
+                                        const std::string &targetForm,
+                                        CatalystType catalystType) const;
+
+    void updateMetrics(const ProcessingResult &result);
+    void cleanupCompletedSyntheses();
+    ProcessingResult createResult(bool success, std::string message) const;
 };
 
 } // namespace crescent::traits
