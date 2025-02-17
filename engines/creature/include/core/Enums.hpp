@@ -1,11 +1,9 @@
-#ifndef CREATURE_ENGINE_CORE_BASE_CREATURE_ENUMS_H
-#define CREATURE_ENGINE_CORE_BASE_CREATURE_ENUMS_H
+#ifndef CRUCIBLE_ENGINES_CREATURE_CORE_ENUMS_HPP
+#define CRUCIBLE_ENGINES_CREATURE_CORE_ENUMS_HPP
 
-namespace crescent {
+namespace crucible {
 
-/**
- * @brief Physical characteristics of creatures
- */
+// Physical characteristics
 enum class Size {
     Tiny,    // Insect-sized
     Small,   // Cat-sized
@@ -39,34 +37,7 @@ enum class Locomotion {
     Slitherer   // Serpentine movement
 };
 
-/**
- * @brief Trait and ability classifications
- */
-enum class TraitOrigin {
-    Innate,     // Born with trait
-    Evolved,    // Developed through evolution
-    Synthesized // Gained through synthesis
-};
-
-enum class TraitCategory {
-    Physical,   // Physical attributes
-    Magical,    // Magical capabilities
-    Behavioral, // Behavioral patterns
-    Adaptive,   // Adaptation-focused
-    Synthetic   // Synthesis-derived
-};
-
-enum class AbilityType {
-    Passive,   // Always active
-    Active,    // Must be activated
-    Reactive,  // Triggers in response
-    Sustained, // Requires maintenance
-    Permanent  // Cannot be lost
-};
-
-/**
- * @brief Behavioral characteristics
- */
+// Behavioral characteristics
 enum class Intelligence {
     Mindless, // No intelligence
     Animal,   // Basic intelligence
@@ -89,28 +60,7 @@ enum class SocialStructure {
     Swarm     // Massive groups
 };
 
-/**
- * @brief Adaptation and synthesis tracking
- */
-enum class AdaptationStage {
-    None,       // No adaptation
-    Initial,    // Beginning adaptation
-    Partial,    // Partially adapted
-    Complete,   // Fully adapted
-    Specialized // Beyond full adaptation
-};
-
-enum class SynthesisLevel {
-    Base,      // No synthesis
-    Primary,   // First synthesis
-    Secondary, // Second synthesis
-    Tertiary,  // Third synthesis
-    Quaternary // Final synthesis
-};
-
-/**
- * @brief System event and state tracking
- */
+// Core system events and validation
 enum class CreatureEvent {
     Created,           // Creature creation
     Adapted,           // Adaptation occurred
@@ -131,25 +81,6 @@ enum class ValidationStatus {
     Critical // Fatal issues
 };
 
-/**
- * @brief Change system classifications
- */
-enum class ChangeSource {
-    Environment, // Environmental pressure
-    Evolution,   // Natural evolution
-    Synthesis,   // Synthesis process
-    Stress,      // Stress response
-    Manual,      // Direct modification
-    System       // System-driven change
-};
+} // namespace crucible
 
-enum class ChangePriority {
-    Low = 0,       // Optional changes
-    Normal = 50,   // Standard changes
-    High = 75,     // Important changes
-    Critical = 100 // Must-apply changes
-};
-
-} // namespace crescent
-
-#endif // CREATURE_ENGINE_CORE_BASE_CREATURE_ENUMS_H
+#endif // CRUCIBLE_ENGINES_CREATURE_CORE_ENUMS_HPP

@@ -1,5 +1,5 @@
-#ifndef CREATURE_ENGINE_TRAITS_BASE_TRAIT_DEFINITION_H
-#define CREATURE_ENGINE_TRAITS_BASE_TRAIT_DEFINITION_H
+#ifndef CRUCIBLE_ENGINES_CREATURE_TRAITS_ENUMS_HPP
+#define CRUCIBLE_ENGINES_CREATURE_TRAITS_ENUMS_HPP
 
 #include "creature_engine/io/SerializationStructures.h"
 #include "creature_engine/traits/base/TraitAbility.h"
@@ -12,7 +12,7 @@
 #include <unordered_set>
 #include <vector>
 
-namespace crescent::traits {
+namespace crucible {
 
 /**
  * @brief Defines environmental interaction parameters
@@ -138,6 +138,13 @@ class TraitDefinition::Builder {
     TraitDefinition trait_;
 };
 
-} // namespace crescent::traits
+struct TraitManifestation {
+    std::string description;
+    std::vector<std::string> effects;
+    bool isPermanent;
+    bool requiresStability;
+};
+
+} // namespace crucible
 
 #endif // CREATURE_ENGINE_TRAITS_BASE_TRAIT_DEFINITION_H
