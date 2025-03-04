@@ -13,7 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace crescent::traits {
+namespace crucible {
 
 /**
  * @brief Tracks active effects and modifications to a trait
@@ -112,6 +112,6 @@ class TraitState {
     void notifyStateChanged();
 };
 
-} // namespace crescent::traits
+} // namespace crucible
 
 #endif // CREATURE_ENGINE_TRAITS_STATE_TRAIT_STATE_H
