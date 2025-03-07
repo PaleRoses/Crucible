@@ -1,0 +1,336 @@
+/* Section & Navigation Styles */
+.sections-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  margin-bottom: 5rem;
+  width: 100%;
+  max-width: 800px;
+  position: relative;
+}
+
+.section-wrapper {
+  position: relative;
+  width: 100%;
+  overflow: visible;
+  margin-bottom: 5px;
+  padding-bottom: 5px;
+}
+
+.section-wrapper.expanded-section {
+  z-index: 10;
+}
+
+.section-row {
+  position: relative;
+  height: 6rem;
+  background-color: rgba(15, 15, 15, 0.5);
+  border: 0.5px solid rgba(160, 142, 97, 0.2);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  overflow: hidden;
+  animation: fadeIn 0.8s ease backwards;
+  display: flex;
+  align-items: center;
+  padding-right: 3rem;
+  width: 100%;
+}
+
+.section-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: linear-gradient(to right, rgba(160, 142, 97, 0.7), rgba(160, 142, 97, 0));
+  transition: width 0.6s ease;
+}
+
+.section-row.active {
+  background-color: rgba(20, 20, 20, 0.7);
+  transform: translateX(10px);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3), 0 0 10px rgba(160, 142, 97, 0.15);
+  border-color: rgba(160, 142, 97, 0.4);
+}
+
+.section-row.expanded {
+  background-color: rgba(25, 25, 30, 0.7);
+  border-color: rgba(160, 142, 97, 0.5);
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.4), 0 0 15px rgba(160, 142, 97, 0.2);
+}
+
+.section-row.active::before,
+.section-row.expanded::before {
+  width: 100%;
+}
+
+.section-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+.section-icon-wrapper {
+  width: 90px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.icon-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.section-row.active .icon-container,
+.section-row.expanded .icon-container {
+  transform: scale(1.1);
+}
+
+.section-text {
+  flex: 1;
+  padding-right: 1.5rem;
+}
+
+.section-title {
+  font-size: 1.4rem;
+  margin-bottom: 0.3rem;
+  color: #bfad7f;
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  transition: all 0.3s ease;
+}
+
+.section-row.active .section-title,
+.section-row.expanded .section-title {
+  transform: translateY(-2px);
+}
+
+.section-description {
+  font-size: 0.9rem;
+  color: rgba(224, 224, 224, 0.6);
+  line-height: 1.5;
+  max-width: 90%;
+  font-family: 'Garamond', 'Adobe Caslon Pro', serif;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+}
+
+.expand-indicator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-right: 1rem;
+  transition: transform 0.3s ease;
+  opacity: 0.7;
+}
+
+.expand-indicator.expanded {
+  transform: rotate(180deg);
+  opacity: 1;
+}
+
+.section-row.active .expand-indicator {
+  opacity: 1;
+}
+
+.expand-indicator.small {
+  position: absolute;
+  right: 0;
+  top: 0.75rem;
+  transform: scale(0.8);
+}
+
+.expand-indicator.small.expanded {
+  transform: scale(0.8) rotate(180deg);
+}
+
+.diagonal-cut {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 100%;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.diagonal-cut::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 80px;
+  height: 150%;
+  background-color: #080808;
+  transform: rotate(15deg) translateX(20px);
+}
+
+.diagonal-cut::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 1px;
+  height: 150%;
+  background-color: rgba(160, 142, 97, 0.2);
+  transform: rotate(15deg) translateX(20px);
+}
+
+/* Stable animation wrappers */
+.subsection-animation-wrapper,
+.nested-animation-wrapper {
+  position: relative;
+  width: 100%;
+  overflow: visible;
+}
+
+/* Subsection styles */
+.subsections-container {
+  margin-top: 0.75rem;
+  margin-left: 3rem;
+  position: relative;
+  z-index: 1;
+  padding: 2px;
+}
+
+.subsection-wrapper {
+  position: relative;
+  width: 100%;
+  overflow: visible;
+  margin-bottom: 5px;
+}
+
+.subsection-wrapper.expanded-subsection {
+  z-index: 5;
+}
+
+.subsection-row {
+  background-color: rgba(15, 15, 15, 0.4);
+  border: 1px solid rgba(160, 142, 97, 0.15);
+  border-radius: 3px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.subsection-row.active,
+.subsection-row:hover {
+  background-color: rgba(20, 20, 20, 0.6);
+  border-color: rgba(160, 142, 97, 0.3);
+  transform: translateX(5px);
+}
+
+.subsection-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  position: relative;
+  width: 100%;
+}
+
+.subsection-title {
+  font-size: 1rem;
+  color: #bfad7f;
+  font-weight: 300;
+  margin: 0 0 0.5rem 0;
+  width: 100%;
+}
+
+.subsection-description {
+  font-size: 0.8rem;
+  color: rgba(224, 224, 224, 0.6);
+  margin: 0;
+  width: 100%;
+  display: block;
+}
+
+/* Nested subsection styles */
+.nested-subsections-container {
+  margin-top: 0.5rem;
+  margin-left: 1.5rem;
+  position: relative;
+  z-index: 1;
+  padding: 2px;
+}
+
+.nested-subsection-row {
+  background-color: rgba(15, 15, 15, 0.3);
+  border: 1px solid rgba(160, 142, 97, 0.1);
+  border-radius: 3px;
+  padding: 0.6rem 0.75rem;
+  margin-bottom: 0.4rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nested-subsection-row:hover {
+  background-color: rgba(20, 20, 20, 0.5);
+  border-color: rgba(160, 142, 97, 0.25);
+  transform: translateX(3px);
+}
+
+.nested-subsection-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.nested-subsection-title {
+  font-size: 0.9rem;
+  color: rgba(201, 201, 162, 0.812);
+  font-weight: 300;
+  margin: 0 0 0.4rem 0;
+  width: 100%;
+}
+
+.nested-subsection-description {
+  font-size: 0.75rem;
+  color: rgba(224, 224, 224, 0.6);
+  margin: 0;
+  width: 100%;
+  display: block;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.nested-subsection-row {
+  opacity: 1; /* Ensure no opacity transition in CSS */
+  transform: translateX(0); /* Ensure no transform in CSS by default */
+  animation: none !important; /* Disable any existing CSS animations */
+  transition: background-color 0.3s ease, border-color 0.3s ease; /* Only transition these properties */
+}
+
+.nested-subsection-row:hover {
+  transform: translateX(3px); /* Keep hover effect */
+}
+
+/* Ensure no conflicting animations in the container */
+.nested-subsections-container {
+  animation: none !important;
+}
+
+/* Help accelerate animations with GPU */
+.nested-subsections-container {
+  will-change: opacity, height;
+  transform: translateZ(0);
+}

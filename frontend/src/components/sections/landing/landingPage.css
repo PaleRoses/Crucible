@@ -1,0 +1,92 @@
+.landing-container {
+    position: relative;
+    width: 100vw;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-color: #080808;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    font-family: 'Avenir', 'Avenir Next', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  
+  .content-wrapper {
+    z-index: 2;
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+  
+  .content-wrapper.loaded {
+    opacity: 1;
+  }
+  
+  .content-container {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 4rem 2rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .title-container {
+    text-align: center;
+    margin-bottom: 5rem;
+    width: 100%;
+  }
+  
+  .main-title {
+    font-size: 3.5rem;
+    letter-spacing: 0.25em;
+    margin-bottom: 0.5rem;
+    color: #bfad7f;
+    font-weight: 100;
+    text-transform: uppercase;
+  }
+  
+  .title-divider {
+    height: 1px;
+    width: 150px;
+    background: linear-gradient(to right, rgba(160, 142, 97, 0), rgba(160, 142, 97, 0.6), rgba(160, 142, 97, 0));
+    margin: 0.5rem auto;
+  }
+  
+  .subtitle {
+    font-size: 1.1rem;
+    color: rgba(224, 224, 224, 0.6);
+    font-family: 'Garamond', 'Adobe Caslon Pro', serif;
+    font-style: italic;
+    font-weight: 300;
+    margin-top: 0.75rem;
+    letter-spacing: 0.05em;
+  }
+  
+  /* Responsive Adjustments */
+  @media (max-width: 768px) {
+    .main-title {
+      font-size: 2.5rem;
+      letter-spacing: 0.2em;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .content-container {
+      padding: 2rem 1rem 1rem;
+    }
+    
+    .main-title {
+      font-size: 2rem;
+      letter-spacing: 0.15em;
+    }
+    
+    .subtitle {
+      font-size: 0.85rem;
+    }
+  }
