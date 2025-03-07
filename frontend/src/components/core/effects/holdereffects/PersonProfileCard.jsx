@@ -294,7 +294,7 @@ const CometBorderAnimation = ({ isHovered = false, config = {} }) => {
       
       // Add additional stars along the path
       if (isHovered) {
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 1; i++) {
           const starAngle = cometPositionRef.current + (i * 0.5);
           const starPoint = getPointOnCircle(starAngle);
           
@@ -405,8 +405,8 @@ const PersonProfileCard = ({
     ease: "easeOut"
   },
   cometConfig = {
-    size: 2,
-    trailLength: 140,
+    size: 1,
+    trailLength: 80,
     speed: 0.001
   },
   imagePosition = {
