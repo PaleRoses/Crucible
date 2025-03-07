@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createUseStyles } from 'react-jss';
 
@@ -480,11 +480,7 @@ const useStyles = createUseStyles({
     borderBottom: '1px solid rgba(191, 173, 127, 0.2)',
     marginBottom: '1rem',
   },
-  sectionTitle: {
-    color: '#bfad7f',
-    fontSize: '1.1rem',
-    margin: 0,
-  },
+
   minimizeButton: {
     backgroundColor: 'transparent',
     border: 'none',
@@ -570,145 +566,159 @@ const EvoSimShowcaseBar = ({
   // Refs for draggable sliders
   const sliderRefs = useRef({});
   
-  // Define body shapes
-  const bodyShapes = [
-    { id: 'bipedal', name: 'Bipedal', description: 'Upright forms with manipulative upper limbs' },
-    { id: 'quadrupedal', name: 'Quadrupedal', description: 'Four-limbed forms optimized for stability and movement' },
-    { id: 'serpentine', name: 'Serpentine', description: 'Elongated, limbless forms specialized for flexibility' },
-    { id: 'amorphous', name: 'Amorphous', description: 'Malleable forms without fixed structure' },
-    { id: 'insectoid', name: 'Multi-limbed', description: 'Multi-limbed, segmented forms' },
-    { id: 'avian', name: 'Avian', description: 'Forms optimized for flight and aerial movement' },
-    { id: 'aquatic', name: 'Aquatic', description: 'Forms specialized for water environments' }
-  ];
-  
-  // Define trait categories
-  const traitCategories = [
-    { id: 'locomotion', name: 'Locomotion', color: '#7D6B9E' },
-    { id: 'metabolism', name: 'Metabolism', color: '#5C9D8B' },
-    { id: 'sensory', name: 'Sensory Acuity', color: '#C99846' },
-    { id: 'etheric', name: 'Etheric Adaptation', color: '#B54B4B' },
-    { id: 'thermal', name: 'Thermal Regulation', color: '#A67C52' }
-  ];
-  
-  // Define environmental factors
-  const environmentalFactors = [
-    { 
-      id: 'eldritch_influence', 
-      name: 'Eldritch Influence', 
-      default: 0.5,
-      min: 0,
-      max: 1,
-      minLabel: 'None',
-      maxLabel: 'Overwhelming',
-      color: '#7D6B9E'
-    },
-    { 
-      id: 'corruption_level', 
-      name: 'Corruption Level', 
-      default: 0.5,
-      min: 0,
-      max: 1,
-      minLabel: 'Pure',
-      maxLabel: 'Corrupted',
-      color: '#B54B4B'
-    },
-    { 
-      id: 'resource_scarcity', 
-      name: 'Resource Scarcity', 
-      default: 0.5,
-      min: 0,
-      max: 1,
-      minLabel: 'Abundant',
-      maxLabel: 'Barren',
-      color: '#5C9D8B'
-    },
-    { 
-      id: 'ambient_magic', 
-      name: 'Ambient Magic', 
-      default: 0.5,
-      min: 0,
-      max: 1,
-      minLabel: 'Mundane',
-      maxLabel: 'Saturated',
-      color: '#bfad7f'
-    },
-    { 
-      id: 'darkness', 
-      name: 'Darkness', 
-      default: 0.5,
-      min: 0,
-      max: 1,
-      minLabel: 'Light',
-      maxLabel: 'Dark',
-      color: '#333333'
-    }
-  ];
-  
-  // Sample data for traits (would come from props in real implementation)
-  const traitsByCategory = {
-    locomotion: [
-      { id: 'pseudopods', name: 'Extendable Pseudopods', description: 'Protoplasmic extensions that can be formed at will for movement and manipulation.', probability: 0.82 },
-      { id: 'flowing', name: 'Cytoplasmic Flow', description: 'Coordinated internal cytoplasmic movement enabling directional locomotion.', probability: 0.65 },
-      { id: 'rolling', name: 'Spherical Rolling', description: 'Ability to condense body into a spherical form for rapid movement on flat surfaces.', probability: 0.43 }
-    ],
-    metabolism: [
-      { id: 'omnivore', name: 'Omnivore Adaptation', description: 'Versatile digestive system capable of processing diverse food sources.', probability: 0.76 },
-      { id: 'absorption', name: 'Direct Absorption', description: 'Ability to absorb nutrients directly through cell membranes without specialized organs.', probability: 0.59 },
-      { id: 'photosynthetic', name: 'Photosynthetic Cells', description: 'Cellular structures that can convert light into energy.', probability: 0.37 }
-    ],
-    sensory: [
-      { id: 'omnidirectional', name: 'Omnidirectional Sensing', description: 'Sensory structures distributed throughout the body providing 360° awareness.', probability: 0.68 },
-      { id: 'vibration_detection', name: 'Vibration Detection', description: 'Specialized organs that can detect minute vibrations through various media.', probability: 0.52 },
-      { id: 'ether_sensing', name: 'Ether Sensing', description: 'Specialized organs that can detect and interpret etheric energy patterns.', probability: 0.41 }
-    ],
-    etheric: [
-      { id: 'ether_channeling', name: 'Ether Channeling', description: 'Biological structures capable of directing and manipulating etheric energies.', probability: 0.74 },
-      { id: 'dimensional_anchor', name: 'Dimensional Anchor', description: 'Etheric organ that stabilizes the creature\'s position within reality.', probability: 0.47 },
-      { id: 'etheric_osmosis', name: 'Etheric Osmosis', description: 'Passive absorption of ambient etheric energy to fuel biological processes.', probability: 0.36 }
-    ],
-    thermal: [
-      { id: 'adaptive_membrane', name: 'Adaptive Membrane', description: 'External membrane that adjusts permeability based on environmental temperature.', probability: 0.65 },
-      { id: 'thermal_conversion', name: 'Thermal Conversion', description: 'Cellular structures that convert temperature differentials into usable energy.', probability: 0.39 },
-      { id: 'heat_vents', name: 'Heat Vents', description: 'Specialized structures that can rapidly dissipate excess heat.', probability: 0.28 }
-    ]
-  };
-  
-  // Sample synthesis options
-  const synthesisOptions = [
-    {
-      id: 'reality_weaving',
-      name: 'Reality Weaving',
-      description: 'Ability to manipulate the fabric of reality through precise etheric control, allowing for the creation of temporary structures or effects.',
-      probability: 0.37,
-      requirements: [
-        'Requires Ether Channeling trait',
-        'Requires Dimensional Anchor trait',
-        'Requires Eldritch Influence ({">"}0.7)'
+  // Wrap all static data arrays in useMemo hooks
+  const staticData = useMemo(() => {
+    // Define body shapes
+    const bodyShapes = [
+      { id: 'bipedal', name: 'Bipedal', description: 'Upright forms with manipulative upper limbs' },
+      { id: 'quadrupedal', name: 'Quadrupedal', description: 'Four-limbed forms optimized for stability and movement' },
+      { id: 'serpentine', name: 'Serpentine', description: 'Elongated, limbless forms specialized for flexibility' },
+      { id: 'amorphous', name: 'Amorphous', description: 'Malleable forms without fixed structure' },
+      { id: 'insectoid', name: 'Multi-limbed', description: 'Multi-limbed, segmented forms' },
+      { id: 'avian', name: 'Avian', description: 'Forms optimized for flight and aerial movement' },
+      { id: 'aquatic', name: 'Aquatic', description: 'Forms specialized for water environments' }
+    ];
+    
+    // Define trait categories
+    const traitCategories = [
+      { id: 'locomotion', name: 'Locomotion', color: '#7D6B9E' },
+      { id: 'metabolism', name: 'Metabolism', color: '#5C9D8B' },
+      { id: 'sensory', name: 'Sensory Acuity', color: '#C99846' },
+      { id: 'etheric', name: 'Etheric Adaptation', color: '#B54B4B' },
+      { id: 'thermal', name: 'Thermal Regulation', color: '#A67C52' }
+    ];
+    
+    // Define environmental factors
+    const environmentalFactors = [
+      { 
+        id: 'eldritch_influence', 
+        name: 'Eldritch Influence', 
+        default: 0.5,
+        min: 0,
+        max: 1,
+        minLabel: 'None',
+        maxLabel: 'Overwhelming',
+        color: '#7D6B9E'
+      },
+      { 
+        id: 'corruption_level', 
+        name: 'Corruption Level', 
+        default: 0.5,
+        min: 0,
+        max: 1,
+        minLabel: 'Pure',
+        maxLabel: 'Corrupted',
+        color: '#B54B4B'
+      },
+      { 
+        id: 'resource_scarcity', 
+        name: 'Resource Scarcity', 
+        default: 0.5,
+        min: 0,
+        max: 1,
+        minLabel: 'Abundant',
+        maxLabel: 'Barren',
+        color: '#5C9D8B'
+      },
+      { 
+        id: 'ambient_magic', 
+        name: 'Ambient Magic', 
+        default: 0.5,
+        min: 0,
+        max: 1,
+        minLabel: 'Mundane',
+        maxLabel: 'Saturated',
+        color: '#bfad7f'
+      },
+      { 
+        id: 'darkness', 
+        name: 'Darkness', 
+        default: 0.5,
+        min: 0,
+        max: 1,
+        minLabel: 'Light',
+        maxLabel: 'Dark',
+        color: '#333333'
+      }
+    ];
+    
+    // Sample data for traits (would come from props in real implementation)
+    const traitsByCategory = {
+      locomotion: [
+        { id: 'pseudopods', name: 'Extendable Pseudopods', description: 'Protoplasmic extensions that can be formed at will for movement and manipulation.', probability: 0.82 },
+        { id: 'flowing', name: 'Cytoplasmic Flow', description: 'Coordinated internal cytoplasmic movement enabling directional locomotion.', probability: 0.65 },
+        { id: 'rolling', name: 'Spherical Rolling', description: 'Ability to condense body into a spherical form for rapid movement on flat surfaces.', probability: 0.43 }
+      ],
+      metabolism: [
+        { id: 'omnivore', name: 'Omnivore Adaptation', description: 'Versatile digestive system capable of processing diverse food sources.', probability: 0.76 },
+        { id: 'absorption', name: 'Direct Absorption', description: 'Ability to absorb nutrients directly through cell membranes without specialized organs.', probability: 0.59 },
+        { id: 'photosynthetic', name: 'Photosynthetic Cells', description: 'Cellular structures that can convert light into energy.', probability: 0.37 }
+      ],
+      sensory: [
+        { id: 'omnidirectional', name: 'Omnidirectional Sensing', description: 'Sensory structures distributed throughout the body providing 360° awareness.', probability: 0.68 },
+        { id: 'vibration_detection', name: 'Vibration Detection', description: 'Specialized organs that can detect minute vibrations through various media.', probability: 0.52 },
+        { id: 'ether_sensing', name: 'Ether Sensing', description: 'Specialized organs that can detect and interpret etheric energy patterns.', probability: 0.41 }
+      ],
+      etheric: [
+        { id: 'ether_channeling', name: 'Ether Channeling', description: 'Biological structures capable of directing and manipulating etheric energies.', probability: 0.74 },
+        { id: 'dimensional_anchor', name: 'Dimensional Anchor', description: 'Etheric organ that stabilizes the creature\'s position within reality.', probability: 0.47 },
+        { id: 'etheric_osmosis', name: 'Etheric Osmosis', description: 'Passive absorption of ambient etheric energy to fuel biological processes.', probability: 0.36 }
+      ],
+      thermal: [
+        { id: 'adaptive_membrane', name: 'Adaptive Membrane', description: 'External membrane that adjusts permeability based on environmental temperature.', probability: 0.65 },
+        { id: 'thermal_conversion', name: 'Thermal Conversion', description: 'Cellular structures that convert temperature differentials into usable energy.', probability: 0.39 },
+        { id: 'heat_vents', name: 'Heat Vents', description: 'Specialized structures that can rapidly dissipate excess heat.', probability: 0.28 }
       ]
-    },
-    {
-      id: 'dimensional_fluidity',
-      name: 'Dimensional Fluidity',
-      description: 'Ability to flow between dimensional planes, existing partially in multiple realities simultaneously, providing unique sensory and defensive capabilities.',
-      probability: 0.19,
-      requirements: [
-        'Requires Cytoplasmic Flow trait',
-        'Requires Ether Channeling trait',
-        'Requires prolonged exposure to high Eldritch Influence'
-      ]
-    },
-    {
-      id: 'perfect_mimicry',
-      name: 'Perfect Mimicry',
-      description: 'Complete assimilation of consumed entities, including memories, abilities, and physical characteristics, enabling perfect disguise and adaptation.',
-      probability: 0.23,
-      requirements: [
-        'Requires Omnivore Adaptation trait',
-        'Requires Extendable Pseudopods trait',
-        'Requires Resource Scarcity ({">"}0.6)'
-      ]
-    }
-  ];
+    };
+    
+    // Sample synthesis options
+    const synthesisOptions = [
+      {
+        id: 'reality_weaving',
+        name: 'Reality Weaving',
+        description: 'Ability to manipulate the fabric of reality through precise etheric control, allowing for the creation of temporary structures or effects.',
+        probability: 0.37,
+        requirements: [
+          'Requires Ether Channeling trait',
+          'Requires Dimensional Anchor trait',
+          'Requires Eldritch Influence ({">"}0.7)'
+        ]
+      },
+      {
+        id: 'dimensional_fluidity',
+        name: 'Dimensional Fluidity',
+        description: 'Ability to flow between dimensional planes, existing partially in multiple realities simultaneously, providing unique sensory and defensive capabilities.',
+        probability: 0.19,
+        requirements: [
+          'Requires Cytoplasmic Flow trait',
+          'Requires Ether Channeling trait',
+          'Requires prolonged exposure to high Eldritch Influence'
+        ]
+      },
+      {
+        id: 'perfect_mimicry',
+        name: 'Perfect Mimicry',
+        description: 'Complete assimilation of consumed entities, including memories, abilities, and physical characteristics, enabling perfect disguise and adaptation.',
+        probability: 0.23,
+        requirements: [
+          'Requires Omnivore Adaptation trait',
+          'Requires Extendable Pseudopods trait',
+          'Requires Resource Scarcity ({">"}0.6)'
+        ]
+      }
+    ];
+    
+    return {
+      bodyShapes,
+      traitCategories,
+      environmentalFactors,
+      traitsByCategory,
+      synthesisOptions
+    };
+  }, []); // Empty dependency array means this will only be calculated once
+  
+  // The rest of your component code, just updated to reference the memoized data
+  // e.g., staticData.bodyShapes instead of bodyShapes
   
   // Toggle minimize state for a section
   const toggleSectionMinimize = (section) => {
@@ -724,14 +734,14 @@ const EvoSimShowcaseBar = ({
     let stressSum = 0;
     let count = 0;
     
-    environmentalFactors.forEach(factor => {
+    staticData.environmentalFactors.forEach(factor => {
       const value = environment[factor.id] !== undefined ? environment[factor.id] : factor.default;
       stressSum += value;
       count++;
     });
     
     setEffectiveStress(count > 0 ? stressSum / count : 0);
-  }, [environment, environmentalFactors]);
+  }, [environment, staticData.environmentalFactors]);
   
   // Handle body shape selection
   const handleBodyShapeSelect = (shapeId) => {
@@ -755,7 +765,7 @@ const EvoSimShowcaseBar = ({
     if (!sliderRefs.current[factorId]) return;
     
     const sliderRect = sliderRefs.current[factorId].getBoundingClientRect();
-    const factor = environmentalFactors.find(f => f.id === factorId);
+    const factor = staticData.environmentalFactors.find(f => f.id === factorId);
     
     if (!factor) return;
     
@@ -790,7 +800,7 @@ const EvoSimShowcaseBar = ({
     e.preventDefault(); // Prevent text selection during drag
     
     const sliderRect = sliderRefs.current[draggedFactor].getBoundingClientRect();
-    const factor = environmentalFactors.find(f => f.id === draggedFactor);
+    const factor = staticData.environmentalFactors.find(f => f.id === draggedFactor);
     
     if (!factor) return;
     
@@ -835,7 +845,7 @@ const EvoSimShowcaseBar = ({
     
     const touch = e.touches[0];
     const sliderRect = sliderRefs.current[draggedFactor].getBoundingClientRect();
-    const factor = environmentalFactors.find(f => f.id === draggedFactor);
+    const factor = staticData.environmentalFactors.find(f => f.id === draggedFactor);
     
     if (!factor) return;
     
@@ -871,7 +881,7 @@ const EvoSimShowcaseBar = ({
   
   // Get selected body shape name
   const getSelectedBodyShapeName = () => {
-    const shape = bodyShapes.find(shape => shape.id === selectedBodyShape);
+    const shape = staticData.bodyShapes.find(shape => shape.id === selectedBodyShape);
     return shape ? shape.name : 'Select Body Shape';
   };
   
@@ -999,7 +1009,7 @@ const EvoSimShowcaseBar = ({
                   transition={{ duration: 0.2 }}
                   role="listbox"
                 >
-                  {bodyShapes.map(shape => (
+                  {staticData.bodyShapes.map(shape => (
                     <div 
                       key={shape.id}
                       className={`${classes.menuItem} ${selectedBodyShape === shape.id ? classes.menuItemActive : ''}`}
@@ -1031,7 +1041,7 @@ const EvoSimShowcaseBar = ({
               aria-expanded={showFilterMenu}
             >
               <span>{!selectedCategory ? 'All Categories' : 
-                traitCategories.find(c => c.id === selectedCategory)?.name || 'All Categories'}</span>
+                staticData.traitCategories.find(c => c.id === selectedCategory)?.name || 'All Categories'}</span>
               <span>▼</span>
             </button>
             
@@ -1054,7 +1064,7 @@ const EvoSimShowcaseBar = ({
                     <div className={classes.menuItemName}>All Categories</div>
                   </div>
                   
-                  {traitCategories.map(category => (
+                  {staticData.traitCategories.map(category => (
                     <div 
                       key={category.id}
                       className={`${classes.menuItem} ${selectedCategory === category.id ? classes.menuItemActive : ''}`}
@@ -1117,6 +1127,7 @@ const EvoSimShowcaseBar = ({
         </div>
       </div>
       
+      {/* Rest of the component (tabs, content panels, etc.) using references to staticData */}
       {/* Main content tabs */}
       <div className={classes.mainTabs}>
         <button 
@@ -1169,7 +1180,7 @@ const EvoSimShowcaseBar = ({
                       All Categories
                     </button>
                     
-                    {traitCategories.map(category => (
+                    {staticData.traitCategories.map(category => (
                       <button 
                         key={category.id}
                         className={`${classes.categoryButton} ${selectedCategory === category.id ? classes.categoryButtonActive : ''}`}
@@ -1183,7 +1194,7 @@ const EvoSimShowcaseBar = ({
                   </div>
                   
                   <div className={classes.traitsContainer}>
-                    {traitCategories
+                    {staticData.traitCategories
                       .filter(category => selectedCategory === null || selectedCategory === category.id)
                       .map(category => (
                       <div className={classes.categorySection} key={category.id}>
@@ -1196,7 +1207,7 @@ const EvoSimShowcaseBar = ({
                         </div>
                         
                         <div className={classes.traitCards}>
-                          {traitsByCategory[category.id].map(trait => (
+                          {staticData.traitsByCategory[category.id].map(trait => (
                             <div 
                               key={trait.id}
                               className={`${classes.traitCard} ${selectedTraits[category.id] === trait.id ? classes.traitCardActive : ''}`}
@@ -1241,10 +1252,10 @@ const EvoSimShowcaseBar = ({
                 >
                   <div className={classes.environmentGrid}>
                     <div>
-                      {environmentalFactors.slice(0, 3).map(factor => renderEnvironmentalSlider(factor))}
+                      {staticData.environmentalFactors.slice(0, 3).map(factor => renderEnvironmentalSlider(factor))}
                     </div>
                     <div>
-                      {environmentalFactors.slice(3).map(factor => renderEnvironmentalSlider(factor))}
+                      {staticData.environmentalFactors.slice(3).map(factor => renderEnvironmentalSlider(factor))}
                       
                       <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: 'rgba(30, 30, 40, 0.4)', borderRadius: '4px' }}>
                         <h3 style={{ color: '#bfad7f', margin: '0 0 1rem 0', fontSize: '1.1rem' }}>Environmental Stress</h3>
@@ -1308,7 +1319,7 @@ const EvoSimShowcaseBar = ({
                   transition={{ duration: 0.3 }}
                 >
                   <div className={classes.synthesisContainer}>
-                    {synthesisOptions.map(synthesis => (
+                    {staticData.synthesisOptions.map(synthesis => (
                       <div className={classes.synthesisCard} key={synthesis.id}>
                         <div className={classes.synthesisHeader}>
                           <h3 className={classes.synthesisTitle}>{synthesis.name}</h3>

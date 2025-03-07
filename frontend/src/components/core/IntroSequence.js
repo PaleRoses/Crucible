@@ -188,9 +188,17 @@ const IntroSequence = ({ showIntro, setShowIntro, setIsLoaded }) => {
   const [quoteVisible, setQuoteVisible] = useState(false);
   const [currentQuote, setCurrentQuote] = useState(null);
   const [animationActive, setAnimationActive] = useState(false);
+
+
+  // Handle animation completion
+  const handleAnimationComplete = () => {
+    console.log('Comet animation completed');
+  };
   
-  // Quotes data
-  const quotes = [
+ // Setup intro sequence
+useEffect(() => {
+   // Quotes data
+   const quotes = [
     {
       text: "My candle burns at both ends;\nIt will not last the night;\nBut, ah my foes, and\noh my friend —\nit gives a\nlovely\nlight",
       author: "Edna St. Vincent Millay"
@@ -225,34 +233,27 @@ const IntroSequence = ({ showIntro, setShowIntro, setIsLoaded }) => {
     },
   ];
 
-  // Handle animation completion
-  const handleAnimationComplete = () => {
-    console.log('Comet animation completed');
-  };
-  
-  // Setup intro sequence
-  useEffect(() => {
-    if (showIntro) {
-      // Select a random quote
-      const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
-      setCurrentQuote(randomQuote);
-      
-      // Sequence timing
-      setTimeout(() => setAnimationActive(true), 150);
-      setTimeout(() => setQuoteVisible(true), 350);
-      setTimeout(() => {
-        setAnimationActive(false); // Trigger fade-out
-        setQuoteVisible(false);
-        // Start fade out of intro
-        const introElement = document.querySelector('.intro-sequence');
-        if (introElement) introElement.classList.add('fade-out');
-      }, 2000);
-      setTimeout(() => {
-        setShowIntro(false);
-        setIsLoaded(true);
-      }, 2500);
-    }
-  }, [showIntro, setShowIntro, setIsLoaded]);
+  if (showIntro) {
+    // Select a random quote
+    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+    setCurrentQuote(randomQuote);
+    
+    // Sequence timing
+    setTimeout(() => setAnimationActive(true), 150);
+    setTimeout(() => setQuoteVisible(true), 350);
+    setTimeout(() => {
+      setAnimationActive(false); // Trigger fade-out
+      setQuoteVisible(false);
+      // Start fade out of intro
+      const introElement = document.querySelector('.intro-sequence');
+      if (introElement) introElement.classList.add('fade-out');
+    }, 2000);
+    setTimeout(() => {
+      setShowIntro(false);
+      setIsLoaded(true);
+    }, 2500);
+  }
+}, [showIntro, setShowIntro, setIsLoaded  ]);
   
   // Skip intro
   const handleSkipIntro = () => {

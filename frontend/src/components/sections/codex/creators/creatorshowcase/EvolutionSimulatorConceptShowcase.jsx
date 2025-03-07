@@ -5,16 +5,6 @@ import MeteorShower from '../../../../core/effects/cosmiceffects/MeteorShower';
 import EvoSimShowCaseBar from './evosimutils/EvoSimShowcaseBar';
 
 const useStyles = createUseStyles({
-  evolutionSimulator: {
-    position: 'relative',
-    width: '100%',
-    height: '100vh',
-    overflow: 'hidden',
-    color: '#e0e0e0',
-    fontFamily: '"Garamond", "Adobe Caslon Pro", serif',
-    display: 'flex',
-    flexDirection: 'column'
-  },
   
   visualizationContainer: {
     position: 'relative',
