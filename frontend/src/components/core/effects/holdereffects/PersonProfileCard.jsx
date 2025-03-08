@@ -190,7 +190,7 @@ const useStyles = createUseStyles({
   statValue: {
     fontSize: '2.5rem',
     color: 'rgba(191, 173, 127, 0.9)',
-    fontWeight: 300
+    fontWeight: 100
   },
   statLabel: {
     fontSize: '0.85rem',
