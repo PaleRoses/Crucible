@@ -30,8 +30,8 @@ const Background = ({ config = {} }) => {
   
   // Use spring physics for smoother scrolling effect
   const springScrollY = useSpring(scrollY, {
-    stiffness: 2,
-    damping: 25,
+    stiffness: 1,
+    damping: 5,
     mass: 0.5,
     restDelta: 0.001,
     restSpeed: 0.001
@@ -50,11 +50,11 @@ const Background = ({ config = {} }) => {
   // Merge default config with user-provided config
   const CONFIG = useMemo(() => ({
     // Star appearance
-    starCount: 200,
-    starSizeMin: 0.8,
-    starSizeMax: 2.5,
-    starOpacityMin: 0.15,
-    starOpacityMax: 0.85,
+    starCount: 100,
+    starSizeMin: 1.0,
+    starSizeMax: 1.9,
+    starOpacityMin: 0.2,
+    starOpacityMax: 0.55,
     
     // Parallax and movement parameters
     baseMovementSpeed: 0.00001,  // Reduced for slower movement
@@ -586,6 +586,10 @@ const Background = ({ config = {} }) => {
         
         // Apply damping to velocity
         star.velocity *= CONFIG.dampingFactor;
+        
+        // Add velocity clamping to prevent extreme bouncing
+        const maxVelocity = 1.0; // Maximum allowed velocity
+        star.velocity = Math.max(-maxVelocity, Math.min(maxVelocity, star.velocity));
         
         // Update position based on velocity (for parallax)
         star.y += star.velocity;

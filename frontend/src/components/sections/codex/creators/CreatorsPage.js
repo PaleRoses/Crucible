@@ -29,10 +29,10 @@ const CreatorsPage = () => {
   // Creator profile data
   const creatorData = {
     name: "Rosalia Fialkova",
-    role: "Systems Designer & Technical Artist",
+    role: "Aspiring Systems Designer & Technical Artist",
     image: "/assets/images/creators/rosalia.png",
     bio: [
-      "I blend software engineering knowledge with creative vision. I'm in my element when I'm crafting high-quality, reusable (I hate seeing a good program not find mulitiple homes!) systems across frontend interfaces and backend architectures. Combining mathematical modeling with aesthetic intuition and developing modular components is fun!",
+      "I aspire to blend software engineering knowledge with creative vision. I'm in my element when I'm crafting high-quality, reusable (I hate seeing a good program not find mulitiple homes!) systems across frontend interfaces and backend architectures. Combining mathematical modeling with aesthetic intuition and developing modular components is fun!",
       "My personal projects merge the scientific principles of evolution and adaptation with mythological themes of rebirth and renewal. I create 'things' that are both mechanically sound and narratively compelling, allowing users to explore complex themes through immersive experiences."
     ],
     stats: [
@@ -64,10 +64,10 @@ const CreatorsPage = () => {
     {
       id: "crucible",
       title: "Evolution Simulator",
-      description: "A concept piece for my simulation system modeling trait-driven evolution within a dark fantasy framework. Click to see more!",
+      description: "A concept piece for my simulation system modeling trait-driven evolution within a dark fantasy framework. This isn't done yet!",
       image: "/assets/images/backgrounds/Jellyfish.png",
       path: "/codex/creators/creatorshowcase/EvolutionSimulatorConceptShowcase",
-      tags: ["C++", "Data Modeling", "REST API", "Procedural Generation", "Complex Systems"]
+      tags: ["C++ (SOON)", "Data Modeling", "REST API", "Procedural Generation",]
     }
   ];
   
@@ -110,7 +110,7 @@ const CreatorsPage = () => {
       {/* Meteor Shower Effect */}
       {showMeteors && (
         <MeteorShower 
-        height="100vh"
+        height="200vh"
         zIndex={3}
         trailColor="rgba(191, 173, 127, 0.8)"
         glowColor="rgba(207, 185, 130, 0.6)"   
@@ -118,13 +118,13 @@ const CreatorsPage = () => {
         
         // Meteor configuration
         meteorDensity={12}
-        meteorMinSize={0.8}          // Smaller meteors
-        meteorMaxSize={1.6}          // Smaller maximum size
-        meteorSpeed={0.08}
+        meteorMinSize={0.8}          
+        meteorMaxSize={2.0}          
+        meteorSpeed={0.04}
         
         // Trail configuration
         trailLength={400}
-        trailSegments={120}           // Reduced from 120 for better performance
+        trailSegments={200}           
         
         // Parallax and animation
         enableParallax={true}
@@ -135,9 +135,9 @@ const CreatorsPage = () => {
         angleVariation={15}
         
         // Burst configuration - more subtle
-        burstParticleSize={1}        // Half the default size
+        burstParticleSize={2}        // Half the default size
         burstParticleCount={8}       // Fewer particles
-        burstProbability={0.25}      // Fewer meteors will burst
+        burstProbability={0.55}      
         />
       )}
       

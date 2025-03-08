@@ -19,7 +19,7 @@
   .crescent-creators-page__content {
     position: relative;
     z-index: 2;
-    padding-top: 45vh; /* Increased from 5vh to 45vh to add significant space above the title */
+    padding-top: 110vh; /* Increased from 5vh to 45vh to add significant space above the title */
   }
   
   /* ==========================================
@@ -112,7 +112,7 @@
     margin: 0 auto;
     line-height: 1.6;
     font-family: 'Garamond', 'Adobe Caslon Pro', serif;
-    font-weight: 300;
+    font-weight: 10;
   }
   
   /* ==========================================
