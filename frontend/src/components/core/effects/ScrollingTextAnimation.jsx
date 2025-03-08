@@ -1,7 +1,8 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
+import React, { useRef, useEffect, useMemo, useCallback, useState } from 'react';
+import { motion, useScroll, useTransform, useSpring, useReducedMotion } from 'framer-motion';
 import { createUseStyles } from 'react-jss';
 
+// Optimized styles with simplified GPU acceleration properties
 const useStyles = createUseStyles({
   animatedContainer: {
     position: 'relative',
@@ -10,14 +11,10 @@ const useStyles = createUseStyles({
     margin: props => props.margin || '0 0 3rem 0',
     zIndex: 2,
     willChange: 'transform, opacity',
-    backfaceVisibility: 'hidden', // Prevents flickering in some browsers
-    perspective: 1000, // Improves GPU acceleration
-    transform: 'translate3d(0,0,0)', // Force GPU rendering
-    '-webkit-font-smoothing': 'antialiased', // Sharper text rendering
-    '-moz-osx-font-smoothing': 'grayscale', // Sharper text rendering
-    // Disable subpixel rendering to eliminate trailing artifacts
-    '-webkit-transform-style': 'preserve-3d',
-    transformStyle: 'preserve-3d',
+    // Streamlined GPU acceleration properties to avoid layer conflicts
+    transform: 'translate3d(0,0,0)',
+    backfaceVisibility: 'hidden',
+    '-webkit-font-smoothing': 'antialiased',
   },
   content: {
     width: '100%',
@@ -60,83 +57,79 @@ const ScrollingTextAnimation = ({
     opacityValues = [1, 0.95, 0.9],
     opacityScrollPositions = [startPosition, endPosition, endPosition + 100],
     reverseDirection = false,
-    throttleAmount = 0, // Disable throttling for maximum frame updates
-    enableReducedMotion = true, // Respect user's reduced motion preferences
-    disableOnMobile = false // Option to disable complex animations on mobile
+    // Enhanced spring configuration for smoother, higher framerate animations
+    springConfig = {
+      stiffness: 50,      // Lower stiffness for smoother motion
+      damping: 25,        // Balanced damping 
+      mass: 0.5,          // Slightly higher mass for momentum
+      restDelta: 0.001,   // Higher precision for position
+      restSpeed: 0.001,   // Higher precision for velocity
+    },
+    maxVelocity = 2000,   // Maximum velocity cap (pixels per second)
+    disableOnMobile = false
   } = scrollConfig;
 
-  const containerRef = useRef(null);
+  // Use Framer Motion's built-in reduced motion hook
+  const prefersReducedMotion = useReducedMotion();
+  
+  // Single state to track if in view (more efficient than multiple states)
   const [isInView, setIsInView] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   
-  // Calculate the actual Y values considering direction
-  const yInputRange = [startPosition, endPosition];
-  const yOutputRange = reverseDirection ? [finalY, initialY] : [initialY, finalY];
+  // Ref for the container element
+  const containerRef = useRef(null);
   
-  // Detect mobile devices and motion preferences
+  // Check if we should use mobile mode (using a ref to avoid rerenders)
+  const isMobileRef = useRef(false);
+  
+  // Initialize and update mobile detection
   useEffect(() => {
-    // Check for mobile devices
-    const checkMobile = () => {
-      setIsMobile(
-        typeof window !== 'undefined' && 
-        (window.innerWidth <= 768 || 
-         /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent))
-      );
-    };
+    if (typeof window === 'undefined') return;
     
-    // Check for reduced motion preference
-    const checkReducedMotion = () => {
-      setPrefersReducedMotion(
-        typeof window !== 'undefined' && 
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      );
+    const checkMobile = () => {
+      isMobileRef.current = 
+        window.innerWidth <= 768 || 
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     };
     
     checkMobile();
-    checkReducedMotion();
     
-    // Update on resize
     const handleResize = () => {
       checkMobile();
     };
     
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', handleResize);
-      
-      // Clean up
-      return () => {
-        window.removeEventListener('resize', handleResize);
-      };
-    }
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
   
-  // Custom high-precision scroll tracking
+  // Determine if simplified animations should be used
+  const shouldUseSimplifiedAnimations = useMemo(() => {
+    return prefersReducedMotion || (disableOnMobile && isMobileRef.current);
+  }, [prefersReducedMotion, disableOnMobile]);
+  
+  // Optimized scroll tracking with improved performance
   const { scrollY } = useScroll({
-    container: typeof window !== 'undefined' ? window : undefined,
-    layoutEffect: false,
-    offset: ['start', 'end'],
-    throttleDelay: throttleAmount,
-    smooth: 0.05 // Add slight smoothing to prevent jitter without reducing frame rate
+    smooth: 0.05  // Smoother scrolling for high-framerate animations
   });
   
-  // Create high-precision transform values with physics-based smoothing
+  // Create transformed Y value from scroll position
   const rawTranslateY = useTransform(
     scrollY,
-    yInputRange,
-    yOutputRange,
+    [startPosition, endPosition],
+    reverseDirection ? [finalY, initialY] : [initialY, finalY],
     { clamp: clampValues }
   );
   
-  // Optional spring physics for smoother motion without trailing
-  // Low stiffness and damping provide smoothing without visible lag
+  // Apply velocity limiting to the spring for more controlled animations
   const translateY = useSpring(rawTranslateY, {
-    stiffness: 1000,
-    damping: 100,
-    mass: 0.2
+    ...springConfig,
+    // Add velocity limiter function to cap maximum speed
+    velocity: current => Math.min(Math.max(current, -maxVelocity), maxVelocity)
   });
   
-  // Create opacity transform with same approach
+  // Create opacity animation with the same optimized approach
   const rawOpacity = useTransform(
     scrollY,
     opacityScrollPositions,
@@ -144,52 +137,48 @@ const ScrollingTextAnimation = ({
     { clamp: clampValues }
   );
   
-  const opacity = useSpring(rawOpacity, {
-    stiffness: 1000,
-    damping: 100,
-    mass: 0.2
-  });
+  const opacity = useSpring(rawOpacity, springConfig);
   
-  // Highly optimized intersection observer setup
+  // Optimized intersection observer with frame synchronization
   useEffect(() => {
     if (!containerRef.current || typeof IntersectionObserver === 'undefined') return;
     
-    // Store the current ref value to avoid closure issues
+    let animationFrameId = null;
     const currentRef = containerRef.current;
     
-    // Create observer with optimized settings
     const observer = new IntersectionObserver(
       entries => {
-        entries.forEach(entry => {
-          // Use requestAnimationFrame to sync with browser render cycle
-          requestAnimationFrame(() => {
-            setIsInView(entry.isIntersecting);
-          });
+        // Cancel any pending frame
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+        }
+        
+        // Schedule update on next animation frame for better synchronization
+        animationFrameId = requestAnimationFrame(() => {
+          if (entries[0]) {
+            setIsInView(entries[0].isIntersecting);
+          }
         });
       },
       {
         root: null,
-        // Larger rootMargin to start animations before element comes into view
-        rootMargin: '100px 0px',
+        rootMargin: '20% 0%', // Larger margin to start animation earlier
         threshold: 0.1
       }
     );
     
     observer.observe(currentRef);
     
-    // Cleanup using captured ref value
     return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
       observer.unobserve(currentRef);
     };
   }, []);
   
-  // Determine if we should use simplified animations
-  const shouldUseSimplifiedAnimations = 
-    (enableReducedMotion && prefersReducedMotion) || 
-    (disableOnMobile && isMobile);
-  
   // Create styles for component
-  const styleProps = {
+  const styleProps = useMemo(() => ({
     textAlign,
     margin,
     showDivider,
@@ -197,42 +186,43 @@ const ScrollingTextAnimation = ({
     dividerHeight,
     dividerBackground,
     dividerMargin
-  };
+  }), [textAlign, margin, showDivider, dividerWidth, dividerHeight, dividerBackground, dividerMargin]);
   
   const classes = useStyles(styleProps);
   
-  // Memoize style calculations to prevent recalculations on every render
-  const getAnimationStyle = useCallback(() => {
+  // Memoize animation style to prevent recalculations
+  const animationStyle = useMemo(() => {
+    // No animation if not in view
     if (!isInView) {
-      // Initial static position when not in view
       return {
         y: reverseDirection ? finalY : initialY,
-        opacity: opacityValues[0],
+        opacity: opacityValues[0]
       };
     }
     
+    // Simplified animation for reduced motion or mobile
     if (shouldUseSimplifiedAnimations) {
-      // Simplified animation for reduced motion or mobile
       return {
         y: finalY,
         opacity: 1,
         transition: {
           duration: 0.5,
-          ease: [0.25, 0.1, 0.25, 1.0], // Cubic bezier for smooth easing
+          ease: [0.25, 0.1, 0.25, 1.0]
         }
       };
     }
     
-    // Full animation with GPU acceleration
+    // Full high-performance animation
     return {
       y: translateY,
-      opacity: opacity,
-      // Remove explicit transition to eliminate trailing effect
-      // This allows direct position updates without interpolation artifacts
+      opacity: opacity
     };
   }, [isInView, shouldUseSimplifiedAnimations, translateY, opacity, reverseDirection, finalY, initialY, opacityValues]);
   
-  const animationStyle = getAnimationStyle();
+  // Optimized transform template for GPU rendering
+  const optimizedTransformTemplate = useCallback((_, transform) => {
+    return `${transform} translateZ(0)`;
+  }, []);
   
   return (
     <motion.div 
@@ -242,12 +232,7 @@ const ScrollingTextAnimation = ({
         ...style,
         ...animationStyle,
       }}
-      // Additional Framer Motion optimizations
-      transformTemplate={(_, transform) => `${transform} translateZ(0)`}
-      layoutId={undefined} // Prevent layout animations
-      initial={false} // Disable initial animation to prevent flashing
-      skipExitTransition={true} // Skip exit transitions
-      forceFallback={true} // Force consistent rendering approach
+      transformTemplate={optimizedTransformTemplate}
     >
       <div className={classes.content}>
         {children}

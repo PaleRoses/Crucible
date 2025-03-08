@@ -33,7 +33,7 @@ const CreatorsPage = () => {
     role: "Systems Designer & Technical Artist",
     image: "/assets/images/creators/rosalia.png",
     bio: [
-      "I blend software engineering knowledge with creative vision. I'm in my element when I'm crafting high-quality, reusable (I hate seeing a good program not find mulitiple homes!) systems across frontend interfaces and backend architectures. Combining mathematical modeling with aesthetic intuition and developing modular components is fun!.",
+      "I blend software engineering knowledge with creative vision. I'm in my element when I'm crafting high-quality, reusable (I hate seeing a good program not find mulitiple homes!) systems across frontend interfaces and backend architectures. Combining mathematical modeling with aesthetic intuition and developing modular components is fun!",
       "My personal projects merge the scientific principles of evolution and adaptation with mythological themes of rebirth and renewal. I create 'things' that are both mechanically sound and narratively compelling, allowing users to explore complex themes through immersive experiences."
     ],
     stats: [
@@ -115,23 +115,34 @@ const CreatorsPage = () => {
       {/* Meteor Shower Effect */}
       {showMeteors && (
         <MeteorShower 
-          height="100vh"
-          zIndex={3}
-          trailColor="rgba(191, 173, 127, 0.8)"
-          glowColor="rgba(207, 185, 130, 0.6)"   
-          coreColor="rgba(255, 248, 220, 1)"
-          meteorDensity={8}
-          meteorMinSize={1}
-          meteorMaxSize={2}
-          meteorSpeed={0.08}
-          trailLength={400}
-          trailSegments={120}
-          enableParallax={true}
-          parallaxIntensity={0.10}
-          mode="linear"           // Switch to linear mode
-          direction="top"        
-          baseAngle={30}          // Base angle for meteors (degrees)
-          angleVariation={15}     // Add randomness to the angle
+        height="100vh"
+        zIndex={3}
+        trailColor="rgba(191, 173, 127, 0.8)"
+        glowColor="rgba(207, 185, 130, 0.6)"   
+        coreColor="rgba(255, 248, 220, 1)"
+        
+        // Meteor configuration
+        meteorDensity={12}
+        meteorMinSize={0.8}          // Smaller meteors
+        meteorMaxSize={1.6}          // Smaller maximum size
+        meteorSpeed={0.08}
+        
+        // Trail configuration
+        trailLength={400}
+        trailSegments={60}           // Reduced from 120 for better performance
+        
+        // Parallax and animation
+        enableParallax={true}
+        parallaxIntensity={0.10}
+        mode="linear"
+        direction="top"
+        baseAngle={30}
+        angleVariation={15}
+        
+        // Burst configuration - more subtle
+        burstParticleSize={1}        // Half the default size
+        burstParticleCount={8}       // Fewer particles
+        burstProbability={0.25}      // Fewer meteors will burst
         />
       )}
       
