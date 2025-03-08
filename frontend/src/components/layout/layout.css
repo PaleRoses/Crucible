@@ -1,0 +1,28 @@
+/* Layout.css */
+.app-container {
+    position: relative;
+    min-height: 100vh;
+  }
+  
+  .app-content {
+    transition: opacity 300ms ease;
+  }
+  
+  /* Optional: Add these classes if you implement transition animations */
+  .fade-enter {
+    opacity: 0;
+  }
+  
+  .fade-enter-active {
+    opacity: 1;
+    transition: opacity 300ms ease-in;
+  }
+  
+  .fade-exit {
+    opacity: 1;
+  }
+  
+  .fade-exit-active {
+    opacity: 0;
+    transition: opacity 300ms ease-out;
+  }

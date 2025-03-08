@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createUseStyles } from 'react-jss';
-import Background from '../../../../core/Background';
+import Background from '../../../../layout/Background';
 import MeteorShower from '../../../../core/effects/cosmiceffects/MeteorShower';
 import EvoSimShowCaseBar from './evosimutils/EvoSimShowcaseBar';
 

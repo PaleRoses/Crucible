@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import './landingPage.css';
 
 // Import components
-import Background from '../../core/Background';
+import Background from '../../layout/Background';
 import IntroSequence from '../../core/IntroSequence';
 import LandingNavigation from './LandingNavigation';
 import LandingFooter from './LandingFooter';
@@ -12,7 +12,6 @@ const LandingPage = () => {
   const [activeSection, setActiveSection] = useState(null);
   const [expandedSection, setExpandedSection] = useState(null);
   const [expandedSubsection, setExpandedSubsection] = useState(null);
-  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   const [isLoaded, setIsLoaded] = useState(false);
   const [showIntro, setShowIntro] = useState(true); // Always show intro by default
   const [animatingLayout, setAnimatingLayout] = useState(false);
@@ -98,23 +97,15 @@ const LandingPage = () => {
       path: "/characters"
     }
   ];
-  
-  // Track mouse movement
-  const handleMouseMove = (e) => {
-    setCursorPosition({ x: e.clientX, y: e.clientY });
-  };
+
 
   return (
     <div 
       className="landing-container"
-      onMouseMove={handleMouseMove}
       onClick={showIntro ? () => setShowIntro(false) : undefined}
     >
       {/* Background */}
-      <Background 
-        cursorPosition={cursorPosition} 
-        setCursorPosition={setCursorPosition} 
-      />
+      <Background/>
       
       {/* Intro Sequence */}
       <IntroSequence 

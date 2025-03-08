@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useInView } from 'framer-motion';
-import Background from '../../../core/Background';
+import Background from '../../../layout/Background';
 import RevealText from '../../../core/effects/RevealText';
 import ProjectCard from '../../../core/effects/ProjectCard';
 import PersonProfileCard from '../../../core/effects/holdereffects/PersonProfileCard';
@@ -13,14 +13,13 @@ import './creatorsPage.css';
  * 
  * Main component for the Creator profile page featuring:
  * - Scroll-based title animation with configurable parameters
- * - Background with mouse-based parallax effect
+ * - Background!
  * - Animated sections that reveal on scroll
  * - Meteor shower effect in the header area
  */
 const CreatorsPage = () => {
   // State management
   const [isLoaded, setIsLoaded] = useState(false);
-  const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
   const [showMeteors] = useState(true);
   
   // References for elements and animations
@@ -89,10 +88,7 @@ const CreatorsPage = () => {
     threshold: 0.2 
   });
   
-  // Track mouse position for parallax background effect
-  const handleMouseMove = (e) => {
-    setCursorPosition({ x: e.clientX, y: e.clientY });
-  };
+
   
   // Initialize loaded state after a short delay
   useEffect(() => {
@@ -107,10 +103,9 @@ const CreatorsPage = () => {
   return (
     <div 
       className="crescent-creators-page"
-      onMouseMove={handleMouseMove}
     >
       {/* Background component with interactive stars */}
-      <Background cursorPosition={cursorPosition} setCursorPosition={setCursorPosition} />
+      <Background />
       
       {/* Meteor Shower Effect */}
       {showMeteors && (
@@ -129,7 +124,7 @@ const CreatorsPage = () => {
         
         // Trail configuration
         trailLength={400}
-        trailSegments={60}           // Reduced from 120 for better performance
+        trailSegments={120}           // Reduced from 120 for better performance
         
         // Parallax and animation
         enableParallax={true}
