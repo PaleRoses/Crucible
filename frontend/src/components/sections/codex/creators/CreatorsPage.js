@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useInView } from 'framer-motion';
 import Background from '../../../layout/Background';
-import RevealText from '../../../core/effects/RevealText';
-import ProjectCard from '../../../core/effects/ProjectCard';
+import RevealText from '../../../core/effects/texteffects/RevealText';
+import ProjectCard from '../../../core/effects/holdereffects/ProjectCard';
 import PersonProfileCard from '../../../core/effects/holdereffects/PersonProfileCard';
-import ScrollingTextAnimation from '../../../core/effects/ScrollingTextAnimation';
+import ScrollingTextAnimation from '../../../core/effects/texteffects/ScrollingTextAnimation';
 import MeteorShower from '../../../core/effects/cosmiceffects/MeteorShower';
 import './creatorsPage.css';
 
