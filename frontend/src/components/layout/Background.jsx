@@ -6,6 +6,7 @@ import { useScroll, useSpring } from 'framer-motion';
  * 
  * Combines canvas-based star rendering with scroll-based parallax effects
  * and gentle random drifting for an immersive, performance-optimized background.
+ * Enhanced with time-based persistence and seamless state preservation.
  */
 const Background = ({ config = {} }) => {
   // Refs for DOM elements and animation state
@@ -102,8 +103,16 @@ const Background = ({ config = {} }) => {
     maxFPS: 60,
     useRays: false,  // Disable ray rendering for performance
     
-    // Session persistence
+    // Enhanced persistence settings
+    persistenceEnabled: true,        // Enable persistence features
+    persistenceInterval: 3000,       // Save every 3 seconds (milliseconds)
+    timeBasedFallback: true,         // Use time-based generation as fallback
+    persistenceMaxAge: 7 * 24 * 60 * 60 * 1000, // 7 days before regenerating (milliseconds)
+    
+    // Session persistence keys
     sessionKey: 'scrolling_star_background_config',
+    scrollPositionKey: 'scrolling_star_background_scroll',
+    lastVisitKey: 'scrolling_star_background_last_visit',
     
     // Override with user config
     ...config
@@ -148,6 +157,20 @@ const Background = ({ config = {} }) => {
     const roundedOpacity = Math.round(safeOpacity * 10) / 10;
     return colorCache[baseColor][roundedOpacity] || baseColor.replace(/alpha\)$/, `${safeOpacity})`);
   }, [colorCache]);
+  
+  // Create a deterministic seeded random function
+  const seededRandom = useCallback((seed) => {
+    return () => {
+      seed = (seed * 9301 + 49297) % 233280;
+      return seed / 233280;
+    };
+  }, []);
+
+  // Get a seed based on current date (changes daily)
+  const getDateSeed = useCallback(() => {
+    const now = new Date();
+    return now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+  }, []);
   
   // Initialize canvas with proper resolution
   const setupCanvas = useCallback(() => {
@@ -212,6 +235,147 @@ const Background = ({ config = {} }) => {
     return starSeeds;
   }, [CONFIG, COLORS.stars.length]);
   
+  // Enhanced time-based star generation for consistency
+  const generateTimeBasedStars = useCallback(() => {
+    const { width, height } = dimensionsRef.current;
+    if (!width || !height) return [];
+    
+    // Create seed based on date
+    const dateSeed = getDateSeed();
+    // Note: we don't need to create the random function here since we use starRandom for each star
+    
+    // Generate new stars with deterministic positioning
+    const stars = [];
+    
+    for (let i = 0; i < CONFIG.starCount; i++) {
+      // Generate a seed for this specific star (that will be the same each day)
+      const starSeed = dateSeed + i;
+      const starRandom = seededRandom(starSeed);
+      
+      // Create the star using deterministic properties
+      const star = {};
+      
+      // Position with some variance but tied to the date
+      star.x = starRandom() * width;
+      star.baseY = (starRandom() * CONFIG.verticalSpreadFactor - CONFIG.offscreenBufferFactor) * height;
+      star.y = star.baseY;
+      star.z = starRandom() * 0.8 + 0.1;
+      
+      // Visual properties
+      star.size = (starRandom() * (CONFIG.starSizeMax - CONFIG.starSizeMin) + CONFIG.starSizeMin) * star.z;
+      star.baseOpacity = starRandom() * (CONFIG.starOpacityMax - CONFIG.starOpacityMin) + CONFIG.starOpacityMin;
+      star.opacity = star.baseOpacity;
+      star.color = COLORS.stars[Math.floor(starRandom() * COLORS.stars.length)];
+      
+      // Animation properties
+      star.pulsePhase = starRandom() * Math.PI * 2;
+      star.pulseSpeed = starRandom() * 0.002 + 0.001;
+      star.movementSpeed = (starRandom() * 0.2 + 0.9) * CONFIG.baseMovementSpeed * (1.1 - star.z);
+      
+      // Drift properties
+      star.driftDirectionX = starRandom() * 2 - 1;
+      star.driftDirectionY = starRandom() * 2 - 1;
+      // Normalize direction
+      const dirMagnitude = Math.sqrt(star.driftDirectionX ** 2 + star.driftDirectionY ** 2) || 1;
+      star.driftDirectionX /= dirMagnitude;
+      star.driftDirectionY /= dirMagnitude;
+      star.driftSpeed = CONFIG.driftSpeed + (starRandom() * 2 - 1) * CONFIG.driftSpeedVariation;
+      star.directionChangeTimer = 0;
+      
+      // Initial state
+      star.state = 'visible';
+      star.fadeProgress = 1;
+      star.targetY = star.y;
+      star.velocity = 0;
+      star.lastX = star.x;
+      star.lastY = star.y;
+      
+      // Parallax properties
+      star.parallaxFactor = starRandom() * 0.5 * CONFIG.parallaxFactor * (1 - star.z * 0.5);
+      
+      // Initialize twinkling properties
+      star.twinkleState = 'visible';
+      star.twinkleProgress = 0;
+      star.twinkleDuration = starRandom() * 
+        (CONFIG.twinkleDuration[1] - CONFIG.twinkleDuration[0]) + 
+        CONFIG.twinkleDuration[0];
+      
+      // Store original seed for future reference
+      star.originalSeed = starSeed;
+      
+      stars.push(star);
+    }
+    
+    return stars;
+  }, [CONFIG, COLORS.stars, getDateSeed, seededRandom]);
+  
+  // Save the current star state and scroll position
+  const saveCurrentState = useCallback(() => {
+    if (!starsRef.current.length || !dimensionsRef.current.width || !CONFIG.persistenceEnabled) {
+      return;
+    }
+    
+    try {
+      // Record current time
+      const currentTime = Date.now();
+      
+      // Save current scroll position separately for quick access
+      sessionStorage.setItem(CONFIG.scrollPositionKey, springScrollYRef.current.toString());
+      
+      // Save last visit time
+      sessionStorage.setItem(CONFIG.lastVisitKey, currentTime.toString());
+      
+      // Prepare complete star state 
+      const completeState = {
+        version: "1.0", // For future compatibility
+        timestamp: currentTime,
+        dateSeed: getDateSeed(), // Store the seed for time-based fallback
+        scrollY: springScrollYRef.current,
+        viewport: {
+          width: dimensionsRef.current.width,
+          height: dimensionsRef.current.height,
+          pixelRatio: dimensionsRef.current.pixelRatio
+        },
+        stars: starsRef.current.map(star => ({
+          // Position data
+          x: star.x,
+          y: star.y, 
+          baseY: star.baseY,
+          z: star.z,
+          
+          // Visual properties
+          size: star.size,
+          baseOpacity: star.baseOpacity,
+          opacity: star.opacity,
+          color: COLORS.stars.indexOf(star.color),
+          
+          // Animation data
+          pulsePhase: star.pulsePhase,
+          pulseSpeed: star.pulseSpeed,
+          driftDirectionX: star.driftDirectionX,
+          driftDirectionY: star.driftDirectionY,
+          driftSpeed: star.driftSpeed,
+          movementSpeed: star.movementSpeed,
+          parallaxFactor: star.parallaxFactor,
+          
+          // State
+          state: star.state,
+          fadeProgress: star.fadeProgress,
+          fadeStart: star.fadeStart ? currentTime - (currentTime - star.fadeStart) : null,
+          
+          // For fallback/time consistency
+          originalSeed: star.originalSeed || Math.random()
+        }))
+      };
+      
+      // Save complete state
+      sessionStorage.setItem(CONFIG.sessionKey, JSON.stringify(completeState));
+      
+    } catch (error) {
+      console.warn('Could not save star state to session storage', error);
+    }
+  }, [CONFIG, COLORS.stars, getDateSeed]);
+  
   // Create a new star at random position
   const createNewStar = useCallback((offScreenStar = null) => {
     const { width, height } = dimensionsRef.current;
@@ -225,6 +389,7 @@ const Background = ({ config = {} }) => {
       star.pulsePhase = Math.random() * Math.PI * 2; // New phase
       star.color = offScreenStar.color;
       star.parallaxFactor = offScreenStar.parallaxFactor;
+      star.originalSeed = offScreenStar.originalSeed; // Preserve seed if available
     } else {
       // Otherwise generate new properties
       star.z = Math.random() * 0.8 + 0.1;
@@ -233,6 +398,7 @@ const Background = ({ config = {} }) => {
       star.pulsePhase = Math.random() * Math.PI * 2;
       star.color = COLORS.stars[Math.floor(Math.random() * COLORS.stars.length)];
       star.parallaxFactor = Math.random() * 0.5 * CONFIG.parallaxFactor * (1 - star.z * 0.5);
+      star.originalSeed = Math.random(); // New random seed
     }
     
     // Generate position
@@ -290,41 +456,115 @@ const Background = ({ config = {} }) => {
     return star;
   }, [CONFIG, COLORS.stars]);
   
-  // Load or generate session-persistent configuration
+  // Enhanced version of getSessionConfiguration with time-based fallback
   const getSessionConfiguration = useCallback(() => {
     // First ensure dimensions are set
     if (!dimensionsRef.current.width) return { starSeeds: [] };
     
-    try {
-      // Try to load existing configuration from sessionStorage
-      const storedConfig = sessionStorage.getItem(CONFIG.sessionKey);
-      
-      if (storedConfig) {
-        const parsedConfig = JSON.parse(storedConfig);
-        // Check if we have the right number of stars (config might have changed)
-        if (parsedConfig.starSeeds && parsedConfig.starSeeds.length === CONFIG.starCount) {
-          return parsedConfig;
+    // Check if we have a valid stored configuration
+    if (CONFIG.persistenceEnabled) {
+      try {
+        // Try to load existing configuration from sessionStorage
+        const storedState = sessionStorage.getItem(CONFIG.sessionKey);
+        
+        if (storedState) {
+          const savedState = JSON.parse(storedState);
+          
+          // Check if the saved state is still valid and not too old
+          const currentTime = Date.now();
+          const stateAge = currentTime - savedState.timestamp;
+          
+          // Use saved state if it's not too old and has the right number of stars
+          if (stateAge < CONFIG.persistenceMaxAge && 
+              savedState.stars && 
+              savedState.stars.length === CONFIG.starCount) {
+            
+            // Retrieve stored scroll position if available
+            if (savedState.scrollY !== undefined) {
+              // Store in ref to use in animation
+              springScrollYRef.current = savedState.scrollY;
+            }
+            
+            // Calculate scaling factors if viewport changed
+            const prevViewport = savedState.viewport || { 
+              width: dimensionsRef.current.width, 
+              height: dimensionsRef.current.height 
+            };
+            
+            const scaleX = dimensionsRef.current.width / prevViewport.width;
+            const scaleY = dimensionsRef.current.height / prevViewport.height;
+            
+            // Return a starSeeds-compatible object for our existing code
+            return {
+              source: 'sessionStorage',
+              timestamp: savedState.timestamp,
+              starSeeds: savedState.stars.map(star => ({
+                // Convert saved stars to the seed format our initialization expects
+                x: star.x * scaleX,
+                y: star.y * scaleY,
+                baseY: star.baseY * scaleY,
+                z: star.z,
+                size: star.size,
+                baseOpacity: star.baseOpacity,
+                opacity: star.opacity,
+                color: star.color,
+                pulsePhase: star.pulsePhase,
+                pulseSpeed: star.pulseSpeed,
+                driftDirectionX: star.driftDirectionX,
+                driftDirectionY: star.driftDirectionY,
+                driftSpeed: star.driftSpeed,
+                movementSpeed: star.movementSpeed,
+                parallaxFactor: star.parallaxFactor,
+                state: star.state,
+                fadeProgress: star.fadeProgress,
+                fadeStart: star.fadeStart,
+                originalSeed: star.originalSeed
+              }))
+            };
+          }
         }
+      } catch (error) {
+        console.warn('Could not load star configuration from session storage', error);
       }
-    } catch (error) {
-      console.warn('Could not load star configuration from session storage', error);
     }
     
-    // Generate new configuration if none exists or if it's invalid
+    // If no valid saved state or persistence disabled, use time-based approach
+    if (CONFIG.timeBasedFallback) {
+      const timeBasedStars = generateTimeBasedStars();
+      
+      // Convert to starSeeds format
+      return {
+        source: 'timeBasedGeneration',
+        timestamp: Date.now(),
+        starSeeds: timeBasedStars.map(star => ({
+          x: star.x,
+          y: star.y,
+          baseY: star.baseY,
+          z: star.z,
+          size: star.size,
+          baseOpacity: star.baseOpacity,
+          opacity: star.opacity,
+          color: COLORS.stars.indexOf(star.color),
+          pulsePhase: star.pulsePhase,
+          pulseSpeed: star.pulseSpeed,
+          driftDirectionX: star.driftDirectionX,
+          driftDirectionY: star.driftDirectionY,
+          driftSpeed: star.driftSpeed,
+          movementSpeed: star.movementSpeed,
+          parallaxFactor: star.parallaxFactor,
+          state: star.state,
+          fadeProgress: star.fadeProgress,
+          originalSeed: star.originalSeed
+        }))
+      };
+    }
+    
+    // Fallback to completely random if all else fails
     const starSeeds = generateStarSeeds();
-    
-    // Store new configuration in sessionStorage
-    const newConfig = { starSeeds, timestamp: Date.now() };
-    try {
-      sessionStorage.setItem(CONFIG.sessionKey, JSON.stringify(newConfig));
-    } catch (error) {
-      console.warn('Could not save star configuration to session storage', error);
-    }
-    
-    return newConfig;
-  }, [CONFIG.sessionKey, CONFIG.starCount, generateStarSeeds]);
+    return { source: 'random', starSeeds, timestamp: Date.now() };
+  }, [CONFIG, COLORS.stars, generateStarSeeds, generateTimeBasedStars]);
   
-  // Initialize stars with session-persistent configuration
+  // Enhanced initializeStars function with improved persistence
   const initializeStars = useCallback(() => {
     const { width, height } = dimensionsRef.current;
     if (!width || !height) return;
@@ -353,78 +593,138 @@ const Background = ({ config = {} }) => {
       }
     }
     
-    // Get or create session-persistent configuration
+    // Get session configuration using our enhanced logic
     const sessionConfig = getSessionConfiguration();
-    const { starSeeds } = sessionConfig;
+    const { starSeeds, source } = sessionConfig;
     
     // Clear existing stars
     starsRef.current = [];
     
-    // Create stars using the persistent seeds
+    // Create stars using the retrieved configuration
     for (let i = 0; i < starSeeds.length; i++) {
       const seed = starSeeds[i];
       const star = {};
       
-      // Store original seeds for future reference (useful for state persistence)
-      star.xSeed = seed.xSeed;
-      star.ySeed = seed.ySeed;
+      if (source === 'sessionStorage') {
+        // We have exact star data from session storage
+        star.x = seed.x;
+        star.y = seed.y;
+        star.baseY = seed.baseY;
+        star.z = seed.z;
+        star.size = seed.size;
+        star.baseOpacity = seed.baseOpacity;
+        star.opacity = seed.opacity;
+        star.color = COLORS.stars[seed.color];
+        star.pulsePhase = seed.pulsePhase;
+        star.pulseSpeed = seed.pulseSpeed;
+        star.movementSpeed = seed.movementSpeed;
+        star.driftDirectionX = seed.driftDirectionX;
+        star.driftDirectionY = seed.driftDirectionY;
+        star.driftSpeed = seed.driftSpeed;
+        star.parallaxFactor = seed.parallaxFactor;
+        star.state = seed.state || 'visible';
+        star.fadeProgress = seed.fadeProgress || 1;
+        star.fadeStart = seed.fadeStart;
+        star.originalSeed = seed.originalSeed;
+      } else if (source === 'timeBasedGeneration') {
+        // We have stars generated from a time-based seed
+        star.x = seed.x;
+        star.baseY = seed.baseY;
+        star.y = seed.y;
+        star.z = seed.z;
+        star.size = seed.size;
+        star.baseOpacity = seed.baseOpacity;
+        star.opacity = seed.opacity;
+        star.color = COLORS.stars[seed.color];
+        star.pulsePhase = seed.pulsePhase;
+        star.pulseSpeed = seed.pulseSpeed;
+        star.movementSpeed = seed.movementSpeed;
+        star.driftDirectionX = seed.driftDirectionX;
+        star.driftDirectionY = seed.driftDirectionY;
+        star.driftSpeed = seed.driftSpeed;
+        star.parallaxFactor = seed.parallaxFactor;
+        star.originalSeed = seed.originalSeed;
+        star.state = 'visible';
+        star.fadeProgress = 1;
+      } else {
+        // Original random generation code path
+        // Store original seeds for future reference
+        star.xSeed = seed.xSeed;
+        star.ySeed = seed.ySeed;
+        
+        // Position - use seeds but adapt to current screen dimensions
+        star.x = seed.xSeed * width;
+        // Initial y position - distributed vertically across multiple screen heights
+        star.baseY = (seed.ySeed + CONFIG.offscreenBufferFactor) * height;
+        star.y = star.baseY;
+        star.z = seed.zSeed; // Depth (0.1 to 0.9)
+        
+        // Visual properties
+        star.size = (seed.sizeSeed * (CONFIG.starSizeMax - CONFIG.starSizeMin) + CONFIG.starSizeMin) * star.z;
+        star.baseOpacity = seed.opacitySeed * (CONFIG.starOpacityMax - CONFIG.starOpacityMin) + CONFIG.starOpacityMin;
+        star.opacity = star.baseOpacity; // Start fully visible
+        
+        // Animation properties
+        star.pulsePhase = seed.phaseSeed;
+        star.pulseSpeed = seed.pulseSpeedSeed;
+        star.movementSpeed = seed.speedSeed * CONFIG.baseMovementSpeed * (1.1 - star.z);
+        
+        // Initialize velocity and position tracking for trails
+        star.velocity = 0;
+        star.lastX = star.x;
+        star.lastY = star.y;
+        
+        // Initialize twinkling properties
+        star.twinkleState = 'visible'; // 'fading-in', 'visible', 'fading-out', 'hidden'
+        star.twinkleProgress = 0;
+        star.twinkleDuration = Math.random() * 
+          (CONFIG.twinkleDuration[1] - CONFIG.twinkleDuration[0]) + 
+          CONFIG.twinkleDuration[0];
+        
+        // Drift movement properties (enhanced)
+        star.driftDirectionX = seed.driftDirectionXSeed;
+        star.driftDirectionY = seed.driftDirectionYSeed;
+        // Normalize the direction vector
+        const dirMagnitude = Math.sqrt(star.driftDirectionX ** 2 + star.driftDirectionY ** 2) || 1;
+        star.driftDirectionX /= dirMagnitude;
+        star.driftDirectionY /= dirMagnitude;
+        // Vary the drift speed between stars
+        star.driftSpeed = CONFIG.driftSpeed + (seed.driftSpeedSeed * 2 - 1) * CONFIG.driftSpeedVariation;
+        star.directionChangeTimer = 0;
+        
+        // Star state tracking (new)
+        star.state = 'visible'; // Start visible, not fading in
+        star.fadeProgress = 1; // Fully visible
+        
+        // Parallax properties (for scrolling effect)
+        // Make deeper stars (higher z) move less for realistic parallax
+        star.parallaxFactor = seed.parallaxFactorSeed * CONFIG.parallaxFactor * (1 - star.z * 0.5);
+        
+        // Physics properties for bouncy effect
+        star.velocity = 0;
+        star.targetY = star.y;
+        
+        // Color variation
+        star.color = COLORS.stars[seed.colorIndex];
+      }
       
-      // Position - use seeds but adapt to current screen dimensions
-      star.x = seed.xSeed * width;
-      // Initial y position - distributed vertically across multiple screen heights
-      star.baseY = (seed.ySeed + CONFIG.offscreenBufferFactor) * height;
-      star.y = star.baseY;
-      star.z = seed.zSeed; // Depth (0.1 to 0.9)
-      
-      // Visual properties
-      star.size = (seed.sizeSeed * (CONFIG.starSizeMax - CONFIG.starSizeMin) + CONFIG.starSizeMin) * star.z;
-      star.baseOpacity = seed.opacitySeed * (CONFIG.starOpacityMax - CONFIG.starOpacityMin) + CONFIG.starOpacityMin;
-      star.opacity = star.baseOpacity; // Start fully visible
-      
-      // Animation properties
-      star.pulsePhase = seed.phaseSeed;
-      star.pulseSpeed = seed.pulseSpeedSeed;
-      star.movementSpeed = seed.speedSeed * CONFIG.baseMovementSpeed * (1.1 - star.z);
-      
-      // Initialize velocity and position tracking for trails
-      star.velocity = 0;
-      star.lastX = star.x;
-      star.lastY = star.y;
-      
-      // Initialize twinkling properties
-      star.twinkleState = 'visible'; // 'fading-in', 'visible', 'fading-out', 'hidden'
-      star.twinkleProgress = 0;
-      star.twinkleDuration = Math.random() * 
-        (CONFIG.twinkleDuration[1] - CONFIG.twinkleDuration[0]) + 
-        CONFIG.twinkleDuration[0];
-      
-      // Drift movement properties (enhanced)
-      star.driftDirectionX = seed.driftDirectionXSeed;
-      star.driftDirectionY = seed.driftDirectionYSeed;
-      // Normalize the direction vector
-      const dirMagnitude = Math.sqrt(star.driftDirectionX ** 2 + star.driftDirectionY ** 2) || 1;
-      star.driftDirectionX /= dirMagnitude;
-      star.driftDirectionY /= dirMagnitude;
-      // Vary the drift speed between stars
-      star.driftSpeed = CONFIG.driftSpeed + (seed.driftSpeedSeed * 2 - 1) * CONFIG.driftSpeedVariation;
+      // Common initialization for all stars
       star.directionChangeTimer = 0;
-      
-      // Star state tracking (new)
-      star.state = 'visible'; // Start visible, not fading in
-      star.fadeProgress = 1; // Fully visible
-      
-      // Parallax properties (for scrolling effect)
-      // Make deeper stars (higher z) move less for realistic parallax
-      star.parallaxFactor = seed.parallaxFactorSeed * CONFIG.parallaxFactor * (1 - star.z * 0.5);
-      
-      // Physics properties for bouncy effect
       star.velocity = 0;
       star.targetY = star.y;
+      star.lastX = star.x || star.lastX;
+      star.lastY = star.y || star.lastY;
       
-      // Color variation
-      star.color = COLORS.stars[seed.colorIndex];
+      // Initialize twinkling properties if not already set
+      if (!star.twinkleState) {
+        star.twinkleState = 'visible';
+        star.twinkleProgress = 0;
+        star.twinkleDuration = Math.random() * 
+          (CONFIG.twinkleDuration[1] - CONFIG.twinkleDuration[0]) + 
+          CONFIG.twinkleDuration[0];
+      }
       
-      // Store in ref
+      // Add to collection
       starsRef.current.push(star);
     }
   }, [CONFIG, COLORS.stars, getSessionConfiguration]);
@@ -667,36 +967,11 @@ const Background = ({ config = {} }) => {
       starsRef.current[index] = newStar;
     }
     
-    // Save star configuration periodically to maintain state persistence
-    // Use a timestamp-based approach to avoid excessive storage operations
-    if (timestamp % 3000 < 16) { // Every ~3 seconds (assuming 60fps)
-      try {
-        // Convert current star configuration to seeds for storage
-        const starSeeds = starsRef.current.map(star => ({
-          xSeed: star.x / dimensionsRef.current.width,
-          ySeed: (star.baseY / dimensionsRef.current.height) - CONFIG.offscreenBufferFactor,
-          zSeed: star.z,
-          sizeSeed: (star.size / star.z - CONFIG.starSizeMin) / (CONFIG.starSizeMax - CONFIG.starSizeMin),
-          opacitySeed: (star.baseOpacity - CONFIG.starOpacityMin) / (CONFIG.starOpacityMax - CONFIG.starOpacityMin),
-          phaseSeed: star.pulsePhase / (Math.PI * 2),
-          speedSeed: star.movementSpeed / (CONFIG.baseMovementSpeed * (1.1 - star.z)),
-          pulseSpeedSeed: (star.pulseSpeed - 0.001) / 0.002,
-          colorIndex: COLORS.stars.indexOf(star.color),
-          parallaxFactorSeed: star.parallaxFactor / (CONFIG.parallaxFactor * (1 - star.z * 0.5)),
-          driftDirectionXSeed: star.driftDirectionX,
-          driftDirectionYSeed: star.driftDirectionY,
-          driftSpeedSeed: (star.driftSpeed - CONFIG.driftSpeed + CONFIG.driftSpeedVariation) / (2 * CONFIG.driftSpeedVariation)
-        }));
-        
-        sessionStorage.setItem(CONFIG.sessionKey, JSON.stringify({
-          starSeeds,
-          timestamp: Date.now()
-        }));
-      } catch (error) {
-        console.warn('Could not save star configuration to session storage', error);
-      }
+    // Save state periodically for persistence
+    if (CONFIG.persistenceEnabled && timestamp % CONFIG.persistenceInterval < 16) {
+      saveCurrentState();
     }
-  }, [CONFIG, isStarOffScreen, createNewStar, COLORS.stars]);
+  }, [CONFIG, isStarOffScreen, createNewStar, saveCurrentState]);
   
   // Define the animation loop function
   const animate = useCallback(function animationLoop(timestamp) {
@@ -782,6 +1057,30 @@ const Background = ({ config = {} }) => {
       }
     };
   }, [setupCanvas, initializeStars, animate]);
+  
+  // Add navigation event handlers to save state when user leaves
+  useEffect(() => {
+    if (!CONFIG.persistenceEnabled) return;
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        saveCurrentState();
+      }
+    };
+    
+    const handleBeforeUnload = () => {
+      saveCurrentState();
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      saveCurrentState();
+    };
+  }, [CONFIG.persistenceEnabled, saveCurrentState]);
   
   return (
     <div
