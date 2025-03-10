@@ -247,11 +247,6 @@ const CreatorsPage = () => {
           </section>
         </div>
       </div>
-      
-      {/* Accessibility skip link */}
-      <a href="#content" className="crescent-creators-page__skip-link">
-        Skip to main content
-      </a>
     </div>
   );
 };
