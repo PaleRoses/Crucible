@@ -99,7 +99,7 @@ const useStyles = createUseStyles({
     maxWidth: '600px',
     margin: '0 auto 3rem',
     fontWeight: 300,
-    marginBottom: '20rem',
+    marginBottom: '2rem',
   },
   
   subtitle: {
@@ -108,7 +108,7 @@ const useStyles = createUseStyles({
     maxWidth: '700px',
     margin: '0 auto',
     lineHeight: 1.6,
-    marginBottom: '2rem',
+    marginBottom: '20rem',
     fontFamily: '"Garamond", "Adobe Caslon Pro", serif',
     fontWeight: 300,
     '@media (max-width: 768px)': {
@@ -187,7 +187,7 @@ const CreatorsPage = () => {
   // Creator profile data
   const creatorData = {
     name: "Rosalia Fialkova",
-    role: "Software Engineer",
+    role: "Systems Design Engineer",
     tagline: 
       <>
         I craft immersive systems<br />
@@ -195,8 +195,8 @@ const CreatorsPage = () => {
       </>,
     image: "/assets/images/creators/rosalia.png",
     bio: [
-      "I strive to create accessible and well-structured systems that balance technical excellence with user experience. My personal projects are born from my fascination with cycles of rebirth and destruction—the eternal dance between light and darkness. I try to weave together mathematical modeling, narrative structure, and visual aesthetics to craft immersive tools, simulations, and models.",
-      "My aim is to blend software engineering knowledge with creative vision. I'm in my element when I'm crafting high-quality, reusable (I hate seeing a good program not find multiple homes!) systems across frontend interfaces and backend architectures. Combining mathematical modeling with aesthetic intuition and developing modular components is fun!"
+      "I strive to create accessible and well-structured systems that balance technical excellence with user experience. My personal projects are born from my fascination with cycles of rebirth and destruction—the eternal dance between light and darkness. I weave mathematical modeling, narrative structure, and visual aesthetics to craft immersive tools and simulations.",
+      "I'm in my element when I'm crafting high-quality, reusable (I hate seeing a good program not find multiple homes!) systems across frontend interfaces and backend architectures. Combining mathematical modeling with aesthetic intuition and developing modular components is fun!"
     ],
     stats: [
       { value: "Stellar", label: "Motivation to Design" },
@@ -205,6 +205,15 @@ const CreatorsPage = () => {
         label: "Favorite Function" 
       },
       { value: "∞", label: "Cycles of Debugging" }
+    ],
+    
+    projects: [
+      {
+        content: "For the Crescent TTRPG, I developed a tension-based character progression system where players must balance competing motivations. This mechanical framework reinforces the game's themes of sacrifice and transformation while providing meaningful player choices."
+      },
+      {
+        content: "The Crucible Platform translates complex evolutionary algorithms into interactive visualizations, making abstract concepts tangible. By applying hyperbolic tangent normalization to multi-trait affinities, I created a system that marries biological plausibility with computational efficiency."
+      }
     ]
   };
   
@@ -269,7 +278,7 @@ const CreatorsPage = () => {
     opacityScrollPositions: [0, 150, 300], // Control opacity transition points
     clampValues: true,       // Important: clamp values to prevent overshooting
     springConfig: {
-      stiffness: 40,         // Lower for smoother animation
+      stiffness: 20,         // Lower for smoother animation
       damping: 20,           // Lower for more bounce
       mass: 0.7              // Higher for more momentum
     },
@@ -338,6 +347,9 @@ const CreatorsPage = () => {
                 to be fearful of the night."
               </p>
               <p className={classes.quoteAuthor}>— Sarah Williams, "The Old Astronomer to His Pupil"</p>
+              <p className={classes.subtitle}>
+                My personal projects merge the scientific principles of evolution and adaptation with mythological themes of rebirth and renewal. I create 'things' that are both mechanically sound and narratively compelling, allowing users to explore complex themes through immersive experiences.
+              </p>
             </RevealText>
           </section>
           

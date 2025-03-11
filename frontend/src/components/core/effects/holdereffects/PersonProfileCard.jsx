@@ -644,10 +644,7 @@ const PersonProfileCard = ({
                         fontWeight: '300',
                       }}
                     >
-                      My personal projects merge the scientific principles of evolution and adaptation with 
-                      mythological themes of rebirth and renewal. I create 'things' that are both mechanically 
-                      sound and narratively compelling, allowing users to explore complex themes through 
-                      immersive experiences.
+                     
                     </p>
                   )}
                 </>
