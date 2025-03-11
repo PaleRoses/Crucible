@@ -602,6 +602,8 @@ const PersonProfileCard = ({
                     background: 'transparent',
                     border: 'none',
                     textAlign: 'left',
+                    outline: 'none',
+                    boxShadow: 'none',
                     transition: 'color 0.5s ease, transform 0.5s ease',
                     color: activeSection === navItem.id || expandedNavItem === navItem.id 
                       ? highlightColor 
