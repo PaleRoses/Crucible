@@ -1,5 +1,5 @@
-import React, { useRef, useState, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
-import { motion, useInView } from 'framer-motion';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import { motion, useInView, useAnimation } from 'framer-motion';
 
 /**
  * PersonProfileCard Component
@@ -37,6 +37,7 @@ const PersonProfileCard = ({
   const [activeSection, setActiveSection] = useState(navigationItems[0]?.id || 'about');
   const [expandedNavItem, setExpandedNavItem] = useState(null);
   const [sidebarMode, setSidebarMode] = useState('normal'); // 'normal', 'fixed', or 'end'
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Calculate widths based on contentCompression (0-10 scale)
   const compressionFactor = Math.min(Math.max(contentCompression, 0), 10) / 10;
@@ -49,6 +50,9 @@ const PersonProfileCard = ({
   const sidebarRef = useRef(null);
   const contentRef = useRef(null);
   const sidebarWrapperRef = useRef(null);
+  
+  // Animation controls
+  const controls = useAnimation();
   
   // Create individual section refs at the top level
   const section0Ref = useRef(null);
@@ -109,6 +113,28 @@ const PersonProfileCard = ({
     }
   }, [onSectionChange, sectionRefsMap]);
 
+  // Initial animation
+  useEffect(() => {
+    if (isInView) {
+      controls.start({ 
+        opacity: 1, 
+        y: 0,
+        transition: { 
+          duration: animationConfig?.duration ?? 0.8,
+          ease: "easeOut",
+          delay: 0.1 // Small delay to ensure DOM is settled
+        }
+      });
+      
+      // Mark as initialized after animation completes
+      const timeout = setTimeout(() => {
+        setIsInitialized(true);
+      }, (animationConfig?.duration ?? 0.8) * 1000 + 100);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [isInView, controls, animationConfig?.duration]);
+
   // Set up intersection observer to detect which section is in view
   useEffect(() => {
     const sectionElements = Object.values(sectionRefsMap)
@@ -144,39 +170,44 @@ const PersonProfileCard = ({
     return () => observer.disconnect();
   }, [activeSection, onSectionChange, sectionRefsMap]);
 
-  // Implement the three-phase scrolling behavior with useLayoutEffect to prevent initial jump
-  useLayoutEffect(() => {
-    if (!sidebarRef.current || !containerRef.current || !sidebarWrapperRef.current) return;
+  // Implement scroll behavior
+  // Note: Using traditional scroll handlers instead of framer-motion scroll features
+  
+  useEffect(() => {
+    if (!isInitialized || !containerRef.current || !sidebarRef.current || !sidebarWrapperRef.current) {
+      return;
+    }
     
-    // Skip this behavior on mobile
-    const checkIsMobile = () => window.innerWidth <= 768;
-    let isMobile = checkIsMobile();
+    // Skip on mobile
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      return;
+    }
     
-    // Store DOM elements
-    const sidebarWrapper = sidebarWrapperRef.current;
-    const sidebar = sidebarRef.current;
     const container = containerRef.current;
+    const sidebar = sidebarRef.current;
+    const sidebarWrapper = sidebarWrapperRef.current;
     
-    // Get sidebar wrapper offset
-    const getWrapperOffset = () => {
-      const wrapperRect = sidebarWrapper.getBoundingClientRect();
-      const computedStyle = window.getComputedStyle(sidebarWrapper);
-      return {
-        left: wrapperRect.left,
-        width: wrapperRect.width,
-        paddingLeft: parseInt(computedStyle.paddingLeft, 10) || 0,
-        paddingRight: parseInt(computedStyle.paddingRight, 10) || 0
-      };
+    let containerRect;
+    let wrapperRect;
+    let sidebarHeight;
+    
+    // Update measurements
+    const updateMeasurements = () => {
+      containerRect = container.getBoundingClientRect();
+      wrapperRect = sidebarWrapper.getBoundingClientRect();
+      sidebarHeight = sidebar.offsetHeight;
     };
     
-    let wrapperOffset = getWrapperOffset();
+    // First, get accurate measurements
+    updateMeasurements();
     
-    // Scroll handler
     const handleScroll = () => {
-      if (isMobile) return;
-
-      const containerRect = container.getBoundingClientRect();
-      const sidebarHeight = sidebar.offsetHeight;
+      // Skip on mobile
+      if (window.innerWidth <= 768) return;
+      
+      // Update measurements if necessary
+      updateMeasurements();
       
       // Calculate phase transition points
       const startFixPoint = containerRect.top <= topOffset;
@@ -208,8 +239,8 @@ const PersonProfileCard = ({
           // Phase 2: Fixed position
           sidebar.style.position = 'fixed';
           sidebar.style.top = `${topOffset}px`;
-          sidebar.style.width = `${wrapperOffset.width}px`;
-          sidebar.style.left = `${wrapperOffset.left}px`;
+          sidebar.style.width = `${wrapperRect.width}px`;
+          sidebar.style.left = `${wrapperRect.left}px`;
           sidebar.style.bottom = '';
         } 
         else if (newMode === 'end') {
@@ -223,35 +254,7 @@ const PersonProfileCard = ({
       }
     };
     
-    // Handle window resize
-    const handleResize = () => {
-      const wasMobile = isMobile;
-      isMobile = checkIsMobile();
-      
-      // Update wrapper offset on resize
-      wrapperOffset = getWrapperOffset();
-      
-      if (wasMobile !== isMobile) {
-        if (isMobile) {
-          // Reset styles for mobile
-          sidebar.style.position = '';
-          sidebar.style.top = '';
-          sidebar.style.bottom = '';
-          sidebar.style.left = '';
-          sidebar.style.width = '';
-          setSidebarMode('normal');
-        } else {
-          // Reapply desktop behavior
-          handleScroll();
-        }
-      } else if (!isMobile && sidebarMode === 'fixed') {
-        // Update positioning on desktop resize
-        sidebar.style.left = `${wrapperOffset.left}px`;
-        sidebar.style.width = `${wrapperOffset.width}px`;
-      }
-    };
-    
-    // Throttled scroll handler
+    // Add scroll event listener
     let ticking = false;
     const scrollListener = () => {
       if (!ticking) {
@@ -264,6 +267,27 @@ const PersonProfileCard = ({
     };
     
     window.addEventListener('scroll', scrollListener, { passive: true });
+    
+    // Handle window resize
+    const handleResize = () => {
+      // Update measurements
+      updateMeasurements();
+      
+      const isMobile = window.innerWidth <= 768;
+      if (isMobile) {
+        // Reset styles for mobile
+        sidebar.style.position = '';
+        sidebar.style.top = '';
+        sidebar.style.bottom = '';
+        sidebar.style.left = '';
+        sidebar.style.width = '';
+        setSidebarMode('normal');
+      } else {
+        // Apply current mode
+        handleScroll();
+      }
+    };
+    
     window.addEventListener('resize', handleResize);
     
     // Initial setup
@@ -274,7 +298,7 @@ const PersonProfileCard = ({
       window.removeEventListener('scroll', scrollListener);
       window.removeEventListener('resize', handleResize);
     };
-  }, [sidebarMode, topOffset]);
+  }, [isInitialized, topOffset, sidebarMode]);
 
   // Render profile info section
   const renderProfileInfo = () => (
@@ -558,11 +582,7 @@ const PersonProfileCard = ({
       ref={containerRef}
       className="profile-container"
       initial={{ opacity: 0, y: animationConfig?.initialY ?? 30 }}
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: animationConfig?.initialY ?? 30 }}
-      transition={{ 
-        duration: animationConfig?.duration ?? 0.8, 
-        ease: "easeOut" 
-      }}
+      animate={controls}
       style={{
         display: 'flex',
         flexDirection: 'row',
@@ -726,112 +746,3 @@ const PersonProfileCard = ({
 };
 
 export default PersonProfileCard;
-
-/**
- * USAGE EXAMPLE:
- * --------------
- * This example demonstrates how to use the PersonProfileCard component
- * with custom configuration.
- * 
- * 
- * import React from 'react';
- * import PersonProfileCard from './components/PersonProfileCard';
- * 
- * const ProfilePage = () => {
- *   // Sample person data
- *   const personData = {
- *     name: "Jane Doe",
- *     role: "Full Stack Developer",
- *     tagline: "Building elegant solutions to complex problems with a focus on user experience and scalable architecture.",
- *     bio: [
- *       "I'm a full-stack developer with over 8 years of experience building web applications and digital experiences. My approach combines technical expertise with an eye for design and usability.",
- *       "I specialize in React, Node.js, and cloud infrastructure, with a particular interest in creating accessible and performant web applications."
- *     ],
- *     stats: [
- *       { value: "8+", label: "Years Experience" },
- *       { value: "45+", label: "Projects" },
- *       { value: "12", label: "Industries" }
- *     ],
- *     experience: [
- *       { 
- *         content: "As a Senior Developer at TechCorp, I led the front-end architecture for their flagship product, resulting in a 40% improvement in load times and a significant increase in user engagement metrics."
- *       },
- *       { 
- *         content: "At StartupXYZ, I developed a scalable back-end infrastructure using Node.js and AWS, capable of handling millions of daily requests with 99.9% uptime."
- *       }
- *     ],
- *     projects: [
- *       {
- *         content: "Created an open-source library for data visualization that has been adopted by over a dozen companies and maintained a 4.8-star rating on GitHub."
- *       },
- *       {
- *         content: "Developed an award-winning mobile application that streamlines workflow management for creative professionals, featured in design publications."
- *       }
- *     ]
- *   };
- * 
- *   // Custom navigation items - can include your own React components as content
- *   const customNavItems = [
- *     { id: 'about', label: 'ABOUT ME', content: null },
- *     { id: 'experience', label: 'CAREER', content: null },
- *     { id: 'projects', label: 'PORTFOLIO', content: null },
- *     { 
- *       id: 'testimonials', 
- *       label: 'TESTIMONIALS',
- *       content: (
- *         <div className="testimonials-section">
- *           <blockquote>"Jane is an exceptional developer with a keen eye for detail."</blockquote>
- *           <cite>— John Smith, CTO at TechCorp</cite>
- *         </div>
- *       )
- *     }
- *   ];
- * 
- *   // Additional sections to append after navigation items
- *   const additionalSections = [
- *     {
- *       title: "Publications",
- *       content: "Published articles on modern web development practices in various industry journals."
- *     },
- *     {
- *       title: "Speaking Engagements",
- *       content: (
- *         <ul>
- *           <li>TechConf 2023 - "The Future of Web Interfaces"</li>
- *           <li>DevSummit 2022 - "Scaling React Applications"</li>
- *         </ul>
- *       )
- *     }
- *   ];
- * 
- *   // Section change handler (optional)
- *   const handleSectionChange = (sectionId) => {
- *     console.log(`Active section changed to: ${sectionId}`);
- *     // You can use this to update the URL hash, analytics, etc.
- *   };
- * 
- *   return (
- *     <div className="profile-page">
- *       <PersonProfileCard
- *         person={personData}
- *         navigationItems={customNavItems}
- *         additionalSections={additionalSections}
- *         onSectionChange={handleSectionChange}
- *         topOffset={80}
- *         highlightColor="#4a90e2"
- *         textColor="#333333"
- *         showStats={true}
- *         contentCompression={2}
- *         animationConfig={{
- *           threshold: 0.1,
- *           once: true,
- *           initialY: 50,
- *           duration: 0.6
- *         }}
- *       />
- *     </div>
- *   );
- * };
- * 
- * export default ProfilePage;
- */
