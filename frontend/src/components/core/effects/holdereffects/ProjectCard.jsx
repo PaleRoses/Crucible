@@ -1,93 +1,106 @@
-import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
-import { motion, useInView, useReducedMotion } from 'framer-motion';
+import React, { useCallback, useRef, memo } from 'react';
 import { createUseStyles } from 'react-jss';
 
-// Optimized styles matching the provided design references
+// Simplified classnames utility to avoid external dependency
+const cx = (...classes) => classes.filter(Boolean).join(' ');
+
+// Static styles with minimal transitions
 const useStyles = createUseStyles({
-  projectCard: {
-    backgroundColor: 'rgba(15, 15, 15, 0.7)',
-    border: '1px solid rgba(160, 142, 97, 0.2)',
+  // Root container with minimal styling
+  card: {
+    position: 'relative',
+    height: '100%',
     borderRadius: '8px',
     overflow: 'hidden',
+    backgroundColor: 'rgba(15, 15, 15, 0.7)',
+    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.25)',
+    border: '1px solid rgba(160, 142, 97, 0.2)',
     display: 'flex',
     flexDirection: 'column',
-    position: 'relative',
-    transition: 'transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1.0), box-shadow 0.4s cubic-bezier(0.25, 0.1, 0.25, 1.0)',
-    transform: 'translateZ(0)', // Hardware acceleration
-    willChange: 'transform, box-shadow', // Optimize for animation
-    boxShadow: '0 8px 25px rgba(0, 0, 0, 0.25)',
-    height: '100%'
+    // Use CSS custom properties for performant transitions
+    '--card-transform': 'translate3d(0,0,0)',
+    '--card-shadow': '0 8px 25px rgba(0, 0, 0, 0.25)',
+    '--image-scale': '1',
+    '--overlay-opacity': '0.5',
+    '--glow-opacity': '0',
+    transform: 'var(--card-transform)',
+    transition: 'box-shadow 0.3s ease',
+    '&:hover': {
+      '--card-transform': 'translate3d(0,-5px,0) scale(1.02)',
+      '--card-shadow': '0 16px 35px rgba(0, 0, 0, 0.3), 0 0 25px rgba(191, 173, 127, 0.15)',
+      '--image-scale': '1.05',
+      '--overlay-opacity': '0.2',
+      '--glow-opacity': '1',
+      boxShadow: 'var(--card-shadow)'
+    }
   },
-  projectCardHover: {
-    transform: 'translateZ(0) scale(1.02) translateY(-5px)',
-    boxShadow: '0 16px 35px rgba(0, 0, 0, 0.3), 0 0 25px rgba(191, 173, 127, 0.15)'
+  // Light card version for better performance on mobile/low-end devices
+  cardLight: {
+    '&:hover': {
+      '--card-transform': 'translate3d(0,0,0)', // No transform on hover
+      '--image-scale': '1', // No scale on hover
+    }
   },
-  cardBorderGlow: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: '8px',
-    pointerEvents: 'none',
-    opacity: 0,
-    transition: 'opacity 0.6s ease',
-    boxShadow: 'inset 0 0 20px rgba(191, 173, 127, 0), 0 0 30px rgba(191, 173, 127, 0)',
-    zIndex: 0
-  },
-  cardBorderGlowActive: {
-    opacity: 1,
-    boxShadow: 'inset 0 0 20px rgba(191, 173, 127, 0.2), 0 0 30px rgba(191, 173, 127, 0.15)'
-  },
+  // Image container
   imageContainer: {
-    width: '100%',
-    height: '220px', // Fixed height for the image part
+    height: '220px',
     position: 'relative',
-    overflow: 'hidden',
-    borderTopLeftRadius: '8px',
-    borderTopRightRadius: '8px'
+    overflow: 'hidden'
   },
+  // Image with minimal transitions
   image: {
     width: '100%',
     height: '100%',
     objectFit: 'cover',
-    transition: 'transform 0.8s ease',
-    transform: 'scale(1)',
-    backfaceVisibility: 'hidden'
+    transform: 'scale(var(--image-scale))',
+    transition: 'transform 0.7s ease'
   },
-  imageHover: {
-    transform: 'scale(1.05)'
-  },
-  imageOverlay: {
+  // Overlay
+  overlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
     background: 'linear-gradient(to bottom, rgba(15, 15, 15, 0.1), rgba(15, 15, 15, 0.3))',
-    transition: 'opacity 0.4s ease',
-    opacity: 0.5
+    opacity: 'var(--overlay-opacity)',
+    transition: 'opacity 0.5s ease'
   },
-  imageOverlayHover: {
-    opacity: 0.2
+  // Border glow effect
+  glow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    pointerEvents: 'none',
+    borderRadius: '8px',
+    boxShadow: 'inset 0 0 20px rgba(191, 173, 127, 0.2), 0 0 30px rgba(191, 173, 127, 0.15)',
+    opacity: 'var(--glow-opacity)',
+    transition: 'opacity 0.5s ease',
+    zIndex: 1
   },
-  contentContainer: {
+  // Content area
+  content: {
     padding: '1.5rem 1.8rem',
     display: 'flex',
     flexDirection: 'column',
     flex: 1
   },
+  // Title section
   titleArea: {
     marginBottom: '0.75rem'
   },
+  // Title
   title: {
     fontSize: '1.6rem',
     color: '#bfad7f',
     letterSpacing: '0.04em',
     margin: 0,
     fontWeight: 300,
-    lineHeight: 1.2,
+    lineHeight: 1.2
   },
+  // Category
   category: {
     fontSize: '0.95rem',
     color: 'rgba(191, 173, 127, 0.7)',
@@ -96,6 +109,7 @@ const useStyles = createUseStyles({
     fontStyle: 'italic',
     margin: '0.4rem 0 0 0'
   },
+  // Description
   description: {
     fontSize: '0.90rem',
     color: 'rgba(224, 224, 224, 0.9)',
@@ -105,6 +119,7 @@ const useStyles = createUseStyles({
     margin: '0.5rem 0 1.5rem 0',
     flex: 1
   },
+  // Tags container
   tagsContainer: {
     display: 'flex',
     flexWrap: 'wrap',
@@ -113,6 +128,7 @@ const useStyles = createUseStyles({
     paddingTop: '1rem',
     borderTop: '1px solid rgba(160, 142, 97, 0.15)'
   },
+  // Tag
   tag: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -123,197 +139,116 @@ const useStyles = createUseStyles({
     color: 'rgba(191, 173, 127, 0.9)',
     fontSize: '0.75rem',
     fontWeight: 400,
-    letterSpacing: '0.02em',
-    transition: 'all 0.3s ease',
-    '&:hover': {
-      backgroundColor: 'rgba(191, 173, 127, 0.15)',
-      borderColor: 'rgba(191, 173, 127, 0.3)'
-    }
+    letterSpacing: '0.02em'
   },
-  shimmerEffect: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    backgroundImage: 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0) 100%)',
-    backgroundSize: '200% 100%',
-    opacity: 0,
-    pointerEvents: 'none',
-    zIndex: 1,
-    transition: 'opacity 0.4s ease'
+  // Element that appears on view
+  fadeIn: {
+    animation: '$fadeIn 0.8s ease forwards'
   },
-  shimmerEffectActive: {
-    opacity: 1,
-    animation: '$shimmer 1.8s infinite'
+  '@keyframes fadeIn': {
+    from: { opacity: 0, transform: 'translateY(30px)' },
+    to: { opacity: 1, transform: 'translateY(0)' }
   },
-  '@keyframes shimmer': {
-    '0%': { backgroundPosition: '200% 0' },
-    '100%': { backgroundPosition: '-200% 0' }
-  },
-  cardAnimation: {
-    display: 'block', // Ensures proper animation container
-    transform: 'translateZ(0)', // Hardware acceleration
-    backfaceVisibility: 'hidden'
+  // Clickable cursor
+  clickable: {
+    cursor: 'pointer'
   }
 });
 
 /**
- * ProjectCard Component
+ * HighPerformanceProjectCard
  * 
- * An optimized, animated card component for displaying project information
- * with smooth reveal animations, hover effects, and performance optimizations.
- *
+ * A completely refactored project card component with maximum performance optimizations:
+ * - Uses CSS custom properties instead of JavaScript for animations
+ * - Minimal DOM nodes
+ * - No state/useState to prevent re-renders
+ * - CSS animations instead of JavaScript animations
+ * - Optimized for low-end devices with feature detection
+ * - Properly memoized to prevent unnecessary re-renders
+ * 
  * @param {Object} props - Component props
- * @param {Object} props.project - Project data
- * @param {string} props.project.title - Project title
- * @param {string} props.project.category - Project category or type
- * @param {string} props.project.description - Project description
- * @param {string} props.project.image - Project image URL
- * @param {string[]} props.project.tags - Array of technology tags
- * @param {Object} [props.animationConfig] - Optional animation configuration
- * @param {number} [props.animationConfig.delay] - Delay before animation starts (ms)
- * @param {number} [props.animationConfig.duration] - Animation duration (seconds)
- * @param {number} [props.animationConfig.distance] - Initial Y distance for animation (px)
- * @param {number} [props.animationConfig.threshold] - InView threshold (0-1)
- * @param {boolean} [props.animationConfig.once] - Whether animation should only run once
- * @param {Function} [props.onClick] - Optional click handler
+ * @param {Object} props.project - Project data object
+ * @param {boolean} props.inView - Whether the card is in view
+ * @param {boolean} props.lowPerformanceMode - Forces simpler rendering for low-end devices
+ * @param {Function} props.onClick - Click handler
  */
 const ProjectCard = ({
   project,
-  animationConfig = {},
+  inView = true,
+  lowPerformanceMode = false,
   onClick
 }) => {
-  // Initialize styles
   const classes = useStyles();
-  
-  // State management
-  const [isHovered, setIsHovered] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  
-  // Setup configuration with defaults
-  const config = useMemo(() => ({
-    delay: animationConfig.delay || 0,
-    duration: animationConfig.duration || 0.7,
-    distance: animationConfig.distance || 50,
-    threshold: animationConfig.threshold || 0.15,
-    once: animationConfig.once !== undefined ? animationConfig.once : true,
-    ease: animationConfig.ease || [0.25, 0.1, 0.25, 1.0], // cubic-bezier easing
-  }), [animationConfig]);
-  
-  // Refs for DOM elements
   const cardRef = useRef(null);
   
-  // Check for reduced motion preference
-  const prefersReducedMotion = useReducedMotion();
+  // Determine if we should use light mode (for low-end devices)
+  const useLightMode = lowPerformanceMode || 
+    (typeof window !== 'undefined' && 
+     (window.matchMedia('(prefers-reduced-motion: reduce)').matches || 
+      navigator.hardwareConcurrency <= 4));
   
-  // Setup intersection observer using framer-motion's useInView
-  const inView = useInView(cardRef, {
-    once: config.once,
-    threshold: config.threshold,
-    margin: "0px 0px -100px 0px" // Start animation slightly before element enters viewport
-  });
-  
-  // Update visibility state when inView changes
-  useEffect(() => {
-    if (inView) {
-      setIsVisible(true);
-    }
-  }, [inView]);
-  
-  // Memoize event handlers to prevent rerenders
-  const handleMouseEnter = useCallback(() => {
-    setIsHovered(true);
-  }, []);
-  
-  const handleMouseLeave = useCallback(() => {
-    setIsHovered(false);
-  }, []);
-  
+  // Memoized click handler
   const handleClick = useCallback(() => {
     if (onClick) onClick(project);
   }, [onClick, project]);
   
-  // Prepare animation variants for framer-motion
-  const cardVariants = useMemo(() => ({
-    hidden: {
-      opacity: 0,
-      y: prefersReducedMotion ? 0 : config.distance
-    },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: prefersReducedMotion ? 0.1 : config.duration,
-        ease: config.ease,
-        delay: config.delay / 1000, // Convert to seconds for framer-motion
-      }
-    }
-  }), [config, prefersReducedMotion]);
+  // Build class names
+  const cardClassName = cx(
+    classes.card,
+    useLightMode && classes.cardLight,
+    inView && classes.fadeIn,
+    onClick && classes.clickable
+  );
   
-  // Generate class names with conditional hover states
-  const cardClassName = `${classes.projectCard} ${isHovered ? classes.projectCardHover : ''}`;
-  const imageClassName = `${classes.image} ${isHovered ? classes.imageHover : ''}`;
-  const imageOverlayClassName = `${classes.imageOverlay} ${isHovered ? classes.imageOverlayHover : ''}`;
-  const borderGlowClassName = `${classes.cardBorderGlow} ${isHovered ? classes.cardBorderGlowActive : ''}`;
-  const shimmerClassName = `${classes.shimmerEffect} ${isHovered ? classes.shimmerEffectActive : ''}`;
-  
+  // Render with minimal DOM nodes and style calculations
   return (
-    <motion.div
+    <div 
       ref={cardRef}
-      className={classes.cardAnimation}
-      initial="hidden"
-      animate={isVisible ? "visible" : "hidden"}
-      variants={cardVariants}
-      layout // Smooth layout transitions
+      className={cardClassName}
+      onClick={onClick ? handleClick : undefined}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
     >
-      <div
-        className={cardClassName}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onClick={handleClick}
-        style={{ cursor: onClick ? 'pointer' : 'default' }}
-      >
-        {/* Border glow effect */}
-        <div className={borderGlowClassName} />
-        
-        {/* Project Image */}
-        <div className={classes.imageContainer}>
-          <img
-            src={project.image}
-            alt={project.title}
-            className={imageClassName}
-            loading="lazy"
-          />
-          <div className={imageOverlayClassName} />
-          <div className={shimmerClassName} />
-        </div>
-        
-        {/* Content Section */}
-        <div className={classes.contentContainer}>
-          {/* Title and Category */}
-          <div className={classes.titleArea}>
-            <h2 className={classes.title}>{project.title}</h2>
-            <p className={classes.category}>{project.category}</p>
-          </div>
-          
-          {/* Description */}
-          <p className={classes.description}>{project.description}</p>
-          
-          {/* Tags */}
-          {project.tags && project.tags.length > 0 && (
-            <div className={classes.tagsContainer}>
-              {project.tags.map((tag, index) => (
-                <span key={index} className={classes.tag}>
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
+      {/* Static border glow effect */}
+      <div className={classes.glow} aria-hidden="true" />
+      
+      {/* Image section */}
+      <div className={classes.imageContainer}>
+        <img
+          src={project.image}
+          alt=""
+          className={classes.image}
+          loading="lazy"
+          decoding="async"
+        />
+        <div className={classes.overlay} aria-hidden="true" />
       </div>
-    </motion.div>
+      
+      {/* Content section */}
+      <div className={classes.content}>
+        <div className={classes.titleArea}>
+          <h2 className={classes.title}>{project.title}</h2>
+          <p className={classes.category}>{project.category}</p>
+        </div>
+        
+        <p className={classes.description}>{project.description}</p>
+        
+        {project.tags && project.tags.length > 0 && (
+          <div className={classes.tagsContainer}>
+            {project.tags.map((tag, index) => (
+              <span key={index} className={classes.tag}>
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
-export default ProjectCard;
+// Add display name for better debugging
+ProjectCard.displayName = 'HighPerformanceProjectCard';
+
+// Export memoized component to prevent unnecessary re-renders
+export default memo(ProjectCard);

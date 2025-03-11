@@ -1,611 +1,846 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
-import { motion, useInView, useReducedMotion } from 'framer-motion';
-import { createUseStyles } from 'react-jss';
-
-// Optimized styles with improved mobile responsiveness
-const useStyles = createUseStyles({
-  profile: {
-    backgroundColor: 'rgba(15, 15, 15, 0.7)',
-    border: '1px solid rgba(160, 142, 97, 0.2)',
-    borderRadius: '3px',
-    padding: '3rem',
-    margin: '4rem auto',
-    maxWidth: '1000px',
-    display: 'grid',
-    gridTemplateColumns: '1fr 2fr',
-    gap: '3rem',
-    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
-    position: 'relative',
-    overflow: 'hidden', // Ensure content doesn't overflow
-    boxSizing: 'border-box', // Include padding in width calculation
-    '@media (max-width: 768px)': {
-      gridTemplateColumns: '1fr',
-      padding: '2rem',
-      gap: '2rem',
-      margin: '2rem auto',
-      width: 'calc(100% - 2rem)', // Ensure proper width accounting for margins
-      maxWidth: '480px' // Cap width on mobile
-    }
-  },
-  profileBorder: {
-    '&::before': {
-      content: '""',
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      width: 0,
-      height: '1px',
-      background: 'linear-gradient(to right, rgba(160, 142, 97, 0.7), rgba(160, 142, 97, 0))',
-      transition: 'width 1s ease 0.5s'
-    },
-    '&$inView::before': {
-      width: '100%'
-    }
-  },
-  inView: {},
-  profileImageContainer: {
-    position: 'relative',
-    width: '100%',
-    aspectRatio: '1/1',
-    borderRadius: '50%',
-    boxShadow: '0 5px 15px rgba(0, 0, 0, 0.3)',
-    transition: 'box-shadow 0.3s ease',
-    overflow: 'hidden', // Fixed from 'false' to 'hidden'
-    boxSizing: 'border-box', // Include padding in width calculation
-    minHeight: '200px', // Ensure minimum height
-    '&:hover': {
-      boxShadow: '0 5px 20px rgba(191, 173, 127, 0.4)'
-    },
-    '@media (max-width: 768px)': {
-      maxWidth: '250px',
-      margin: '0 auto',
-      minHeight: '250px' // Explicit height for mobile
-    },
-    // Force aspect ratio for Chrome
-    '&::before': {
-      content: '""',
-      display: 'block',
-      paddingTop: '100%', // 1:1 aspect ratio
-    }
-  },
-  cometCanvasContainer: {
-    position: 'absolute',
-    top: -20,
-    left: -20,
-    right: -20,
-    bottom: -20,
-    pointerEvents: 'none',
-    zIndex: 10,
-    // Hardware acceleration
-    transform: 'translateZ(0)',
-    willChange: 'transform',
-    width: 'calc(100% + 40px)', // Explicit width for Chrome
-    height: 'calc(100% + 40px)', // Explicit height for Chrome
-  },
-  profileImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    borderRadius: '50%',
-    overflow: 'hidden',
-    '&::after': {
-      content: '""',
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      boxShadow: 'inset 0 0 20px rgba(191, 173, 127, 0.3)',
-      borderRadius: '50%',
-      pointerEvents: 'none'
-    }
-  },
-  imageWrapper: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    overflow: 'hidden',
-    borderRadius: '50%'
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-    transition: 'transform 0.6s ease, object-position 0.6s ease',
-    display: 'block' // Explicit for Chrome
-  },
-  profileDetails: {
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    width: '100%', // Ensure full width containment
-    '@media (max-width: 768px)': {
-      textAlign: 'center',
-      marginTop: '1rem',
-      alignItems: 'center' // Center children on mobile
-    }
-  },
-  profileName: {
-    fontSize: '2.2rem',
-    color: '#bfad7f',
-    fontWeight: 300,
-    letterSpacing: '0.1em',
-    marginBottom: '0.5rem',
-    '@media (max-width: 480px)': {
-      fontSize: '1.8rem'
-    }
-  },
-  profileRole: {
-    fontSize: '1.1rem',
-    color: 'rgba(191, 173, 127, 0.7)',
-    marginBottom: '2rem',
-    letterSpacing: '0.05em',
-    fontWeight: 300,
-    fontFamily: '"Garamond", "Adobe Caslon Pro", serif',
-    fontStyle: 'italic'
-  },
-  profileBio: {
-    fontSize: '1rem',
-    color: 'rgba(224, 224, 224, 0.7)',
-    lineHeight: 1.8,
-    marginBottom: '2rem',
-    fontFamily: '"Garamond", "Adobe Caslon Pro", serif',
-    fontWeight: 300
-  },
-  profileStats: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap: '1.5rem',
-    marginTop: '2rem',
-    borderTop: '1px solid rgba(160, 142, 97, 0.2)',
-    paddingTop: '1.5rem',
-    width: '100%', // Ensure full width
-    boxSizing: 'border-box', // Include padding and border in width calculation
-    '@media (max-width: 768px)': {
-      gridTemplateColumns: 'repeat(3, 1fr)', // Keep 3 columns on tablet
-      gap: '1rem',
-      padding: '1.5rem 0.5rem 0' // Add horizontal padding
-    },
-    '@media (max-width: 480px)': {
-      gridTemplateColumns: '1fr', // Stack on mobile
-      gap: '1.5rem',
-      maxWidth: '100%', // Ensure it doesn't overflow container
-      margin: '1.5rem auto 0'
-    }
-  },
-  stat: {
-    textAlign: 'center',
-    width: '100%', // Ensure full width
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    '@media (max-width: 480px)': {
-      marginBottom: '0.5rem'
-    }
-  },
-  statValue: {
-    fontSize: '2.5rem',
-    color: 'rgba(191, 173, 127, 0.9)',
-    fontWeight: 100
-  },
-  statLabel: {
-    fontSize: '0.85rem',
-    color: 'rgba(224, 224, 224, 0.5)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.1em',
-    marginTop: '0.5rem'
-  }
-});
+import { motion, useInView } from 'framer-motion';
+import CometBorderEffect from '../bordereffects/CometBorderEffect';
 
 /**
- * Optimized Comet Animation Component
- * Renders a comet that orbits around the circular profile image
- */
-const CometBorderAnimation = ({ isHovered = false, config = {} }) => {
-  const canvasRef = useRef(null);
-  const requestRef = useRef(null);
-  const containerRef = useRef(null);
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  
-  // Check for reduced motion preference
-  const prefersReducedMotion = useReducedMotion();
-  
-  // Animation parameters with useRef to avoid re-renders
-  const cometPositionRef = useRef(0);
-  const lastTimeRef = useRef(0);
-  const frameRateThrottleRef = useRef(0);
-  
-  // Default configuration with prop overrides
-  const {
-    size = 2,
-    trailLength = 140,
-    speed = 0.01,
-    hoverSpeedMultiplier = 2,
-    trailSegments = 25,
-    glowIntensity = 0.8,
-    targetFPS = 60
-  } = config;
-  
-  // Calculate frame interval for throttling
-  const frameInterval = useMemo(() => 1000 / targetFPS, [targetFPS]);
-  
-  // Memoized function to get points on circle
-  const getPointOnCircle = useCallback((angle, centerX, centerY, radius) => {
-    return {
-      x: centerX + radius * Math.cos(angle),
-      y: centerY + radius * Math.sin(angle)
-    };
-  }, []);
-  
-  // Update dimensions with resize observer for better performance
-  useEffect(() => {
-    if (!containerRef.current) return;
-    
-    // Capture ref value to use in cleanup
-    const currentContainer = containerRef.current;
-    
-    const updateDimensions = () => {
-      if (currentContainer) {
-        const width = currentContainer.offsetWidth;
-        const height = currentContainer.offsetHeight;
-        setDimensions({ width, height });
-      }
-    };
-    
-    // Use ResizeObserver instead of window resize event
-    const resizeObserver = new ResizeObserver(updateDimensions);
-    resizeObserver.observe(currentContainer);
-    
-    // Initial dimensions calculation
-    updateDimensions();
-    
-    return () => {
-      resizeObserver.unobserve(currentContainer);
-      resizeObserver.disconnect();
-    };
-  }, []);
-  
-  // Main animation effect
-  useEffect(() => {
-    // Skip animation if reduced motion is preferred
-    if (!canvasRef.current || dimensions.width === 0 || 
-        (prefersReducedMotion && config.respectReducedMotion)) return;
-    
-    // Capture ref value to use in cleanup  
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d', { 
-      alpha: true, 
-      willReadFrequently: false,
-      desynchronized: true // Potential performance improvement in Chrome
-    });
-    
-    if (!ctx) return; // Safety check for context
-    
-    // Mobile detection for performance optimization
-    const isMobile = window.innerWidth <= 768 || 
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    // Set canvas dimensions with device pixel ratio for sharper rendering
-    // Use lower pixel ratio on mobile for performance
-    const pixelRatio = isMobile ? Math.min(window.devicePixelRatio || 1, 1.5) : (window.devicePixelRatio || 1);
-    canvas.width = Math.max(dimensions.width, 1) * pixelRatio; // Prevent zero-width canvas
-    canvas.height = Math.max(dimensions.height, 1) * pixelRatio; // Prevent zero-height canvas
-    canvas.style.width = `${dimensions.width}px`;
-    canvas.style.height = `${dimensions.height}px`;
-    ctx.scale(pixelRatio, pixelRatio);
-    
-    // Calculate circle properties
-    const centerX = dimensions.width / 2;
-    const centerY = dimensions.height / 2;
-    const radius = Math.min(centerX, centerY) - 20; // 20px padding
-    
-    // Comet parameters with hover enhancement
-    const cometSize = isHovered ? size * 1.2 : size;
-    const actualTrailLength = isHovered ? trailLength * 1.2 : trailLength;
-    const actualSpeed = isHovered ? speed * hoverSpeedMultiplier : speed;
-    const actualGlowIntensity = isHovered ? glowIntensity * 1.5 : glowIntensity;
-    
-    // Pre-calculate segment opacity and width ratios for better performance
-    const segmentOpacityRatios = new Array(trailSegments).fill(0).map((_, i) => 
-      1 - (i / trailSegments)
-    );
-    
-    const segmentWidthRatios = new Array(trailSegments).fill(0).map((_, i) => 
-      1 - (i / trailSegments * 0.7)
-    );
-    
-    // Animation function
-    const animateComet = (timestamp) => {
-      // Initialize timestamp
-      if (!lastTimeRef.current) {
-        lastTimeRef.current = timestamp;
-        frameRateThrottleRef.current = timestamp;
-        requestRef.current = requestAnimationFrame(animateComet);
-        return;
-      }
-      
-      // Frame rate throttling for consistent animation speed
-      const elapsed = timestamp - frameRateThrottleRef.current;
-      if (elapsed < frameInterval) {
-        requestRef.current = requestAnimationFrame(animateComet);
-        return;
-      }
-      
-      // Calculate delta time and update frame rate throttle
-      const deltaTime = timestamp - lastTimeRef.current;
-      lastTimeRef.current = timestamp;
-      frameRateThrottleRef.current = timestamp;
-      
-      // Update comet position with deltaTime consideration
-      cometPositionRef.current = (cometPositionRef.current + actualSpeed * deltaTime) % (2 * Math.PI);
-      
-      // Clear the canvas - use clearRect for better performance
-      ctx.clearRect(0, 0, canvas.width / pixelRatio, canvas.height / pixelRatio);
-      
-      // Draw trail segments
-      let prevPoint = getPointOnCircle(cometPositionRef.current, centerX, centerY, radius);
-      
-      for (let i = 0; i < trailSegments; i++) {
-        const segmentAngle = cometPositionRef.current - ((i + 1) * (actualTrailLength / (2 * Math.PI * radius)));
-        const nextPoint = getPointOnCircle(segmentAngle, centerX, centerY, radius);
-        
-        // Calculate opacity and width using pre-calculated ratios
-        const baseOpacity = 0.9 * segmentOpacityRatios[i];
-        const segmentWidth = 3 * segmentWidthRatios[i] + 0.5;
-        
-        // Skip nearly invisible segments for performance
-        if (baseOpacity < 0.05) continue;
-        
-        // Draw trail segment with optimized settings
-        ctx.beginPath();
-        ctx.moveTo(prevPoint.x, prevPoint.y);
-        ctx.lineTo(nextPoint.x, nextPoint.y);
-        
-        // Apply shadow/glow only when necessary (reduces GPU load)
-        if (i < trailSegments / 2) {
-          ctx.shadowColor = `rgba(255, 253, 227, ${baseOpacity * actualGlowIntensity})`;
-          ctx.shadowBlur = (12 * segmentOpacityRatios[i] + 5) * actualGlowIntensity;
-        } else {
-          ctx.shadowBlur = 0;
-        }
-        
-        // Set line style and draw
-        ctx.strokeStyle = `rgba(191, 173, 127, ${baseOpacity})`;
-        ctx.lineWidth = segmentWidth;
-        ctx.lineCap = 'round';
-        ctx.stroke();
-        
-        // Update previous point for next segment
-        prevPoint = nextPoint;
-      }
-      
-      // Draw comet head
-      const headPoint = getPointOnCircle(cometPositionRef.current, centerX, centerY, radius);
-      
-      // Larger outer glow for comet head
-      ctx.beginPath();
-      ctx.arc(headPoint.x, headPoint.y, cometSize * 1.5, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255, 253, 227, ${0.4 * actualGlowIntensity})`;
-      ctx.shadowColor = `rgba(255, 253, 227, ${0.6 * actualGlowIntensity})`;
-      ctx.shadowBlur = 15 * actualGlowIntensity;
-      ctx.fill();
-      
-      // Draw comet head
-      ctx.beginPath();
-      ctx.arc(headPoint.x, headPoint.y, cometSize, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255, 253, 227, ${0.6 * actualGlowIntensity})`;
-      ctx.shadowColor = `rgba(255, 253, 227, ${0.7 * actualGlowIntensity})`;
-      ctx.shadowBlur = 12 * actualGlowIntensity;
-      ctx.fill();
-      
-      // Brightest center point
-      ctx.beginPath();
-      ctx.arc(headPoint.x, headPoint.y, cometSize * 0.4, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255, 255, 255, ${0.8 * actualGlowIntensity})`;
-      ctx.shadowColor = `rgba(255, 255, 255, ${0.9 * actualGlowIntensity})`;
-      ctx.shadowBlur = 8 * actualGlowIntensity;
-      ctx.fill();
-      
-      // Request next frame
-      requestRef.current = requestAnimationFrame(animateComet);
-    };
-    
-    // Start animation
-    requestRef.current = requestAnimationFrame(animateComet);
-    
-    // Cleanup
-    return () => {
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current);
-      }
-    };
-  }, [dimensions, isHovered, size, trailLength, speed, hoverSpeedMultiplier, 
-      trailSegments, glowIntensity, frameInterval, getPointOnCircle, prefersReducedMotion, config.respectReducedMotion]);
-  
-  return (
-    <div 
-      ref={containerRef} 
-      style={{ 
-        position: 'absolute', 
-        top: 0, 
-        left: 0, 
-        width: '100%', 
-        height: '100%',
-        // Hardware acceleration hints
-        willChange: prefersReducedMotion ? 'auto' : 'transform',
-        transform: 'translateZ(0)',
-        display: 'block', // Explicit for Chrome
-        boxSizing: 'border-box' // Include padding in dimensions
-      }}
-    >
-      <canvas 
-        ref={canvasRef} 
-        style={{ 
-          position: 'absolute', 
-          top: 0, 
-          left: 0,
-          width: '100%',
-          height: '100%',
-          display: 'block', // Explicit display type for Chrome
-          opacity: prefersReducedMotion && config.respectReducedMotion ? 0.3 : 1,
-          transition: 'opacity 0.3s ease'
-        }} 
-      />
-    </div>
-  );
-};
-
-/**
- * Enhanced PersonProfileCard Component with Circular Profile Image and Orbiting Comet Animation
- * Cross-browser compatible (Chrome, Firefox, Safari, Edge)
+ * PersonProfileCard Component
+ * 
+ * A sophisticated profile card with a three-phase scroll behavior:
+ * 1. Normal Flow: Initially scrolls with the page
+ * 2. Fixed Position: Sticks to viewport when scrolling through content
+ * 3. Release: Returns to normal flow after scrolling past component
  * 
  * @param {Object} props - Component props
- * @param {Object} props.person - Person data object
- * @param {string} props.person.name - Person's name
- * @param {string} props.person.role - Person's role or title
- * @param {string} props.person.image - URL to person's image
- * @param {string[]} props.person.bio - Array of bio paragraphs
- * @param {Object[]} props.person.stats - Array of statistic objects
- * @param {Object} [props.animationConfig] - Optional animation configuration
- * @param {Object} [props.cometConfig] - Optional comet configuration
- * @param {Object} [props.imagePosition] - Optional image position configuration
+ * @param {Object} props.person - Person data (name, role, image, bio, stats, etc.)
+ * @param {Object} props.animationConfig - Animation configuration
+ * @param {Object} props.cometConfig - Comet animation configuration
+ * @param {Object} props.imagePosition - Image position configuration
+ * @param {Array} props.additionalSections - Additional content sections
+ * @param {Function} props.onSectionChange - Callback when active section changes
+ * @param {number} props.topOffset - Offset from top for sticky position
+ * @param {boolean} props.showProfileImage - Whether to show profile image
+ * @param {boolean} props.allowImageToggle - Whether to show image toggle button
+ * @param {boolean} props.showStats - Whether to show statistics section
+ * @param {string} props.highlightColor - Color for active/hover elements
+ * @param {string} props.textColor - Default text color
+ * @param {number} props.minLineWidth - Minimum width for nav indicator lines
+ * @param {number} props.maxLineWidth - Maximum width for nav indicator lines
+ * @param {string} props.fontFamily - Font family for text elements
+ * @param {Object} props.navigationItems - Custom navigation items with IDs, labels and content
+ * @param {number} props.contentCompression - Adjusts spacing between sidebar and content (0-10)
+ * @param {Object} props.defaultContent - Default content for sections when not provided in person data
  */
-const PersonProfileCard = ({ 
+const PersonProfileCard = ({
   person,
   animationConfig = {
-    useInternalRef: true,
     threshold: 0.2,
     once: true,
-    initialY: 50,
-    duration: 0.8,
-    ease: "easeOut"
+    initialY: 30,
+    duration: 0.8
   },
   cometConfig = {
-    size: 1,
-    trailLength: 80,
+    size: 1.5,
+    trailLength: 100,
     speed: 0.001,
-    targetFPS: 30, // Lower FPS target for better performance
-    // Based on MeteorShower component for mobile optimization
-    adaptiveQuality: true, // Enable adaptive quality based on device
-    respectReducedMotion: true // Respect user's reduced motion preference
+    targetFPS: 30,
+    respectReducedMotion: true
   },
   imagePosition = {
     x: 50,
-    y: 0,
+    y: 50,
     scale: 1
-  }
+  },
+  additionalSections = [],
+  onSectionChange = null,
+  topOffset = 100,
+  showProfileImage = true,
+  allowImageToggle = true,
+  showStats = true,
+  highlightColor = '#bfad7f',
+  textColor = 'rgba(224, 224, 224, 0.7)',
+  minLineWidth = 10,
+  maxLineWidth = 20,
+  fontFamily = '"Garamond", "Adobe Caslon Pro", serif',
+  navigationItems = [
+    { id: 'about', label: 'ABOUT', content: null },
+    { id: 'experience', label: 'EXPERIENCE', content: null },
+    { id: 'projects', label: 'PROJECTS', content: null }
+  ],
+  contentCompression = 0,
+  defaultContent = {}
 }) => {
-  const classes = useStyles();
+  // State management
   const [isHovered, setIsHovered] = useState(false);
+  const [activeSection, setActiveSection] = useState(navigationItems[0]?.id || 'about');
+  const [showImageState, setShowImageState] = useState(showProfileImage);
+  const [expandedNavItem, setExpandedNavItem] = useState(null);
+
+  // Calculate widths based on contentCompression (0-10 scale)
+  // Higher compression = more space between sidebar and content
+  const compressionFactor = Math.min(Math.max(contentCompression, 0), 10) / 10;
+  const sidebarWidth = 40 - (compressionFactor * 5); // 35-40% range
+  const contentWidth = 60 - (compressionFactor * 5); // 55-60% range
+  const contentPadding = 2 + (compressionFactor * 2); // 2-4rem range
+
+  // Refs for DOM elements
+  const containerRef = useRef(null);
+  const sidebarRef = useRef(null);
+  const contentRef = useRef(null);
   
-  // Set up ref and inView detection
-  const internalRef = useRef(null);
-  
-  // Use memoized animation config
-  const safeAnimConfig = useMemo(() => ({
+  // Create refs dynamically based on number of navigationItems
+  const sectionRefs = useMemo(() => {
+    return navigationItems.reduce((acc, item, index) => {
+      acc[item.id] = React.createRef();
+      return acc;
+    }, {});
+  }, [navigationItems]);
+
+  // Animation inView detection
+  const isInView = useInView(containerRef, {
     threshold: animationConfig?.threshold ?? 0.2,
     once: animationConfig?.once ?? true
-  }), [animationConfig?.threshold, animationConfig?.once]);
+  });
+
+  // Mouse event handlers for profile image hover effect
+  const handleMouseEnter = useCallback(() => {
+    setIsHovered(true);
+  }, []);
   
-  // Always call useInView (to follow React hook rules)
-  const internalInView = useInView(internalRef, safeAnimConfig);
+  const handleMouseLeave = useCallback(() => {
+    setIsHovered(false);
+  }, []);
+
+  // Toggle profile image visibility
+  const toggleProfileImage = useCallback(() => {
+    setShowImageState(prev => !prev);
+  }, []);
+
+  // Handle navigation item hover
+  const handleNavItemHover = useCallback((section) => {
+    setExpandedNavItem(section);
+  }, []);
   
-  // Use either internal or external ref/inView based on config
-  const ref = animationConfig?.useInternalRef !== false ? internalRef : animationConfig?.ref;
-  const isInView = animationConfig?.useInternalRef !== false ? internalInView : animationConfig?.isInView;
+  const handleNavItemLeave = useCallback(() => {
+    setExpandedNavItem(null);
+  }, []);
+
+  // Scroll to section handler
+  const scrollToSection = useCallback((sectionId) => {
+    setActiveSection(sectionId);
+    
+    // Notify parent component if callback provided
+    if (onSectionChange) {
+      onSectionChange(sectionId);
+    }
+    
+    // Scroll to section with smooth behavior
+    const sectionRef = sectionRefs[sectionId];
+    if (sectionRef?.current) {
+      sectionRef.current.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  }, [onSectionChange, sectionRefs]);
+
+  // Set up intersection observer to detect which section is in view
+  useEffect(() => {
+    const sectionElements = Object.values(sectionRefs)
+      .map(ref => ref.current)
+      .filter(Boolean);
+    
+    if (sectionElements.length === 0) return;
+    
+    const options = {
+      root: null,
+      rootMargin: '-10% 0px -70% 0px', // Consider element in view when in the top 30% of viewport
+      threshold: 0
+    };
+    
+    const callback = (entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const sectionId = entry.target.getAttribute('data-section');
+          if (sectionId && sectionId !== activeSection) {
+            setActiveSection(sectionId);
+            
+            // Notify parent component if callback provided
+            if (onSectionChange) {
+              onSectionChange(sectionId);
+            }
+          }
+        }
+      });
+    };
+    
+    const observer = new IntersectionObserver(callback, options);
+    
+    // Observe all section refs
+    sectionElements.forEach(element => observer.observe(element));
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, [activeSection, onSectionChange, sectionRefs]);
+
+  // Create a state to track the sidebar mode
+  const [sidebarMode, setSidebarMode] = useState('normal'); // 'normal', 'fixed', or 'end'
   
-  // Optimize events for touch devices
-  const handleMouseEnter = useCallback(() => setIsHovered(true), []);
-  const handleMouseLeave = useCallback(() => setIsHovered(false), []);
-  
-  // Precompute image style for better performance
-  const imageStyle = useMemo(() => ({
-    objectPosition: `${imagePosition?.x ?? 50}% ${imagePosition?.y ?? 50}%`,
-    transform: `scale(${imagePosition?.scale ?? 1})`
-  }), [imagePosition?.x, imagePosition?.y, imagePosition?.scale]);
-  
+  // Implement the three-phase scrolling behavior
+  useEffect(() => {
+    const elements = {
+      sidebar: sidebarRef.current,
+      container: containerRef.current,
+      content: contentRef.current
+    };
+    
+    // Ensure all required elements exist
+    if (!elements.sidebar || !elements.container || !elements.content) return;
+    
+    // Skip this behavior on mobile
+    const checkIsMobile = () => window.innerWidth <= 768;
+    let isMobile = checkIsMobile();
+    
+    // Calculate exact dimensions once to use consistently
+    let sidebarRect = null;
+    let sidebarWidth = null;
+    
+    const calculateSidebarMetrics = () => {
+      sidebarRect = elements.sidebar.getBoundingClientRect();
+      // Use exact pixel value instead of percentage-based calculation for consistency
+      sidebarWidth = sidebarRect.width;
+    };
+    
+    calculateSidebarMetrics();
+    
+    const handleScroll = () => {
+      // Skip behavior if on mobile
+      if (isMobile) return;
+      
+      // Get element dimensions and positions
+      const containerRect = elements.container.getBoundingClientRect();
+      const containerTop = containerRect.top;
+      const containerBottom = containerRect.bottom;
+      const sidebarHeight = elements.sidebar.offsetHeight;
+      
+      // Calculate phase transition points
+      const startFixPoint = containerTop <= topOffset;
+      const endFixPoint = containerBottom <= (sidebarHeight + topOffset);
+      
+      // Determine the current scroll phase
+      let newMode;
+      if (!startFixPoint) {
+        newMode = 'normal';
+      } else if (startFixPoint && !endFixPoint) {
+        newMode = 'fixed';
+      } else {
+        newMode = 'end';
+      }
+      
+      // Only apply changes if the mode has changed (reduces unnecessary style recalculations)
+      if (sidebarMode !== newMode) {
+        setSidebarMode(newMode);
+        
+        // Update sidebar styles based on the new mode
+        if (newMode === 'normal') {
+          // Phase 1: Normal flow - sidebar scrolls with the page
+          elements.sidebar.style.position = 'relative';
+          elements.sidebar.style.top = '0';
+          elements.sidebar.style.left = '0';
+          elements.sidebar.style.width = '';
+          elements.sidebar.style.bottom = '';
+        } else if (newMode === 'fixed') {
+          // Phase 2: Fixed position - sidebar sticks to the viewport
+          calculateSidebarMetrics(); // Get current metrics before changing position
+          
+          // Get exact left position relative to the document
+          const sidebarLeft = sidebarRect.left;
+          
+          elements.sidebar.style.position = 'fixed';
+          elements.sidebar.style.top = `${topOffset}px`;
+          elements.sidebar.style.left = `${sidebarLeft}px`;
+          elements.sidebar.style.width = `${sidebarWidth}px`;
+          elements.sidebar.style.bottom = '';
+        } else if (newMode === 'end') {
+          // Phase 3: End position - sidebar moves with page again, but from bottom
+          elements.sidebar.style.position = 'absolute';
+          elements.sidebar.style.top = 'auto';
+          elements.sidebar.style.bottom = '0';
+          elements.sidebar.style.left = '0';
+          elements.sidebar.style.width = '';
+        }
+      }
+    };
+    
+    // Handle window resize and check if mobile
+    const handleResize = () => {
+      const wasMobile = isMobile;
+      isMobile = checkIsMobile();
+      
+      // Recalculate dimensions on resize
+      calculateSidebarMetrics();
+      
+      // Reset styles if switching between mobile and desktop
+      if (wasMobile !== isMobile) {
+        if (isMobile) {
+          // Reset styles for mobile
+          elements.sidebar.style.position = '';
+          elements.sidebar.style.top = '';
+          elements.sidebar.style.bottom = '';
+          elements.sidebar.style.left = '';
+          elements.sidebar.style.width = '';
+          setSidebarMode('normal');
+        } else {
+          // Re-apply scroll behavior for desktop
+          handleScroll();
+        }
+      } else if (!isMobile && sidebarMode === 'fixed') {
+        // Update positioning on desktop resize while in fixed mode
+        calculateSidebarMetrics();
+        const sidebarLeft = elements.sidebar.offsetLeft;
+        elements.sidebar.style.left = `${sidebarLeft}px`;
+        elements.sidebar.style.width = `${sidebarWidth}px`;
+      }
+    };
+    
+    // Add event listeners with reduced rate of execution for smoother scrolling
+    let ticking = false;
+    const scrollListener = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    
+    window.addEventListener('scroll', scrollListener, { passive: true });
+    window.addEventListener('resize', handleResize);
+    
+    // Initial setup
+    handleResize();
+    handleScroll();
+    
+    // Cleanup event listeners on unmount
+    return () => {
+      window.removeEventListener('scroll', scrollListener);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [topOffset, sidebarMode]);
+
+  // Generic text style for section content
+  const sectionTextStyle = {
+    fontSize: '1rem',
+    lineHeight: '1.8',
+    marginBottom: '1.5rem',
+    color: textColor,
+    fontFamily: fontFamily,
+    fontWeight: '300',
+  };
+
+  // Helper function to render section content
+  const renderSectionContent = (sectionId, content) => {
+    // If section has custom rendering in navigationItems, use that
+    const navItem = navigationItems.find(item => item.id === sectionId);
+    if (navItem?.content) {
+      return typeof navItem.content === 'string' 
+        ? <p className="section-content" style={sectionTextStyle}>{navItem.content}</p>
+        : navItem.content;
+    }
+    
+    // Otherwise, use the content passed in
+    if (content) {
+      return Array.isArray(content) 
+        ? content.map((item, idx) => (
+            <p key={idx} className="section-content" style={sectionTextStyle}>
+              {typeof item === 'string' ? item : item.content}
+            </p>
+          ))
+        : <p className="section-content" style={sectionTextStyle}>{content}</p>;
+    }
+    
+    // If no content is provided, use defaultContent if available
+    if (defaultContent[sectionId]) {
+      return typeof defaultContent[sectionId] === 'string'
+        ? <p className="section-content" style={sectionTextStyle}>{defaultContent[sectionId]}</p>
+        : defaultContent[sectionId];
+    }
+    
+    // If no content is available, return null (empty section)
+    return null;
+  };
+
   return (
     <motion.div 
-      ref={ref}
-      className={`${classes.profile} ${classes.profileBorder} ${isInView ? classes.inView : ''}`}
-      initial={{ opacity: 0, y: animationConfig?.initialY ?? 50 }}
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: animationConfig?.initialY ?? 50 }}
+      ref={containerRef}
+      className="profile-container"
+      initial={{ opacity: 0, y: animationConfig?.initialY ?? 30 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: animationConfig?.initialY ?? 30 }}
       transition={{ 
         duration: animationConfig?.duration ?? 0.8, 
-        ease: animationConfig?.ease ?? "easeOut" 
+        ease: "easeOut" 
       }}
-      layout // Improve layout transitions
+      style={{
+        display: 'flex',
+        flexDirection: 'row',
+        width: '100%',
+        maxWidth: '1300px',
+        margin: '0 auto',
+        minHeight: '70vh',
+        position: 'relative',
+      }}
     >
+      {/* Left sidebar wrapper with position-preserving structure */}
       <div 
-        className={classes.profileImageContainer}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        className="sidebar-wrapper"
+        style={{
+          width: `${sidebarWidth}%`,
+          position: 'relative',
+        }}
       >
-        {/* Comet animation around the border */}
-        <div className={classes.cometCanvasContainer}>
-          <CometBorderAnimation 
-            isHovered={isHovered} 
-            config={cometConfig}
-          />
-        </div>
-        
-        <div className={classes.profileImage}>
-          <div className={classes.imageWrapper}>
-            <img 
-              src={person.image} 
-              alt={person.name} 
-              className={classes.image}
-              style={imageStyle}
-              loading="lazy"
-              onLoad={() => {
-                // Force layout recalculation after image loads
-                setTimeout(() => {
-                  if (window.requestAnimationFrame) {
-                    window.requestAnimationFrame(() => {
-                      const event = new Event('resize');
-                      window.dispatchEvent(event);
-                    });
-                  }
-                }, 100);
+        {/* Profile sidebar with dynamic positioning handled by JS */}
+        <div 
+          ref={sidebarRef}
+          className="profile-sidebar"
+          style={{
+            padding: '3rem 2rem 2rem 0',
+            display: 'flex',
+            flexDirection: 'column',
+            width: '100%',
+            position: 'relative',
+            top: 0,
+          }}
+        >
+          {/* Toggle profile image button - only shown when allowImageToggle is true */}
+          {allowImageToggle && (
+            <button 
+              onClick={toggleProfileImage}
+              className="toggle-profile-image"
+              style={{
+                position: 'absolute',
+                top: '10px',
+                right: '10px',
+                background: 'transparent',
+                color: highlightColor,
+                border: `1px solid ${highlightColor}`,
+                borderRadius: '4px',
+                padding: '5px 10px',
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+                transition: 'all 0.3s ease',
+                zIndex: 5,
+                opacity: 0.7
               }}
-            />
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = `${highlightColor}20`;
+                e.currentTarget.style.opacity = '1';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.opacity = '0.7';
+              }}
+            >
+              {showImageState ? 'Hide Image' : 'Show Image'}
+            </button>
+          )}
+          
+          {/* Profile image with comet animation - conditionally rendered */}
+          {showImageState && (
+            <div 
+              className="profile-image-container"
+              style={{
+                position: 'relative',
+                width: '240px',
+                height: '240px',
+                borderRadius: '50%',
+                boxShadow: '0 5px 15px rgba(0, 0, 0, 0.3)',
+                transition: 'box-shadow 0.3s ease, transform 0.3s ease',
+                overflow: 'hidden',
+                boxSizing: 'border-box',
+                marginBottom: '2rem',
+                border: '1px solid rgba(191, 173, 127, 0.2)',
+                transform: isHovered ? 'scale(1.02)' : 'scale(1)',
+              }}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+            >
+              {/* Comet animation around the border */}
+              <CometBorderEffect 
+                isHovered={isHovered}
+                size={cometConfig.size}
+                trailLength={cometConfig.trailLength}
+                speed={cometConfig.speed}
+                hoverSpeedMultiplier={cometConfig.hoverSpeedMultiplier || 2}
+                trailSegments={cometConfig.trailSegments || 25}
+                glowIntensity={cometConfig.glowIntensity || 0.8}
+                targetFPS={cometConfig.targetFPS || 30}
+                respectReducedMotion={cometConfig.respectReducedMotion || true}
+                paddingTop={20}
+                paddingRight={20}
+                paddingBottom={20}
+                paddingLeft={20}
+              />
+              
+              <div 
+                className="profile-image"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                }}
+              >
+                <div 
+                  className="image-wrapper"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    overflow: 'hidden',
+                    borderRadius: '50%'
+                  }}
+                >
+                  <img 
+                    src={person.image} 
+                    alt={person.name} 
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      transition: 'transform 0.6s ease, object-position 0.6s ease',
+                      display: 'block',
+                      objectPosition: `${imagePosition?.x ?? 50}% ${imagePosition?.y ?? 50}%`,
+                      transform: `scale(${imagePosition?.scale ?? 1})`
+                    }}
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Profile information */}
+          <div 
+            className="profile-info"
+            style={{
+              marginBottom: '2rem',
+              paddingLeft: '5px',
+            }}
+          >
+            <h1 
+              className="profile-name"
+              style={{
+                fontSize: '2.8rem',
+                fontWeight: '300',
+                color: highlightColor,
+                letterSpacing: '0.05em',
+                marginBottom: '0.5rem',
+                transition: 'transform 0.3s ease',
+                transform: isHovered ? 'translateY(-3px)' : 'none',
+              }}
+            >
+              {person.name}
+            </h1>
+            
+            <h2 
+              className="profile-role"
+              style={{
+                fontSize: '1.2rem',
+                fontWeight: '300',
+                marginBottom: '2rem',
+                color: `${highlightColor}B3`, // 70% opacity
+                letterSpacing: '0.05em',
+                fontFamily: fontFamily,
+                fontStyle: 'italic',
+              }}
+            >
+              {person.role}
+            </h2>
+            
+            {/* Short tagline */}
+            {person.tagline && (
+              <p 
+                className="profile-tagline"
+                style={{
+                  fontSize: '1.1rem',
+                  lineHeight: '1.6',
+                  marginBottom: '3rem',
+                  maxWidth: '90%',
+                  color: textColor,
+                  fontFamily: fontFamily,
+                  fontWeight: '300',
+                }}
+              >
+                {person.tagline}
+              </p>
+            )}
+          </div>
+          
+          {/* Navigation links with fluid expansion on hover */}
+          <div className="nav-links" style={{ marginTop: '2rem' }}>
+            {navigationItems.map((navItem, index) => (
+              <div 
+                key={navItem.id}
+                className="nav-link-container"
+                style={{
+                  position: 'relative',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                onMouseEnter={() => handleNavItemHover(navItem.id)}
+                onMouseLeave={handleNavItemLeave}
+              >
+                <div
+                  className="nav-line"
+                  style={{
+                    position: 'absolute',
+                    left: '0',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: activeSection === navItem.id || expandedNavItem === navItem.id 
+                      ? `${maxLineWidth}px` 
+                      : `${minLineWidth}px`,
+                    height: '2px',
+                    backgroundColor: activeSection === navItem.id || expandedNavItem === navItem.id
+                      ? `${highlightColor}E6` // 90% opacity 
+                      : `${highlightColor}80`, // 50% opacity
+                    transition: 'width 0.3s ease, background-color 0.3s ease',
+                  }}
+                ></div>
+                <button 
+                  className="nav-link"
+                  onClick={() => scrollToSection(navItem.id)}
+                  style={{
+                    position: 'relative',
+                    display: 'block',
+                    padding: '0.5rem 0 0.5rem 25px',
+                    fontSize: '0.85rem',
+                    letterSpacing: '0.1em',
+                    background: 'transparent',
+                    border: 'none',
+                    textAlign: 'left',
+                    transition: 'color 0.3s ease, transform 0.3s ease',
+                    color: activeSection === navItem.id || expandedNavItem === navItem.id 
+                      ? highlightColor 
+                      : textColor,
+                    cursor: 'pointer',
+                    transform: activeSection === navItem.id || expandedNavItem === navItem.id 
+                      ? 'translateX(3px)' 
+                      : 'none',
+                    width: 'fit-content', // Make button fit to content
+                  }}
+                >
+                  {navItem.label}
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       </div>
       
-      <div className={classes.profileDetails}>
-        <h2 className={classes.profileName}>{person.name}</h2>
-        <p className={classes.profileRole}>{person.role}</p>
-        
-        {person.bio.map((paragraph, index) => (
-          <p key={index} className={classes.profileBio}>{paragraph}</p>
-        ))}
-        
-        {person.stats && person.stats.length > 0 && (
-          <motion.div 
-            className={classes.profileStats}
-            layout // Smooth layout transitions
-            transition={{ 
-              layout: { duration: 0.3, ease: "easeOut" } 
+      {/* Right content section */}
+      <div 
+        ref={contentRef}
+        className="content-section"
+        style={{
+          width: `${contentWidth}%`,
+          padding: `3rem 0 2rem ${contentPadding}rem`,
+          marginLeft: 'auto',
+        }}
+      >
+        {/* Dynamically render sections based on navigationItems */}
+        {navigationItems.map((section, index) => (
+          <div 
+            key={section.id}
+            ref={sectionRefs[section.id]}
+            data-section={section.id}
+            className="section"
+            id={section.id}
+            style={{
+              marginBottom: '3rem',
+              scrollMarginTop: '2rem',
             }}
           >
-            {person.stats.map((stat, index) => (
-              <motion.div 
-                key={index} 
-                className={classes.stat}
-                layout // Individual stat layout animation
+            {/* Render content based on section ID */}
+            {section.id === 'about' && renderSectionContent('about', person.bio)}
+            
+            {/* Render statistics if it's the about section and showStats is true */}
+            {section.id === 'about' && showStats && person.stats && person.stats.length > 0 && (
+              <div 
+                className="stats-container"
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  marginTop: '3rem',
+                  width: '100%',
+                }}
               >
-                <div className={classes.statValue}>{stat.value}</div>
-                <div className={classes.statLabel}>{stat.label}</div>
-              </motion.div>
-            ))}
-          </motion.div>
+                {person.stats.map((stat, statIdx) => (
+                  <div 
+                    key={statIdx} 
+                    className="stat"
+                    style={{
+                      flex: '1',
+                      textAlign: 'center',
+                      padding: '0 1rem',
+                      minWidth: '100px',
+                      transition: 'transform 0.3s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-5px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'none';
+                    }}
+                  >
+                    <div 
+                      className="stat-value"
+                      style={{
+                        fontSize: '2.5rem',
+                        fontWeight: '100',
+                        color: highlightColor,
+                        marginBottom: '0.5rem'
+                      }}
+                    >
+                      {stat.value}
+                    </div>
+                    <div 
+                      className="stat-label"
+                      style={{
+                        fontSize: '0.85rem',
+                        color: `${textColor}CC`, // 80% opacity
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.1em'
+                      }}
+                    >
+                      {stat.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* For other sections, use the generic content renderer */}
+            {section.id === 'experience' && renderSectionContent('experience', person.experience)}
+            {section.id === 'projects' && renderSectionContent('projects', person.projects)}
+            
+            {/* For any other custom sections */}
+            {!['about', 'experience', 'projects'].includes(section.id) && 
+              renderSectionContent(section.id, section.content)}
+          </div>
+        ))}
+        
+        {/* Dynamic sections from props */}
+        {additionalSections.length > 0 && (
+          additionalSections.map((section, index) => (
+            <div 
+              key={index} 
+              className="section"
+              style={{
+                marginBottom: '3rem',
+                scrollMarginTop: '2rem',
+              }}
+            >
+              {section.title && (
+                <h3 style={{
+                  fontSize: '1.4rem',
+                  color: highlightColor,
+                  marginBottom: '1rem',
+                  fontWeight: '300',
+                }}>
+                  {section.title}
+                </h3>
+              )}
+              {renderSectionContent(section.id || `additional-${index}`, section.content)}
+            </div>
+          ))
         )}
       </div>
+      
+      {/* Media query styles for mobile */}
+      <style jsx>{`
+        @media (max-width: 768px) {
+          .profile-container {
+            flex-direction: column;
+          }
+          
+          .sidebar-wrapper {
+            width: 100% !important;
+          }
+          
+          .profile-sidebar {
+            position: relative !important;
+            padding: 2rem 1rem !important;
+            align-items: center;
+            text-align: center;
+            top: 0 !important;
+            bottom: auto !important;
+          }
+          
+          .profile-image-container {
+            width: 200px !important;
+            height: 200px !important;
+            margin: 0 auto 2rem !important;
+          }
+          
+          .profile-name {
+            font-size: 2.2rem !important;
+          }
+          
+          .profile-tagline {
+            max-width: 100% !important;
+            text-align: center;
+          }
+          
+          .content-section {
+            width: 100% !important;
+            padding: 2rem 1rem !important;
+            margin-left: 0 !important;
+          }
+          
+          .stats-container {
+            justify-content: center !important;
+            gap: 2rem;
+          }
+          
+          .nav-links {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            width: 100%;
+          }
+          
+          .nav-link-container {
+            margin: 0.5rem 0 !important;
+          }
+          
+          .toggle-profile-image {
+            position: static !important;
+            margin-bottom: 1rem;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .stats-container {
+            flex-direction: column !important;
+            align-items: center !important;
+            gap: 1.5rem !important;
+          }
+          
+          .stat {
+            width: 100% !important;
+            max-width: 180px !important;
+          }
+        }
+      `}</style>
     </motion.div>
   );
 };
