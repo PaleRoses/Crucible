@@ -4,7 +4,7 @@ import { createUseStyles } from 'react-jss';
 // Simplified classnames utility to avoid external dependency
 const cx = (...classes) => classes.filter(Boolean).join(' ');
 
-// Static styles with minimal transitions
+// Optimized styles with fadeIn animation removed
 const useStyles = createUseStyles({
   // Root container with minimal styling
   card: {
@@ -24,7 +24,7 @@ const useStyles = createUseStyles({
     '--overlay-opacity': '0.5',
     '--glow-opacity': '0',
     transform: 'var(--card-transform)',
-    transition: 'box-shadow 0.3s ease',
+    transition: 'transform 0.3s ease, box-shadow 0.3s ease', // More specific transitions
     '&:hover': {
       '--card-transform': 'translate3d(0,-5px,0) scale(1.02)',
       '--card-shadow': '0 16px 35px rgba(0, 0, 0, 0.3), 0 0 25px rgba(191, 173, 127, 0.15)',
@@ -66,7 +66,7 @@ const useStyles = createUseStyles({
     opacity: 'var(--overlay-opacity)',
     transition: 'opacity 0.5s ease'
   },
-  // Border glow effect
+  // Border glow effect - retained as requested
   glow: {
     position: 'absolute',
     top: 0,
@@ -141,14 +141,6 @@ const useStyles = createUseStyles({
     fontWeight: 400,
     letterSpacing: '0.02em'
   },
-  // Element that appears on view
-  fadeIn: {
-    animation: '$fadeIn 0.8s ease forwards'
-  },
-  '@keyframes fadeIn': {
-    from: { opacity: 0, transform: 'translateY(30px)' },
-    to: { opacity: 1, transform: 'translateY(0)' }
-  },
   // Clickable cursor
   clickable: {
     cursor: 'pointer'
@@ -156,36 +148,39 @@ const useStyles = createUseStyles({
 });
 
 /**
- * HighPerformanceProjectCard
+ * OptimizedProjectCard
  * 
- * A completely refactored project card component with maximum performance optimizations:
- * - Uses CSS custom properties instead of JavaScript for animations
+ * A highly optimized project card component with performance enhancements:
+ * - Uses CSS custom properties for animations
  * - Minimal DOM nodes
- * - No state/useState to prevent re-renders
- * - CSS animations instead of JavaScript animations
  * - Optimized for low-end devices with feature detection
  * - Properly memoized to prevent unnecessary re-renders
+ * - Removed fadeIn animation as requested
  * 
  * @param {Object} props - Component props
  * @param {Object} props.project - Project data object
- * @param {boolean} props.inView - Whether the card is in view
  * @param {boolean} props.lowPerformanceMode - Forces simpler rendering for low-end devices
  * @param {Function} props.onClick - Click handler
  */
 const ProjectCard = ({
   project,
-  inView = true,
   lowPerformanceMode = false,
   onClick
 }) => {
   const classes = useStyles();
   const cardRef = useRef(null);
   
-  // Determine if we should use light mode (for low-end devices)
-  const useLightMode = lowPerformanceMode || 
-    (typeof window !== 'undefined' && 
-     (window.matchMedia('(prefers-reduced-motion: reduce)').matches || 
-      navigator.hardwareConcurrency <= 4));
+  // Memoized hardware capability check
+  const useLightMode = React.useMemo(() => {
+    if (lowPerformanceMode) return true;
+    
+    // Only run this check on client-side
+    if (typeof window !== 'undefined') {
+      return window.matchMedia('(prefers-reduced-motion: reduce)').matches || 
+        (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
+    }
+    return false;
+  }, [lowPerformanceMode]);
   
   // Memoized click handler
   const handleClick = useCallback(() => {
@@ -196,7 +191,6 @@ const ProjectCard = ({
   const cardClassName = cx(
     classes.card,
     useLightMode && classes.cardLight,
-    inView && classes.fadeIn,
     onClick && classes.clickable
   );
   
@@ -248,7 +242,7 @@ const ProjectCard = ({
 };
 
 // Add display name for better debugging
-ProjectCard.displayName = 'HighPerformanceProjectCard';
+ProjectCard.displayName = 'OptimizedProjectCard';
 
 // Export memoized component to prevent unnecessary re-renders
 export default memo(ProjectCard);

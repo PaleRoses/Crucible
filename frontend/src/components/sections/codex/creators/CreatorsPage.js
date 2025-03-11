@@ -117,7 +117,7 @@ const useStyles = createUseStyles({
   },
   
   projectsSection: {
-    paddingTop: '20rem',
+    paddingTop: '23rem',
     paddingBottom: '6rem',
   },
   
@@ -322,7 +322,7 @@ const CreatorsPage = () => {
         {/* Title with scroll-then-stop effect */}
         <header className={classes.header}>
           <ScrollingTextAnimation scrollConfig={titleScrollConfig}>
-            <h1 className={classes.mainTitle}>About the Author</h1>
+            <h1 className={classes.mainTitle}>About Me</h1>
           </ScrollingTextAnimation>
         </header>
         
