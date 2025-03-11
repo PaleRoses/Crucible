@@ -192,7 +192,7 @@ const CreatorsPage = () => {
   // Creator profile data
   const creatorData = {
     name: "Rosalia Fialkova",
-    role: "Aspiring Systems Designer & Technical Artist",
+    role: "Software Engineer",
     tagline: 
       <>
         Crafting immersive systems and experiences<br />
