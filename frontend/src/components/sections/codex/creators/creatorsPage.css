@@ -169,10 +169,8 @@
   }
   
   .crescent-creators-page__inspiration-category:hover {
-    background-color: rgba(20, 20, 20, 0.7);
     transform: translateY(-5px);
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3), 0 0 15px rgba(160, 142, 97, 0.15);
-    border-color: rgba(160, 142, 97, 0.4);
   }
   
   .crescent-creators-page__inspiration-heading {
@@ -215,7 +213,6 @@
   .crescent-creators-page__final {
     text-align: center;
     padding: 6rem 2rem;
-    background: radial-gradient(circle at center, rgba(15, 15, 15, 0.5) 0%, rgba(8, 8, 8, 0.8) 70%);
   }
   
   .crescent-creators-page__final-text {

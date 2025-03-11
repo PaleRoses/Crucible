@@ -1,25 +1,20 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, useInView } from 'framer-motion';
-import CometBorderEffect from '../bordereffects/CometBorderEffect';
 
 /**
  * PersonProfileCard Component
  * 
- * A sophisticated profile card with a three-phase scroll behavior:
+ * A profile card with a three-phase scroll behavior:
  * 1. Normal Flow: Initially scrolls with the page
  * 2. Fixed Position: Sticks to viewport when scrolling through content
  * 3. Release: Returns to normal flow after scrolling past component
  * 
  * @param {Object} props - Component props
- * @param {Object} props.person - Person data (name, role, image, bio, stats, etc.)
+ * @param {Object} props.person - Person data (name, role, bio, stats, etc.)
  * @param {Object} props.animationConfig - Animation configuration
- * @param {Object} props.cometConfig - Comet animation configuration
- * @param {Object} props.imagePosition - Image position configuration
  * @param {Array} props.additionalSections - Additional content sections
  * @param {Function} props.onSectionChange - Callback when active section changes
  * @param {number} props.topOffset - Offset from top for sticky position
- * @param {boolean} props.showProfileImage - Whether to show profile image
- * @param {boolean} props.allowImageToggle - Whether to show image toggle button
  * @param {boolean} props.showStats - Whether to show statistics section
  * @param {string} props.highlightColor - Color for active/hover elements
  * @param {string} props.textColor - Default text color
@@ -37,23 +32,9 @@ const PersonProfileCard = ({
     initialY: 30,
     duration: 0.8
   },
-  cometConfig = {
-    size: 1.5,
-    trailLength: 100,
-    speed: 0.001,
-    targetFPS: 30,
-    respectReducedMotion: true
-  },
-  imagePosition = {
-    x: 50,
-    y: 50,
-    scale: 1
-  },
   additionalSections = [],
   onSectionChange = null,
   topOffset = 100,
-  showProfileImage = true,
-  allowImageToggle = true,
   showStats = true,
   highlightColor = '#bfad7f',
   textColor = 'rgba(224, 224, 224, 0.7)',
@@ -68,22 +49,21 @@ const PersonProfileCard = ({
   contentCompression = 0
 }) => {
   // State management
-  const [isHovered, setIsHovered] = useState(false);
   const [activeSection, setActiveSection] = useState(navigationItems[0]?.id || 'about');
-  const [showImageState, setShowImageState] = useState(showProfileImage);
   const [expandedNavItem, setExpandedNavItem] = useState(null);
 
   // Calculate widths based on contentCompression (0-10 scale)
   // Higher compression = more space between sidebar and content
   const compressionFactor = Math.min(Math.max(contentCompression, 0), 10) / 10;
-  const sidebarWidth = 40 - (compressionFactor * 5); // 35-40% range
-  const contentWidth = 60 - (compressionFactor * 5); // 55-60% range
+  const sidebarWidth = 45 - (compressionFactor * 5); // 35-40% range
+  const contentWidth = 55 - (compressionFactor * 5); // 55-60% range
   const contentPadding = 2 + (compressionFactor * 2); // 2-4rem range
 
   // Refs for DOM elements
   const containerRef = useRef(null);
   const sidebarRef = useRef(null);
   const contentRef = useRef(null);
+  const sidebarWrapperRef = useRef(null);
   
   // Create refs - one for each possible section
   // This approach complies with React's rules of hooks
@@ -118,20 +98,6 @@ const PersonProfileCard = ({
     threshold: animationConfig?.threshold ?? 0.2,
     once: animationConfig?.once ?? true
   });
-
-  // Mouse event handlers for profile image hover effect
-  const handleMouseEnter = useCallback(() => {
-    setIsHovered(true);
-  }, []);
-  
-  const handleMouseLeave = useCallback(() => {
-    setIsHovered(false);
-  }, []);
-
-  // Toggle profile image visibility
-  const toggleProfileImage = useCallback(() => {
-    setShowImageState(prev => !prev);
-  }, []);
 
   // Handle navigation item hover
   const handleNavItemHover = useCallback((section) => {
@@ -204,46 +170,43 @@ const PersonProfileCard = ({
   // Create a state to track the sidebar mode
   const [sidebarMode, setSidebarMode] = useState('normal'); // 'normal', 'fixed', or 'end'
   
-  // Implement the three-phase scrolling behavior
+  // Implement the three-phase scrolling behavior with improved positioning
   useEffect(() => {
-    const elements = {
-      sidebar: sidebarRef.current,
-      container: containerRef.current,
-      content: contentRef.current
-    };
-    
-    // Ensure all required elements exist
-    if (!elements.sidebar || !elements.container || !elements.content) return;
+    if (!sidebarRef.current || !containerRef.current || !sidebarWrapperRef.current) return;
     
     // Skip this behavior on mobile
     const checkIsMobile = () => window.innerWidth <= 768;
     let isMobile = checkIsMobile();
     
-    // Calculate exact dimensions once to use consistently
-    let sidebarRect = null;
-    let sidebarWidth = null;
+    // Store original positions once
+    const sidebarWrapper = sidebarWrapperRef.current;
+    const sidebar = sidebarRef.current;
+    const container = containerRef.current;
     
-    const calculateSidebarMetrics = () => {
-      sidebarRect = elements.sidebar.getBoundingClientRect();
-      // Use exact pixel value instead of percentage-based calculation for consistency
-      sidebarWidth = sidebarRect.width;
+    // Save the sidebar's original position in the document flow
+    const getWrapperOffset = () => {
+      const wrapperRect = sidebarWrapper.getBoundingClientRect();
+      const computedStyle = window.getComputedStyle(sidebarWrapper);
+      return {
+        left: wrapperRect.left,
+        width: wrapperRect.width,
+        paddingLeft: parseInt(computedStyle.paddingLeft, 10) || 0,
+        paddingRight: parseInt(computedStyle.paddingRight, 10) || 0
+      };
     };
     
-    calculateSidebarMetrics();
+    let wrapperOffset = getWrapperOffset();
     
+    // Scroll handler with simplified positioning logic
     const handleScroll = () => {
-      // Skip behavior if on mobile
       if (isMobile) return;
-      
-      // Get element dimensions and positions
-      const containerRect = elements.container.getBoundingClientRect();
-      const containerTop = containerRect.top;
-      const containerBottom = containerRect.bottom;
-      const sidebarHeight = elements.sidebar.offsetHeight;
+
+      const containerRect = container.getBoundingClientRect();
+      const sidebarHeight = sidebar.offsetHeight;
       
       // Calculate phase transition points
-      const startFixPoint = containerTop <= topOffset;
-      const endFixPoint = containerBottom <= (sidebarHeight + topOffset);
+      const startFixPoint = containerRect.top <= topOffset;
+      const endFixPoint = containerRect.bottom <= (sidebarHeight + topOffset);
       
       // Determine the current scroll phase
       let newMode;
@@ -255,73 +218,68 @@ const PersonProfileCard = ({
         newMode = 'end';
       }
       
-      // Only apply changes if the mode has changed (reduces unnecessary style recalculations)
+      // Only update DOM if the mode changes
       if (sidebarMode !== newMode) {
         setSidebarMode(newMode);
         
-        // Update sidebar styles based on the new mode
         if (newMode === 'normal') {
-          // Phase 1: Normal flow - sidebar scrolls with the page
-          elements.sidebar.style.position = 'relative';
-          elements.sidebar.style.top = '0';
-          elements.sidebar.style.left = '0';
-          elements.sidebar.style.width = '';
-          elements.sidebar.style.bottom = '';
-        } else if (newMode === 'fixed') {
-          // Phase 2: Fixed position - sidebar sticks to the viewport
-          calculateSidebarMetrics(); // Get current metrics before changing position
-          
-          // Get exact left position relative to the document
-          const sidebarLeft = sidebarRect.left;
-          
-          elements.sidebar.style.position = 'fixed';
-          elements.sidebar.style.top = `${topOffset}px`;
-          elements.sidebar.style.left = `${sidebarLeft}px`;
-          elements.sidebar.style.width = `${sidebarWidth}px`;
-          elements.sidebar.style.bottom = '';
-        } else if (newMode === 'end') {
-          // Phase 3: End position - sidebar moves with page again, but from bottom
-          elements.sidebar.style.position = 'absolute';
-          elements.sidebar.style.top = 'auto';
-          elements.sidebar.style.bottom = '0';
-          elements.sidebar.style.left = '0';
-          elements.sidebar.style.width = '';
+          // Phase 1: Normal flow
+          sidebar.style.position = 'relative';
+          sidebar.style.top = '0';
+          sidebar.style.left = '0';
+          sidebar.style.width = '';
+          sidebar.style.bottom = '';
+        } 
+        else if (newMode === 'fixed') {
+          // Phase 2: Fixed position
+          // Calculate sidebar's relative position within its wrapper
+          // This ensures no horizontal jumping
+          sidebar.style.position = 'fixed';
+          sidebar.style.top = `${topOffset}px`;
+          sidebar.style.width = `${wrapperOffset.width}px`;
+          sidebar.style.left = `${wrapperOffset.left}px`;
+          sidebar.style.bottom = '';
+        } 
+        else if (newMode === 'end') {
+          // Phase 3: End position
+          sidebar.style.position = 'absolute';
+          sidebar.style.top = 'auto';
+          sidebar.style.bottom = '0';
+          sidebar.style.left = '0';
+          sidebar.style.width = '';
         }
       }
     };
     
-    // Handle window resize and check if mobile
+    // Handle window resize and recalculate dimensions
     const handleResize = () => {
       const wasMobile = isMobile;
       isMobile = checkIsMobile();
       
-      // Recalculate dimensions on resize
-      calculateSidebarMetrics();
+      // Update wrapper offset on resize
+      wrapperOffset = getWrapperOffset();
       
-      // Reset styles if switching between mobile and desktop
       if (wasMobile !== isMobile) {
         if (isMobile) {
           // Reset styles for mobile
-          elements.sidebar.style.position = '';
-          elements.sidebar.style.top = '';
-          elements.sidebar.style.bottom = '';
-          elements.sidebar.style.left = '';
-          elements.sidebar.style.width = '';
+          sidebar.style.position = '';
+          sidebar.style.top = '';
+          sidebar.style.bottom = '';
+          sidebar.style.left = '';
+          sidebar.style.width = '';
           setSidebarMode('normal');
         } else {
-          // Re-apply scroll behavior for desktop
+          // Reapply desktop behavior
           handleScroll();
         }
       } else if (!isMobile && sidebarMode === 'fixed') {
-        // Update positioning on desktop resize while in fixed mode
-        calculateSidebarMetrics();
-        const sidebarLeft = elements.sidebar.offsetLeft;
-        elements.sidebar.style.left = `${sidebarLeft}px`;
-        elements.sidebar.style.width = `${sidebarWidth}px`;
+        // Update positioning on desktop resize
+        sidebar.style.left = `${wrapperOffset.left}px`;
+        sidebar.style.width = `${wrapperOffset.width}px`;
       }
     };
     
-    // Add event listeners with reduced rate of execution for smoother scrolling
+    // Throttled scroll handler for better performance
     let ticking = false;
     const scrollListener = () => {
       if (!ticking) {
@@ -340,12 +298,11 @@ const PersonProfileCard = ({
     handleResize();
     handleScroll();
     
-    // Cleanup event listeners on unmount
     return () => {
       window.removeEventListener('scroll', scrollListener);
       window.removeEventListener('resize', handleResize);
     };
-  }, [topOffset, sidebarMode]);
+  }, [sidebarMode, topOffset]);
 
   return (
     <motion.div 
@@ -369,6 +326,7 @@ const PersonProfileCard = ({
     >
       {/* Left sidebar wrapper with position-preserving structure */}
       <div 
+        ref={sidebarWrapperRef}
         className="sidebar-wrapper"
         style={{
           width: `${sidebarWidth}%`,
@@ -388,119 +346,6 @@ const PersonProfileCard = ({
             top: 0,
           }}
         >
-          {/* Toggle profile image button - only shown when allowImageToggle is true */}
-          {allowImageToggle && (
-            <button 
-              onClick={toggleProfileImage}
-              className="toggle-profile-image"
-              style={{
-                position: 'absolute',
-                top: '10px',
-                right: '10px',
-                background: 'transparent',
-                color: highlightColor,
-                border: `1px solid ${highlightColor}`,
-                borderRadius: '4px',
-                padding: '5px 10px',
-                cursor: 'pointer',
-                fontSize: '0.8rem',
-                transition: 'all 0.3s ease',
-                zIndex: 5,
-                opacity: 0.7
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = `${highlightColor}20`;
-                e.currentTarget.style.opacity = '1';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.opacity = '0.7';
-              }}
-            >
-              {showImageState ? 'Hide Image' : 'Show Image'}
-            </button>
-          )}
-          
-          {/* Profile image with comet animation - conditionally rendered */}
-          {showImageState && (
-            <div 
-              className="profile-image-container"
-              style={{
-                position: 'relative',
-                width: '240px',
-                height: '240px',
-                borderRadius: '50%',
-                boxShadow: '0 5px 15px rgba(0, 0, 0, 0.3)',
-                transition: 'box-shadow 0.3s ease, transform 0.3s ease',
-                overflow: 'hidden',
-                boxSizing: 'border-box',
-                marginBottom: '2rem',
-                border: '1px solid rgba(191, 173, 127, 0.2)',
-                transform: isHovered ? 'scale(1.02)' : 'scale(1)',
-              }}
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-            >
-              {/* Comet animation around the border */}
-              <CometBorderEffect 
-                isHovered={isHovered}
-                size={cometConfig.size}
-                trailLength={cometConfig.trailLength}
-                speed={cometConfig.speed}
-                hoverSpeedMultiplier={cometConfig.hoverSpeedMultiplier || 2}
-                trailSegments={cometConfig.trailSegments || 25}
-                glowIntensity={cometConfig.glowIntensity || 0.8}
-                targetFPS={cometConfig.targetFPS || 30}
-                respectReducedMotion={cometConfig.respectReducedMotion || true}
-                paddingTop={20}
-                paddingRight={20}
-                paddingBottom={20}
-                paddingLeft={20}
-              />
-              
-              <div 
-                className="profile-image"
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  borderRadius: '50%',
-                  overflow: 'hidden',
-                }}
-              >
-                <div 
-                  className="image-wrapper"
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    overflow: 'hidden',
-                    borderRadius: '50%'
-                  }}
-                >
-                  <img 
-                    src={person.image} 
-                    alt={person.name} 
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                      transition: 'transform 0.6s ease, object-position 0.6s ease',
-                      display: 'block',
-                      objectPosition: `${imagePosition?.x ?? 50}% ${imagePosition?.y ?? 50}%`,
-                      transform: `scale(${imagePosition?.scale ?? 1})`
-                    }}
-                    loading="lazy"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-          
           {/* Profile information */}
           <div 
             className="profile-info"
@@ -517,8 +362,6 @@ const PersonProfileCard = ({
                 color: highlightColor,
                 letterSpacing: '0.05em',
                 marginBottom: '0.5rem',
-                transition: 'transform 0.3s ease',
-                transform: isHovered ? 'translateY(-3px)' : 'none',
               }}
             >
               {person.name}
@@ -560,7 +403,7 @@ const PersonProfileCard = ({
           
           {/* Navigation links with fluid expansion on hover */}
           <div className="nav-links" style={{ marginTop: '3rem' }}>
-            {navigationItems.map((navItem, index) => (
+            {navigationItems.map((navItem) => (
               <div 
                 key={navItem.id}
                 className="nav-link-container"
@@ -895,12 +738,6 @@ const PersonProfileCard = ({
             bottom: auto !important;
           }
           
-          .profile-image-container {
-            width: 200px !important;
-            height: 200px !important;
-            margin: 0 auto 2rem !important;
-          }
-          
           .profile-name {
             font-size: 2.2rem !important;
           }
@@ -930,11 +767,6 @@ const PersonProfileCard = ({
           
           .nav-link-container {
             margin: 0.5rem 0 !important;
-          }
-          
-          .toggle-profile-image {
-            position: static !important;
-            margin-bottom: 1rem;
           }
         }
         

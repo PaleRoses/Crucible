@@ -136,7 +136,6 @@ const useStyles = createUseStyles({
   titleDivider: {
     width: '150px',
     height: '1px',
-    background: 'linear-gradient(to right, rgba(160, 142, 97, 0), rgba(160, 142, 97, 0.6), rgba(160, 142, 97, 0))',
     margin: '1rem auto',
   },
   
@@ -153,10 +152,6 @@ const useStyles = createUseStyles({
   finalSection: {
     textAlign: 'center',
     padding: '6rem 2rem',
-    background: 'radial-gradient(circle at center, rgba(15, 15, 15, 0.5) 0%, rgba(8, 8, 8, 0.8) 70%)',
-    '@media (max-width: 768px)': {
-      padding: '3rem 1.5rem',
-    }
   },
   
   finalText: {
@@ -195,13 +190,13 @@ const CreatorsPage = () => {
     role: "Software Engineer",
     tagline: 
       <>
-        Crafting immersive systems and experiences<br />
-        with a artistic touch
+        I craft immersive systems<br />
+        and experiences.
       </>,
     image: "/assets/images/creators/rosalia.png",
     bio: [
       "I strive to create accessible and well-structured systems that balance technical excellence with user experience. My personal projects are born from my fascination with cycles of rebirth and destruction—the eternal dance between light and darkness. I try to weave together mathematical modeling, narrative structure, and visual aesthetics to craft immersive tools, simulations, and models.",
-      "I aspire to blend software engineering knowledge with creative vision. I'm in my element when I'm crafting high-quality, reusable (I hate seeing a good program not find multiple homes!) systems across frontend interfaces and backend architectures. Combining mathematical modeling with aesthetic intuition and developing modular components is fun!"
+      "My aim is to blend software engineering knowledge with creative vision. I'm in my element when I'm crafting high-quality, reusable (I hate seeing a good program not find multiple homes!) systems across frontend interfaces and backend architectures. Combining mathematical modeling with aesthetic intuition and developing modular components is fun!"
     ],
     stats: [
       { value: "Stellar", label: "Motivation to Design" },
@@ -260,6 +255,25 @@ const CreatorsPage = () => {
     clampValues: true,
     opacityValues: [1, 0.95, 0.9],
     opacityScrollPositions: [0, 300, 400]
+  };
+  
+  // Define scroll animation configuration for navigation items
+  // Using values more similar to the successful title animation
+  const navScrollConfig = {
+    baseStartPosition: 0,     // Start from the very top of the viewport
+    baseEndPosition: 300,     // End at the same position as the title
+    staggerAmount: 30,        // Stagger each nav item by this amount
+    initialY: 30,             // Initial position offset (pixels)
+    finalY: 0,                // Final resting position
+    opacityValues: [0.3, 1, 1], // Start partially visible, then fully visible
+    opacityScrollPositions: [0, 150, 300], // Control opacity transition points
+    clampValues: true,       // Important: clamp values to prevent overshooting
+    springConfig: {
+      stiffness: 40,         // Lower for smoother animation
+      damping: 20,           // Lower for more bounce
+      mass: 0.7              // Higher for more momentum
+    },
+    reverseDirection: false  // Standard direction (false = move upward)
   };
   
   // Initialize loaded state after a short delay
@@ -356,6 +370,7 @@ const CreatorsPage = () => {
                 { id: 'about', label: 'ABOUT', content: null },
                 { id: 'projects', label: 'PROJECTS', content: null }
               ]}
+              navScrollConfig={navScrollConfig} // Pass the navigation scroll configuration
             />
           </section>
           
