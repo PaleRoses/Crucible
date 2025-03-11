@@ -195,8 +195,8 @@ const CreatorsPage = () => {
       </>,
     image: "/assets/images/creators/rosalia.png",
     bio: [
+      
       "I strive to create accessible and well-structured systems that balance technical excellence with user experience. My personal projects are born from my fascination with cycles of rebirth and destruction—the eternal dance between light and darkness. I weave mathematical modeling, narrative structure, and visual aesthetics to craft immersive tools and simulations.",
-      "I'm in my element when I'm crafting high-quality, reusable (I hate seeing a good program not find multiple homes!) systems across frontend interfaces and backend architectures. Combining mathematical modeling with aesthetic intuition and developing modular components is fun!"
     ],
     stats: [
       { value: "Stellar", label: "Motivation to Design" },
@@ -206,8 +206,43 @@ const CreatorsPage = () => {
       },
       { value: "∞", label: "Cycles of Debugging" }
     ],
-    
+    experience: [
+      {
+        content: (
+          <>
+            <h3 style={{
+              fontSize: '1.4rem',
+              color: '#bfad7f',
+              marginBottom: '1rem',
+              fontWeight: '300',
+            }}>
+              Models
+            </h3>
+          </>
+        )
+      },
+      {
+        content: "I try to approach complex systems by deconstructing abstract concepts into atomic components. The decomposition process reveals the underlying patterns that drive system behavior. Once isolated, these patterns can be translated into modular, reusable components that form building blocks for robust architectures, allowing elegant solutions to emerge from the complexity."
+      },
+      {
+        content: "In the evolution simulator I'm working on, the trait system organizes attributes hierarchically around a central anchor, with each trait possessing affinities that represent effectiveness against environmental stressors. These affinities combine using hyperbolic tangent normalization, preventing unlimited stacking while ensuring biological plausibility. Traits form dynamic nodal networks where compatibility influences overall effectiveness."
+      }
+    ],
     projects: [
+      {
+        content: (
+          <>
+            <h3 style={{
+              fontSize: '1.4rem',
+              color: '#bfad7f', // Using the same highlight color
+              marginBottom: '1rem',
+              fontWeight: '300',
+            }}>
+              Projects
+            </h3>
+          </>
+        )
+      },
       {
         content: "For the Crescent TTRPG, I developed a tension-based character progression system where players must balance competing motivations. This mechanical framework reinforces the game's themes of sacrifice and transformation while providing meaningful player choices."
       },
@@ -243,16 +278,11 @@ const CreatorsPage = () => {
     }
   ];
   
-  // Define additional content sections for the profile card
-  const additionalSections = [
-    {
-      title: "Design Philosophy",
-      content: "I believe in creating systems that are both elegant and adaptable, capable of evolving alongside user needs. My approach draws inspiration from both natural processes and cultural narratives about transformation and growth."
-    },
-    {
-      title: "Technical Framework",
-      content: "My work combines traditional software engineering practices with experimental approaches to user experience. I'm particularly interested in the intersection of mathematical modeling, procedural generation, and narrative design."
-    }
+  // Custom navigation items with properly structured content
+  const navigationItems = [
+    { id: 'about', label: 'ABOUT', content: null },
+    { id: 'experience', label: 'MODELS', content: null },
+    { id: 'projects', label: 'PROJECTS', content: null }
   ];
   
   // Define scroll animation configuration for title
@@ -266,23 +296,12 @@ const CreatorsPage = () => {
     opacityScrollPositions: [0, 300, 400]
   };
   
-  // Define scroll animation configuration for navigation items
-  // Using values more similar to the successful title animation
-  const navScrollConfig = {
-    baseStartPosition: 0,     // Start from the very top of the viewport
-    baseEndPosition: 300,     // End at the same position as the title
-    staggerAmount: 30,        // Stagger each nav item by this amount
-    initialY: 30,             // Initial position offset (pixels)
-    finalY: 0,                // Final resting position
-    opacityValues: [0.3, 1, 1], // Start partially visible, then fully visible
-    opacityScrollPositions: [0, 150, 300], // Control opacity transition points
-    clampValues: true,       // Important: clamp values to prevent overshooting
-    springConfig: {
-      stiffness: 20,         // Lower for smoother animation
-      damping: 20,           // Lower for more bounce
-      mass: 0.7              // Higher for more momentum
-    },
-    reverseDirection: false  // Standard direction (false = move upward)
+  // Remove unused navScrollConfig since it's not supported in the updated PersonProfileCard component
+  
+  // Function to handle section changes
+  const handleSectionChange = (sectionId) => {
+    console.log(`Active section changed to: ${sectionId}`);
+    // Additional logic can be added here if needed
   };
   
   // Initialize loaded state after a short delay
@@ -353,40 +372,30 @@ const CreatorsPage = () => {
             </RevealText>
           </section>
           
-          {/* Enhanced profile card section */}
+          {/* Enhanced profile card section - updated with proper props */}
           <section className={`${classes.section} ${classes.profileSection}`}>
             <PersonProfileCard
               person={creatorData}
-              sections={additionalSections}
+              onSectionChange={handleSectionChange}
               animationConfig={{
                 threshold: 0.2,
                 once: true,
                 initialY: 30,
                 duration: 0.8
               }}
-              cometConfig={{
-                size: 1.5,
-                trailLength: 100,
-                speed: 0.001,
-                targetFPS: 30,
-                respectReducedMotion: true
-              }}
-              imagePosition={{
-                x: 50,
-                y: 0,
-                scale: 1
-              }}
-              showProfileImage={false}
-              allowImageToggle={false}
-              navigationItems={[
-                { id: 'about', label: 'ABOUT', content: null },
-                { id: 'projects', label: 'PROJECTS', content: null }
-              ]}
-              navScrollConfig={navScrollConfig} // Pass the navigation scroll configuration
+              topOffset={100}
+              showStats={false}
+              highlightColor="#bfad7f"
+              textColor="rgba(224, 224, 224, 0.7)"
+              minLineWidth={10}
+              maxLineWidth={40}
+              fontFamily='"Garamond", "Adobe Caslon Pro", serif'
+              navigationItems={navigationItems}
+              contentCompression={2}
             />
           </section>
           
-          {/* Projects section */}
+          {/* Projects section with cards */}
           <section className={`${classes.section} ${classes.projectsSection}`}>
             <RevealText>
               <h2 className={classes.sectionTitle}>Works</h2>
