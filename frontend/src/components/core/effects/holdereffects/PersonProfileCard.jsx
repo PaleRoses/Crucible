@@ -28,7 +28,6 @@ import CometBorderEffect from '../bordereffects/CometBorderEffect';
  * @param {string} props.fontFamily - Font family for text elements
  * @param {Object} props.navigationItems - Custom navigation items with IDs, labels and content
  * @param {number} props.contentCompression - Adjusts spacing between sidebar and content (0-10)
- * @param {Object} props.defaultContent - Default content for sections when not provided in person data
  */
 const PersonProfileCard = ({
   person,
@@ -59,15 +58,14 @@ const PersonProfileCard = ({
   highlightColor = '#bfad7f',
   textColor = 'rgba(224, 224, 224, 0.7)',
   minLineWidth = 10,
-  maxLineWidth = 20,
+  maxLineWidth = 40,
   fontFamily = '"Garamond", "Adobe Caslon Pro", serif',
   navigationItems = [
     { id: 'about', label: 'ABOUT', content: null },
     { id: 'experience', label: 'EXPERIENCE', content: null },
     { id: 'projects', label: 'PROJECTS', content: null }
   ],
-  contentCompression = 0,
-  defaultContent = {}
+  contentCompression = 0
 }) => {
   // State management
   const [isHovered, setIsHovered] = useState(false);
@@ -87,13 +85,33 @@ const PersonProfileCard = ({
   const sidebarRef = useRef(null);
   const contentRef = useRef(null);
   
-  // Create refs dynamically based on number of navigationItems
+  // Create refs - one for each possible section
+  // This approach complies with React's rules of hooks
+  const section1Ref = useRef(null);
+  const section2Ref = useRef(null);
+  const section3Ref = useRef(null);
+  const section4Ref = useRef(null);
+  const section5Ref = useRef(null);
+  const section6Ref = useRef(null);
+  const section7Ref = useRef(null);
+  const section8Ref = useRef(null);
+  
+  // Array of all section refs memoized to prevent recreation on every render
+  const allSectionRefs = useMemo(() => [
+    section1Ref, section2Ref, section3Ref, section4Ref,
+    section5Ref, section6Ref, section7Ref, section8Ref
+  ], []);
+  
+  // Map section IDs to refs with useMemo to prevent recreation on every render
   const sectionRefs = useMemo(() => {
-    return navigationItems.reduce((acc, item, index) => {
-      acc[item.id] = React.createRef();
-      return acc;
-    }, {});
-  }, [navigationItems]);
+    const refsMap = {};
+    navigationItems.forEach((item, index) => {
+      if (index < allSectionRefs.length) {
+        refsMap[item.id] = allSectionRefs[index];
+      }
+    });
+    return refsMap;
+  }, [navigationItems, allSectionRefs]);
 
   // Animation inView detection
   const isInView = useInView(containerRef, {
@@ -329,48 +347,6 @@ const PersonProfileCard = ({
     };
   }, [topOffset, sidebarMode]);
 
-  // Generic text style for section content
-  const sectionTextStyle = {
-    fontSize: '1rem',
-    lineHeight: '1.8',
-    marginBottom: '1.5rem',
-    color: textColor,
-    fontFamily: fontFamily,
-    fontWeight: '300',
-  };
-
-  // Helper function to render section content
-  const renderSectionContent = (sectionId, content) => {
-    // If section has custom rendering in navigationItems, use that
-    const navItem = navigationItems.find(item => item.id === sectionId);
-    if (navItem?.content) {
-      return typeof navItem.content === 'string' 
-        ? <p className="section-content" style={sectionTextStyle}>{navItem.content}</p>
-        : navItem.content;
-    }
-    
-    // Otherwise, use the content passed in
-    if (content) {
-      return Array.isArray(content) 
-        ? content.map((item, idx) => (
-            <p key={idx} className="section-content" style={sectionTextStyle}>
-              {typeof item === 'string' ? item : item.content}
-            </p>
-          ))
-        : <p className="section-content" style={sectionTextStyle}>{content}</p>;
-    }
-    
-    // If no content is provided, use defaultContent if available
-    if (defaultContent[sectionId]) {
-      return typeof defaultContent[sectionId] === 'string'
-        ? <p className="section-content" style={sectionTextStyle}>{defaultContent[sectionId]}</p>
-        : defaultContent[sectionId];
-    }
-    
-    // If no content is available, return null (empty section)
-    return null;
-  };
-
   return (
     <motion.div 
       ref={containerRef}
@@ -583,7 +559,7 @@ const PersonProfileCard = ({
           </div>
           
           {/* Navigation links with fluid expansion on hover */}
-          <div className="nav-links" style={{ marginTop: '2rem' }}>
+          <div className="nav-links" style={{ marginTop: '3rem' }}>
             {navigationItems.map((navItem, index) => (
               <div 
                 key={navItem.id}
@@ -607,7 +583,7 @@ const PersonProfileCard = ({
                     width: activeSection === navItem.id || expandedNavItem === navItem.id 
                       ? `${maxLineWidth}px` 
                       : `${minLineWidth}px`,
-                    height: '2px',
+                    height: '0.75px',
                     backgroundColor: activeSection === navItem.id || expandedNavItem === navItem.id
                       ? `${highlightColor}E6` // 90% opacity 
                       : `${highlightColor}80`, // 50% opacity
@@ -620,19 +596,19 @@ const PersonProfileCard = ({
                   style={{
                     position: 'relative',
                     display: 'block',
-                    padding: '0.5rem 0 0.5rem 25px',
+                    padding: '0.5rem 0 0.5rem 40px',
                     fontSize: '0.85rem',
                     letterSpacing: '0.1em',
                     background: 'transparent',
                     border: 'none',
                     textAlign: 'left',
-                    transition: 'color 0.3s ease, transform 0.3s ease',
+                    transition: 'color 0.5s ease, transform 0.5s ease',
                     color: activeSection === navItem.id || expandedNavItem === navItem.id 
                       ? highlightColor 
                       : textColor,
                     cursor: 'pointer',
                     transform: activeSection === navItem.id || expandedNavItem === navItem.id 
-                      ? 'translateX(3px)' 
+                      ? 'translateX(10px)' 
                       : 'none',
                     width: 'fit-content', // Make button fit to content
                   }}
@@ -656,87 +632,203 @@ const PersonProfileCard = ({
         }}
       >
         {/* Dynamically render sections based on navigationItems */}
-        {navigationItems.map((section, index) => (
-          <div 
-            key={section.id}
-            ref={sectionRefs[section.id]}
-            data-section={section.id}
-            className="section"
-            id={section.id}
-            style={{
-              marginBottom: '3rem',
-              scrollMarginTop: '2rem',
-            }}
-          >
-            {/* Render content based on section ID */}
-            {section.id === 'about' && renderSectionContent('about', person.bio)}
-            
-            {/* Render statistics if it's the about section and showStats is true */}
-            {section.id === 'about' && showStats && person.stats && person.stats.length > 0 && (
-              <div 
-                className="stats-container"
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  marginTop: '3rem',
-                  width: '100%',
-                }}
-              >
-                {person.stats.map((stat, statIdx) => (
-                  <div 
-                    key={statIdx} 
-                    className="stat"
-                    style={{
-                      flex: '1',
-                      textAlign: 'center',
-                      padding: '0 1rem',
-                      minWidth: '100px',
-                      transition: 'transform 0.3s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-5px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'none';
-                    }}
-                  >
-                    <div 
-                      className="stat-value"
+        {navigationItems.map((section, index) => {
+          // Only render sections that have corresponding refs
+          if (index >= allSectionRefs.length) return null;
+          
+          return (
+            <div 
+              key={section.id}
+              ref={allSectionRefs[index]}
+              data-section={section.id}
+              className="section"
+              id={section.id}
+              style={{
+                marginBottom: '3rem',
+                scrollMarginTop: '2rem',
+              }}
+            >
+              {/* Default 'about' section */}
+              {section.id === 'about' && (
+                <>
+                  {person.bio && person.bio.map((paragraph, idx) => (
+                    <p 
+                      key={idx} 
+                      className="section-content"
                       style={{
-                        fontSize: '2.5rem',
-                        fontWeight: '100',
-                        color: highlightColor,
-                        marginBottom: '0.5rem'
+                        fontSize: '1rem',
+                        lineHeight: '1.8',
+                        marginBottom: '1.5rem',
+                        color: textColor,
+                        fontFamily: fontFamily,
+                        fontWeight: '300',
                       }}
                     >
-                      {stat.value}
-                    </div>
+                      {paragraph}
+                    </p>
+                  ))}
+                  
+                  {/* Stats display - conditionally rendered based on showStats prop */}
+                  {showStats && person.stats && person.stats.length > 0 && (
                     <div 
-                      className="stat-label"
+                      className="stats-container"
                       style={{
-                        fontSize: '0.85rem',
-                        color: `${textColor}CC`, // 80% opacity
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.1em'
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        marginTop: '3rem',
+                        width: '100%',
                       }}
                     >
-                      {stat.label}
+                      {person.stats.map((stat, statIdx) => (
+                        <div 
+                          key={statIdx} 
+                          className="stat"
+                          style={{
+                            flex: '1',
+                            textAlign: 'center',
+                            padding: '0 1rem',
+                            minWidth: '100px',
+                            transition: 'transform 0.3s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-5px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'none';
+                          }}
+                        >
+                          <div 
+                            className="stat-value"
+                            style={{
+                              fontSize: '2.5rem',
+                              fontWeight: '100',
+                              color: highlightColor,
+                              marginBottom: '0.5rem'
+                            }}
+                          >
+                            {stat.value}
+                          </div>
+                          <div 
+                            className="stat-label"
+                            style={{
+                              fontSize: '0.85rem',
+                              color: `${textColor}CC`, // 80% opacity
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.1em'
+                            }}
+                          >
+                            {stat.label}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  )}
+                </>
+              )}
 
-            {/* For other sections, use the generic content renderer */}
-            {section.id === 'experience' && renderSectionContent('experience', person.experience)}
-            {section.id === 'projects' && renderSectionContent('projects', person.projects)}
-            
-            {/* For any other custom sections */}
-            {!['about', 'experience', 'projects'].includes(section.id) && 
-              renderSectionContent(section.id, section.content)}
-          </div>
-        ))}
+              {/* Default 'experience' section */}
+              {section.id === 'experience' && (
+                <>
+                  {person.experience ? (
+                    person.experience.map((item, expIdx) => (
+                      <p 
+                        key={expIdx} 
+                        className="section-content"
+                        style={{
+                          fontSize: '1rem',
+                          lineHeight: '1.8',
+                          marginBottom: '1.5rem',
+                          color: textColor,
+                          fontFamily: fontFamily,
+                          fontWeight: '300',
+                        }}
+                      >
+                        {item.content}
+                      </p>
+                    ))
+                  ) : (
+                    <p 
+                      className="section-content"
+                      style={{
+                        fontSize: '1rem',
+                        lineHeight: '1.8',
+                        marginBottom: '1.5rem',
+                        color: textColor,
+                        fontFamily: fontFamily,
+                        fontWeight: '300',
+                      }}
+                    >
+                      Throughout my career, I've specialized in developing software systems that seamlessly 
+                      integrate front-end experiences with robust back-end architectures. My experience spans 
+                      various domains, from interactive media to data visualization systems.
+                    </p>
+                  )}
+                </>
+              )}
+
+              {/* Default 'projects' section */}
+              {section.id === 'projects' && (
+                <>
+                  {person.projects ? (
+                    person.projects.map((item, projIdx) => (
+                      <p 
+                        key={projIdx} 
+                        className="section-content"
+                        style={{
+                          fontSize: '1rem',
+                          lineHeight: '1.8',
+                          marginBottom: '1.5rem',
+                          color: textColor,
+                          fontFamily: fontFamily,
+                          fontWeight: '300',
+                        }}
+                      >
+                        {item.content}
+                      </p>
+                    ))
+                  ) : (
+                    <p 
+                      className="section-content"
+                      style={{
+                        fontSize: '1rem',
+                        lineHeight: '1.8',
+                        marginBottom: '1.5rem',
+                        color: textColor,
+                        fontFamily: fontFamily,
+                        fontWeight: '300',
+                      }}
+                    >
+                      My personal projects merge the scientific principles of evolution and adaptation with 
+                      mythological themes of rebirth and renewal. I create 'things' that are both mechanically 
+                      sound and narratively compelling, allowing users to explore complex themes through 
+                      immersive experiences.
+                    </p>
+                  )}
+                </>
+              )}
+
+              {/* Custom section content */}
+              {section.content && (
+                typeof section.content === 'string' 
+                  ? <p 
+                      className="section-content"
+                      style={{
+                        fontSize: '1rem',
+                        lineHeight: '1.8',
+                        marginBottom: '1.5rem',
+                        color: textColor,
+                        fontFamily: fontFamily,
+                        fontWeight: '300',
+                      }}
+                    >
+                      {section.content}
+                    </p>
+                  : section.content
+              )}
+            </div>
+          );
+        })}
         
         {/* Dynamic sections from props */}
         {additionalSections.length > 0 && (
@@ -759,7 +851,23 @@ const PersonProfileCard = ({
                   {section.title}
                 </h3>
               )}
-              {renderSectionContent(section.id || `additional-${index}`, section.content)}
+              {section.content && (
+                typeof section.content === 'string' 
+                  ? <p 
+                      className="section-content"
+                      style={{
+                        fontSize: '1rem',
+                        lineHeight: '1.8',
+                        marginBottom: '1.5rem',
+                        color: textColor,
+                        fontFamily: fontFamily,
+                        fontWeight: '300',
+                      }}
+                    >
+                      {section.content}
+                    </p>
+                  : section.content
+              )}
             </div>
           ))
         )}

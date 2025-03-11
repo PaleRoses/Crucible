@@ -18,7 +18,7 @@ const useStyles = createUseStyles({
   content: {
     position: 'relative',
     zIndex: 2,
-    paddingTop: '40vh', // Space for header and title
+    paddingTop: '60vh', // Space for header and title
     '@media (max-width: 768px)': {
       paddingTop: '30vh',
     }
@@ -99,6 +99,7 @@ const useStyles = createUseStyles({
     maxWidth: '600px',
     margin: '0 auto 3rem',
     fontWeight: 300,
+    marginBottom: '20rem',
   },
   
   subtitle: {
@@ -107,6 +108,7 @@ const useStyles = createUseStyles({
     maxWidth: '700px',
     margin: '0 auto',
     lineHeight: 1.6,
+    marginBottom: '2rem',
     fontFamily: '"Garamond", "Adobe Caslon Pro", serif',
     fontWeight: 300,
     '@media (max-width: 768px)': {
@@ -115,7 +117,7 @@ const useStyles = createUseStyles({
   },
   
   projectsSection: {
-    paddingTop: '4rem',
+    paddingTop: '20rem',
     paddingBottom: '6rem',
   },
   
