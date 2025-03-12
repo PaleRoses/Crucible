@@ -187,7 +187,7 @@ const CreatorsPage = () => {
   // Creator profile data
   const creatorData = {
     name: "Rosalia Fialkova",
-    role: "Systems Design Engineer",
+    role: "Compuer Science Student",
     tagline: 
       <>
         I craft immersive systems<br />
@@ -247,7 +247,7 @@ const CreatorsPage = () => {
         content: "For the Crescent TTRPG, I developed a tension-based character progression system where players must balance competing motivations. This mechanical framework reinforces the game's themes of sacrifice and transformation while providing meaningful player choices."
       },
       {
-        content: "The Crucible Platform translates complex evolutionary algorithms into interactive visualizations, making abstract concepts tangible. By applying hyperbolic tangent normalization to multi-trait affinities, I created a system that marries biological plausibility with computational efficiency."
+        content: "My evolution simulator is an ongoing attempt to translate algorithms into interactive dark fantasy creature creation simulator. By applying hyperbolic tangent normalization to multi-trait affinities, I hope to create a system that marries biological plausibility with computational efficiency."
       }
     ]
   };
