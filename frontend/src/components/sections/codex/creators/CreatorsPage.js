@@ -378,7 +378,7 @@ const CreatorsPage = () => {
               person={creatorData}
               onSectionChange={handleSectionChange}
               animationConfig={{
-                threshold: 0.2,
+                threshold: 2,
                 once: true,
                 initialY: 30,
                 duration: 0.8

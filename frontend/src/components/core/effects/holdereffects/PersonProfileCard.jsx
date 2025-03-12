@@ -1,69 +1,391 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, useInView, useAnimation } from 'framer-motion';
+import styled from 'styled-components';
 
-// Move static styles outside component to prevent recreation on each render
-const styles = {
-  profileName: {
-    fontWeight: '300',
-    letterSpacing: '0.05em',
-    marginBottom: '0.5rem',
-  },
-  profileRole: {
-    fontWeight: '300',
-    marginBottom: '2rem',
-    letterSpacing: '0.05em',
-    fontStyle: 'italic',
-  },
-  profileTagline: {
-    lineHeight: '1.6',
-    marginBottom: '3rem',
-    fontWeight: '300',
-  },
-  sectionContent: {
-    lineHeight: '1.8',
-    marginBottom: '1.5rem',
-    fontWeight: '300',
-  },
-  mobileNav: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100%',
-    zIndex: 100,
-    backdropFilter: 'blur(10px)',
-    transition: 'all 0.3s ease',
-    padding: '0.75rem 1rem',
-    display: 'flex',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  navLine: {
-    position: 'absolute',
-    left: '0',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    height: '0.75px',
-    transition: 'width 0.3s ease, background-color 0.3s ease',
-  },
-  navLink: {
-    position: 'relative',
-    display: 'block',
-    padding: '0.5rem 0 0.5rem 40px',
-    fontSize: '0.85rem',
-    letterSpacing: '0.1em',
-    background: 'transparent',
-    border: 'none',
-    textAlign: 'left',
-    outline: 'none',
-    boxShadow: 'none',
-    transition: 'color 0.5s ease, transform 0.5s ease',
-    cursor: 'pointer',
-    width: 'fit-content',
+// Note: This implementation assumes you have the 'styled-components' package installed
+
+// Styled Components
+const Container = styled(motion.div)`
+  display: flex;
+  flex-direction: ${props => props.isMobile ? 'column' : 'row'};
+  width: 100%;
+  max-width: 1300px;
+  margin: 0 auto;
+  min-height: ${props => props.isMobile ? 'auto' : '70vh'};
+  position: relative;
+  padding-top: ${props => props.isMobile ? '80px' : '0'};
+`;
+
+const SidebarWrapper = styled.div`
+  width: ${props => `${props.width}%`};
+  position: relative;
+`;
+
+const Sidebar = styled.div`
+  padding: 3rem 2rem 2rem 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  position: relative;
+  top: 0;
+`;
+
+const ContentSection = styled.div`
+  width: ${props => props.isMobile ? '100%' : `${props.width}%`};
+  padding: ${props => props.isMobile ? 
+    '2rem 1.5rem' : 
+    `3rem 0 2rem ${props.contentPadding}rem`};
+  margin-left: ${props => props.isMobile ? '0' : 'auto'};
+`;
+
+const Section = styled.div`
+  margin-bottom: 3rem;
+  scroll-margin-top: ${props => props.isMobile ? '80px' : '2rem'};
+`;
+
+const SectionTitle = styled.h3`
+  font-size: 1.4rem;
+  color: ${props => props.highlightColor};
+  margin-bottom: 1rem;
+  font-weight: 300;
+`;
+
+const ProfileInfoContainer = styled.div`
+  margin-bottom: 2rem;
+  padding-left: 5px;
+  text-align: ${props => props.isMobile ? 'center' : 'left'};
+  width: 100%;
+`;
+
+const ProfileName = styled.h1`
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  font-size: ${props => props.isMobile ? '2.2rem' : '2.8rem'};
+  color: ${props => props.highlightColor};
+`;
+
+const ProfileRole = styled.h2`
+  font-weight: 300;
+  margin-bottom: 2rem;
+  letter-spacing: 0.05em;
+  font-style: italic;
+  font-size: ${props => props.isMobile ? '1.1rem' : '1.2rem'};
+  color: ${props => props.color};
+  font-family: ${props => props.fontFamily};
+`;
+
+const ProfileTagline = styled.p`
+  line-height: 1.6;
+  margin-bottom: 3rem;
+  font-weight: 300;
+  font-size: 1.1rem;
+  max-width: ${props => props.isMobile ? '100%' : '90%'};
+  color: ${props => props.color};
+  font-family: ${props => props.fontFamily};
+`;
+
+const NavLinks = styled.div`
+  margin-top: 3rem;
+`;
+
+const NavLinkContainer = styled.div`
+  position: relative;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+`;
+
+const NavLine = styled.div`
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 0.75px;
+  width: ${props => props.expanded ? `${props.maxWidth}px` : `${props.minWidth}px`};
+  background-color: ${props => props.expanded ? props.activeColor : props.inactiveColor};
+  transition: width 0.3s ease, background-color 0.3s ease;
+`;
+
+const NavButton = styled.button`
+  position: relative;
+  display: block;
+  padding: 0.5rem 0 0.5rem 40px;
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  background: transparent;
+  border: none;
+  text-align: left;
+  outline: none;
+  box-shadow: none;
+  transition: color 0.5s ease, transform 0.5s ease;
+  cursor: pointer;
+  width: fit-content;
+  color: ${props => props.active ? props.activeColor : props.inactiveColor};
+  transform: ${props => props.active ? 'translateX(10px)' : 'none'};
+`;
+
+const MobileNav = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  transform: ${props => props.visible ? 'translateY(0)' : 'translateY(-100%)'};
+  opacity: ${props => props.visible ? 1 : 0};
+`;
+
+const MobileNavItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const MobileNavButton = styled.button`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  outline: none;
+`;
+
+const MobileNavLine = styled.div`
+  width: ${props => props.active ? `${props.maxWidth}px` : `${props.minWidth}px`};
+  height: 2px;
+  background-color: ${props => props.active ? props.activeColor : props.inactiveColor};
+  transition: width 0.3s ease, background-color 0.3s ease;
+  margin-bottom: 0.5rem;
+`;
+
+const MobileNavLabel = styled.div`
+  font-size: 0.75rem;
+  color: ${props => props.active ? props.activeColor : props.inactiveColor};
+  letter-spacing: 0.1em;
+  transition: color 0.3s ease;
+`;
+
+const StatsContainer = styled.div`
+  display: flex;
+  justify-content: ${props => props.isMobile ? 'center' : 'space-between'};
+  flex-wrap: wrap;
+  margin-top: 3rem;
+  width: 100%;
+  gap: ${props => props.isMobile ? '2rem' : '0'};
+`;
+
+const StatItem = styled.div`
+  flex: ${props => props.isMobile ? '0 0 auto' : '1'};
+  text-align: center;
+  padding: 0 1rem;
+  min-width: ${props => props.isMobile ? '140px' : '100px'};
+  transition: transform 0.3s ease;
+  transform: ${props => props.isHovering ? 'translateY(-5px)' : 'none'};
+`;
+
+const StatValue = styled.div`
+  font-size: ${props => props.isMobile ? '2.2rem' : '2.5rem'};
+  font-weight: 100;
+  color: ${props => props.color};
+  margin-bottom: 0.5rem;
+`;
+
+const StatLabel = styled.div`
+  font-size: 0.85rem;
+  color: ${props => props.color};
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+`;
+
+const SectionContent = styled.p`
+  line-height: 1.8;
+  margin-bottom: 1.5rem;
+  font-weight: 300;
+  font-size: 1rem;
+  color: ${props => props.color};
+  font-family: ${props => props.fontFamily};
+`;
+
+// Component for ProfileInfo
+const ProfileInfo = React.memo(({ 
+  person, 
+  isMobile, 
+  highlightColor, 
+  textColor, 
+  fontFamily 
+}) => {
+  return (
+    <ProfileInfoContainer isMobile={isMobile}>
+      <ProfileName 
+        isMobile={isMobile} 
+        highlightColor={highlightColor}
+      >
+        {person.name}
+      </ProfileName>
+      
+      <ProfileRole 
+        isMobile={isMobile} 
+        color={`${highlightColor}B3`} 
+        fontFamily={fontFamily}
+      >
+        {person.role}
+      </ProfileRole>
+      
+      {person.tagline && (
+        <ProfileTagline 
+          isMobile={isMobile} 
+          color={textColor} 
+          fontFamily={fontFamily}
+        >
+          {person.tagline}
+        </ProfileTagline>
+      )}
+    </ProfileInfoContainer>
+  );
+});
+
+// Component for MobileNavItem
+const MobileNavItemComponent = React.memo(({ 
+  navItem, 
+  activeSection, 
+  highlightColor, 
+  textColor,
+  minLineWidth,
+  maxLineWidth 
+}) => {
+  return (
+    <MobileNavItem>
+      <MobileNavButton data-section-id={navItem.id}>
+        <MobileNavLine 
+          active={activeSection === navItem.id}
+          activeColor={highlightColor}
+          inactiveColor={`${highlightColor}80`}
+          minWidth={minLineWidth}
+          maxWidth={maxLineWidth}
+        />
+        <MobileNavLabel 
+          active={activeSection === navItem.id}
+          activeColor={highlightColor}
+          inactiveColor={textColor}
+        >
+          {navItem.label}
+        </MobileNavLabel>
+      </MobileNavButton>
+    </MobileNavItem>
+  );
+});
+
+// Component for NavLink
+const NavLinkComponent = React.memo(({ 
+  navItem, 
+  activeSection, 
+  expandedNavItem,
+  onMouseEnter,
+  onMouseLeave, 
+  highlightColor, 
+  textColor,
+  minLineWidth,
+  maxLineWidth 
+}) => {
+  const isActive = activeSection === navItem.id || expandedNavItem === navItem.id;
+  
+  return (
+    <NavLinkContainer 
+      data-section-id={navItem.id}
+      onMouseEnter={() => onMouseEnter(navItem.id)}
+      onMouseLeave={onMouseLeave}
+    >
+      <NavLine 
+        expanded={isActive}
+        activeColor={`${highlightColor}E6`}
+        inactiveColor={`${highlightColor}80`}
+        minWidth={minLineWidth}
+        maxWidth={maxLineWidth}
+      />
+      <NavButton 
+        active={isActive}
+        activeColor={highlightColor}
+        inactiveColor={textColor}
+      >
+        {navItem.label}
+      </NavButton>
+    </NavLinkContainer>
+  );
+});
+
+// Component for StatItem
+const StatItemComponent = React.memo(({ 
+  stat, 
+  isMobile, 
+  highlightColor, 
+  textColor 
+}) => {
+  const [isHovering, setIsHovering] = useState(false);
+
+  const handleMouseEnter = () => {
+    if (!isMobile) {
+      setIsHovering(true);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (!isMobile) {
+      setIsHovering(false);
+    }
+  };
+
+  return (
+    <StatItem 
+      isMobile={isMobile}
+      isHovering={isHovering}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <StatValue 
+        isMobile={isMobile} 
+        color={highlightColor}
+      >
+        {stat.value}
+      </StatValue>
+      <StatLabel color={`${textColor}CC`}>
+        {stat.label}
+      </StatLabel>
+    </StatItem>
+  );
+});
+
+// Component for SectionContent
+const SectionContentComponent = React.memo(({ 
+  content, 
+  textColor, 
+  fontFamily 
+}) => {
+  if (!content) return null;
+  
+  if (typeof content === 'string') {
+    return (
+      <SectionContent 
+        color={textColor}
+        fontFamily={fontFamily}
+      >
+        {content}
+      </SectionContent>
+    );
   }
-};
+  
+  return content;
+});
 
 /**
- * PersonProfileCard Component - Optimized Version
+ * PersonProfileCard Component - Optimized Version with CSS-in-JS
  * 
  * A profile card with a three-phase scroll behavior:
  * 1. Normal Flow: Initially scrolls with the page
@@ -74,6 +396,14 @@ const styles = {
  * - Navigation bar moves to top of screen
  * - Content spans full width for better readability
  * - Simplified navigation display
+ * 
+ * Performance optimizations:
+ * - Event delegation for navigation
+ * - Extracted memoized child components
+ * - Throttled scroll handlers
+ * - ResizeObserver instead of window resize events
+ * - Minimized style recalculations
+ * - CSS-in-JS for better style organization
  */
 const PersonProfileCard = ({
   person,
@@ -114,6 +444,7 @@ const PersonProfileCard = ({
   const contentRef = useRef(null);
   const sidebarWrapperRef = useRef(null);
   const mobileNavRef = useRef(null);
+  const navLinksRef = useRef(null);
   
   // Create individual section refs
   const section0Ref = useRef(null);
@@ -166,19 +497,6 @@ const PersonProfileCard = ({
     setIsMobile(window.innerWidth <= 768);
   }, []);
 
-  // Navigation item hover handlers - memoized to prevent recreation on every render
-  const handleNavItemHover = useCallback((section) => {
-    if (!isMobile) {
-      setExpandedNavItem(section);
-    }
-  }, [isMobile]);
-  
-  const handleNavItemLeave = useCallback(() => {
-    if (!isMobile) {
-      setExpandedNavItem(null);
-    }
-  }, [isMobile]);
-
   // Scroll to section handler - memoized with dependencies
   const scrollToSection = useCallback((sectionId) => {
     setActiveSection(sectionId);
@@ -209,6 +527,31 @@ const PersonProfileCard = ({
     }
   }, [onSectionChange, sectionRefsMap, isMobile, mobileNavRef]);
 
+  // Event delegation for all navigation items
+  const handleNavEvent = useCallback((e) => {
+    const target = e.target.closest('[data-section-id]');
+    if (target) {
+      const sectionId = target.getAttribute('data-section-id');
+      if (sectionId) {
+        e.preventDefault();
+        scrollToSection(sectionId);
+      }
+    }
+  }, [scrollToSection]);
+  
+  // Navigation item hover handlers - memoized to prevent recreation on every render
+  const handleNavItemHover = useCallback((section) => {
+    if (!isMobile) {
+      setExpandedNavItem(section);
+    }
+  }, [isMobile]);
+  
+  const handleNavItemLeave = useCallback(() => {
+    if (!isMobile) {
+      setExpandedNavItem(null);
+    }
+  }, [isMobile]);
+
   // Check mobile on mount and window resize
   useEffect(() => {
     // Initial check
@@ -221,6 +564,32 @@ const PersonProfileCard = ({
       window.removeEventListener('resize', checkMobile);
     };
   }, [checkMobile]);
+
+  // Set up event delegation for navigation
+  useEffect(() => {
+    // Store current ref values at the time the effect runs
+    const mobileNavElement = mobileNavRef.current;
+    const navLinksElement = navLinksRef.current;
+    
+    // Add click event listeners with event delegation
+    if (mobileNavElement) {
+      mobileNavElement.addEventListener('click', handleNavEvent);
+    }
+    
+    if (navLinksElement) {
+      navLinksElement.addEventListener('click', handleNavEvent);
+    }
+    
+    return () => {
+      if (mobileNavElement) {
+        mobileNavElement.removeEventListener('click', handleNavEvent);
+      }
+      
+      if (navLinksElement) {
+        navLinksElement.removeEventListener('click', handleNavEvent);
+      }
+    };
+  }, [handleNavEvent]);
 
   // Initial animation effect
   useEffect(() => {
@@ -258,22 +627,27 @@ const PersonProfileCard = ({
       rootMargin: isMobile 
         ? '-80px 0px -70% 0px'  // For mobile with fixed nav
         : '-10% 0px -70% 0px',  // For desktop
-      threshold: 0
+      threshold: [0, 0.25, 0.5, 0.75] // Multiple thresholds for smoother transitions
     };
     
     const callback = (entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const sectionId = entry.target.getAttribute('data-section');
-          if (sectionId && sectionId !== activeSection) {
-            setActiveSection(sectionId);
-            
-            if (onSectionChange) {
-              onSectionChange(sectionId);
-            }
+      // Find the most visible section
+      const visibleEntries = entries.filter(entry => entry.isIntersecting);
+      
+      if (visibleEntries.length > 0) {
+        // Sort by visibility ratio, highest first
+        visibleEntries.sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        const topEntry = visibleEntries[0];
+        
+        const sectionId = topEntry.target.getAttribute('data-section');
+        if (sectionId && sectionId !== activeSection) {
+          setActiveSection(sectionId);
+          
+          if (onSectionChange) {
+            onSectionChange(sectionId);
           }
         }
-      });
+      }
     };
     
     const observer = new IntersectionObserver(callback, options);
@@ -292,6 +666,9 @@ const PersonProfileCard = ({
     const container = containerRef.current;
     const sidebar = sidebarRef.current;
     const sidebarWrapper = sidebarWrapperRef.current;
+    
+    // Add will-change to hint browser about upcoming transforms
+    sidebar.style.willChange = 'position, top, left, width, bottom';
     
     let measurements = {
       containerRect: null,
@@ -315,7 +692,7 @@ const PersonProfileCard = ({
       updateMeasurements();
       
       // Calculate phase transition points
-      const { containerRect, sidebarHeight } = measurements;
+      const { containerRect, sidebarHeight, wrapperRect } = measurements;
       const startFixPoint = containerRect.top <= topOffset;
       const endFixPoint = containerRect.bottom <= (sidebarHeight + topOffset);
       
@@ -333,30 +710,33 @@ const PersonProfileCard = ({
       if (sidebarMode !== newMode) {
         setSidebarMode(newMode);
         
-        if (newMode === 'normal') {
-          // Phase 1: Normal flow
-          sidebar.style.position = 'relative';
-          sidebar.style.top = '0';
-          sidebar.style.left = '0';
-          sidebar.style.width = '';
-          sidebar.style.bottom = '';
-        } 
-        else if (newMode === 'fixed') {
-          // Phase 2: Fixed position
-          sidebar.style.position = 'fixed';
-          sidebar.style.top = `${topOffset}px`;
-          sidebar.style.width = `${measurements.wrapperRect.width}px`;
-          sidebar.style.left = `${measurements.wrapperRect.left}px`;
-          sidebar.style.bottom = '';
-        } 
-        else if (newMode === 'end') {
-          // Phase 3: End position
-          sidebar.style.position = 'absolute';
-          sidebar.style.top = 'auto';
-          sidebar.style.bottom = '0';
-          sidebar.style.left = '0';
-          sidebar.style.width = '';
-        }
+        // Use requestAnimationFrame for style updates to optimize rendering
+        requestAnimationFrame(() => {
+          if (newMode === 'normal') {
+            // Phase 1: Normal flow
+            sidebar.style.position = 'relative';
+            sidebar.style.top = '0';
+            sidebar.style.left = '0';
+            sidebar.style.width = '';
+            sidebar.style.bottom = '';
+          } 
+          else if (newMode === 'fixed') {
+            // Phase 2: Fixed position
+            sidebar.style.position = 'fixed';
+            sidebar.style.top = `${topOffset}px`;
+            sidebar.style.width = `${wrapperRect.width}px`;
+            sidebar.style.left = `${wrapperRect.left}px`;
+            sidebar.style.bottom = '';
+          } 
+          else if (newMode === 'end') {
+            // Phase 3: End position
+            sidebar.style.position = 'absolute';
+            sidebar.style.top = 'auto';
+            sidebar.style.bottom = '0';
+            sidebar.style.left = '0';
+            sidebar.style.width = '';
+          }
+        });
       }
     };
     
@@ -368,7 +748,7 @@ const PersonProfileCard = ({
     const scrollListener = () => {
       const now = Date.now();
       if (!ticking && now - lastScrollTime > THROTTLE_MS) {
-        window.requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
           handleScroll();
           ticking = false;
           lastScrollTime = now;
@@ -400,6 +780,8 @@ const PersonProfileCard = ({
     return () => {
       window.removeEventListener('scroll', scrollListener);
       resizeObserver.disconnect();
+      // Remove will-change to free up resources
+      sidebar.style.willChange = 'auto';
     };
   }, [isInitialized, topOffset, sidebarMode, isMobile, containerRef, sidebarRef, sidebarWrapperRef]);
 
@@ -410,6 +792,9 @@ const PersonProfileCard = ({
     }
     
     const mobileNav = mobileNavRef.current;
+    
+    // Add will-change to hint browser about transforms
+    mobileNav.style.willChange = 'transform, opacity, background-color';
     
     // Optimized scroll handler for mobile nav
     const handleScroll = () => {
@@ -424,9 +809,11 @@ const PersonProfileCard = ({
       }
       
       // Update background opacity based on scroll position - one-time calculation
-      const bgOpacity = currentScrollY > 50 ? 0.95 : 0.7;
-      mobileNav.style.backgroundColor = `rgba(17, 17, 17, ${bgOpacity})`;
-      mobileNav.style.boxShadow = currentScrollY > 50 ? '0 2px 10px rgba(0, 0, 0, 0.1)' : 'none';
+      requestAnimationFrame(() => {
+        const bgOpacity = currentScrollY > 50 ? 0.95 : 0.7;
+        mobileNav.style.backgroundColor = `rgba(17, 17, 17, ${bgOpacity})`;
+        mobileNav.style.boxShadow = currentScrollY > 50 ? '0 2px 10px rgba(0, 0, 0, 0.1)' : 'none';
+      });
       
       // Store current scroll position
       setLastScrollY(currentScrollY);
@@ -440,7 +827,7 @@ const PersonProfileCard = ({
     const scrollListener = () => {
       const now = Date.now();
       if (!ticking && now - lastScrollTime > THROTTLE_MS) {
-        window.requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
           handleScroll();
           ticking = false;
           lastScrollTime = now;
@@ -457,454 +844,249 @@ const PersonProfileCard = ({
     
     return () => {
       window.removeEventListener('scroll', scrollListener);
+      // Remove will-change to free up resources when not needed
+      mobileNav.style.willChange = 'auto';
     };
   }, [isInitialized, isMobile, lastScrollY, mobileNavRef]);
 
-  // Render functions - memoized to prevent recreation on every render
-  
-  // Profile info section
-  const renderProfileInfo = useCallback(() => (
-    <div 
-      className="profile-info"
-      style={{
-        marginBottom: '2rem',
-        paddingLeft: '5px',
-        textAlign: isMobile ? 'center' : 'left',
-        width: '100%',
-      }}
-    >
-      <h1 
-        className="profile-name"
-        style={{
-          ...styles.profileName,
-          fontSize: isMobile ? '2.2rem' : '2.8rem',
-          color: highlightColor,
-        }}
-      >
-        {person.name}
-      </h1>
-      
-      <h2 
-        className="profile-role"
-        style={{
-          ...styles.profileRole,
-          fontSize: isMobile ? '1.1rem' : '1.2rem',
-          color: `${highlightColor}B3`, // 70% opacity
-          fontFamily: fontFamily,
-        }}
-      >
-        {person.role}
-      </h2>
-      
-      {person.tagline && (
-        <p 
-          className="profile-tagline"
-          style={{
-            ...styles.profileTagline,
-            fontSize: '1.1rem',
-            maxWidth: isMobile ? '100%' : '90%',
-            color: textColor,
-            fontFamily: fontFamily,
-          }}
-        >
-          {person.tagline}
-        </p>
-      )}
-    </div>
-  ), [isMobile, person.name, person.role, person.tagline, highlightColor, textColor, fontFamily]);
-
-  // Mobile navigation - extracted and memoized
-  const renderMobileNav = useCallback(() => {
-    if (!isMobile) return null;
-    
-    return (
-      <div
-        ref={mobileNavRef}
-        className="mobile-nav"
-        style={{
-          ...styles.mobileNav,
-          transform: mobileNavVisible ? 'translateY(0)' : 'translateY(-100%)',
-          opacity: mobileNavVisible ? 1 : 0,
-        }}
-      >
-        {navigationItems.map((navItem) => (
-          <div
-            key={navItem.id}
-            className="mobile-nav-item"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-            }}
-          >
-            <button
-              onClick={() => scrollToSection(navItem.id)}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '0.5rem',
-                outline: 'none',
-              }}
-            >
-              <div
-                style={{
-                  width: activeSection === navItem.id ? `${maxLineWidth}px` : `${minLineWidth}px`,
-                  height: '2px',
-                  backgroundColor: activeSection === navItem.id ? highlightColor : `${highlightColor}80`,
-                  transition: 'width 0.3s ease, background-color 0.3s ease',
-                  marginBottom: '0.5rem',
-                }}
-              ></div>
-              <div
-                style={{
-                  fontSize: '0.75rem',
-                  color: activeSection === navItem.id ? highlightColor : textColor,
-                  letterSpacing: '0.1em',
-                  transition: 'color 0.3s ease',
-                }}
-              >
-                {navItem.label}
-              </div>
-            </button>
-          </div>
-        ))}
-      </div>
-    );
-  }, [
-    isMobile, mobileNavVisible, navigationItems, activeSection, 
-    scrollToSection, maxLineWidth, minLineWidth, highlightColor, textColor
-  ]);
-
-  // Navigation links for desktop - extracted and memoized
-  const renderNavLinks = useCallback(() => {
-    if (isMobile) return null;
-    
-    return (
-      <div className="nav-links" style={{ marginTop: '3rem' }}>
-        {navigationItems.map((navItem) => (
-          <div 
-            key={navItem.id}
-            className="nav-link-container"
-            style={{
-              position: 'relative',
-              marginBottom: '1rem',
-              display: 'flex',
-              alignItems: 'center',
-            }}
-            onMouseEnter={() => handleNavItemHover(navItem.id)}
-            onMouseLeave={handleNavItemLeave}
-          >
-            <div
-              className="nav-line"
-              style={{
-                ...styles.navLine,
-                width: activeSection === navItem.id || expandedNavItem === navItem.id 
-                  ? `${maxLineWidth}px` 
-                  : `${minLineWidth}px`,
-                backgroundColor: activeSection === navItem.id || expandedNavItem === navItem.id
-                  ? `${highlightColor}E6` // 90% opacity 
-                  : `${highlightColor}80`, // 50% opacity
-              }}
-            ></div>
-            <button 
-              className="nav-link"
-              onClick={() => scrollToSection(navItem.id)}
-              style={{
-                ...styles.navLink,
-                color: activeSection === navItem.id || expandedNavItem === navItem.id 
-                  ? highlightColor 
-                  : textColor,
-                transform: activeSection === navItem.id || expandedNavItem === navItem.id 
-                  ? 'translateX(10px)' 
-                  : 'none',
-              }}
-            >
-              {navItem.label}
-            </button>
-          </div>
-        ))}
-      </div>
-    );
-  }, [
-    isMobile, navigationItems, activeSection, expandedNavItem, 
-    handleNavItemHover, handleNavItemLeave, scrollToSection,
-    maxLineWidth, minLineWidth, highlightColor, textColor
-  ]);
-
   // Stats section - extracted and memoized
-  const renderStats = useCallback(() => {
+  const renderStats = useMemo(() => {
     if (!showStats || !person.stats || person.stats.length === 0) return null;
     
     return (
-      <div 
-        className="stats-container"
-        style={{
-          display: 'flex',
-          justifyContent: isMobile ? 'center' : 'space-between',
-          flexWrap: 'wrap',
-          marginTop: '3rem',
-          width: '100%',
-          gap: isMobile ? '2rem' : 0,
-        }}
-      >
+      <StatsContainer isMobile={isMobile}>
         {person.stats.map((stat, statIdx) => (
-          <div 
-            key={statIdx} 
-            className="stat"
-            style={{
-              flex: isMobile ? '0 0 auto' : '1',
-              textAlign: 'center',
-              padding: '0 1rem',
-              minWidth: isMobile ? '140px' : '100px',
-              transition: 'transform 0.3s ease',
-            }}
-            onMouseEnter={(e) => {
-              if (!isMobile) {
-                e.currentTarget.style.transform = 'translateY(-5px)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isMobile) {
-                e.currentTarget.style.transform = 'none';
-              }
-            }}
-          >
-            <div 
-              className="stat-value"
-              style={{
-                fontSize: isMobile ? '2.2rem' : '2.5rem',
-                fontWeight: '100',
-                color: highlightColor,
-                marginBottom: '0.5rem'
-              }}
-            >
-              {stat.value}
-            </div>
-            <div 
-              className="stat-label"
-              style={{
-                fontSize: '0.85rem',
-                color: `${textColor}CC`, // 80% opacity
-                textTransform: 'uppercase',
-                letterSpacing: '0.1em'
-              }}
-            >
-              {stat.label}
-            </div>
-          </div>
+          <StatItemComponent
+            key={statIdx}
+            stat={stat}
+            isMobile={isMobile}
+            highlightColor={highlightColor}
+            textColor={textColor}
+          />
         ))}
-      </div>
+      </StatsContainer>
     );
   }, [showStats, person.stats, isMobile, highlightColor, textColor]);
 
-  // Section content renderer - memoized for consistent rendering
-  const renderSectionContent = useCallback((content) => {
-    if (!content) return null;
-    
-    if (typeof content === 'string') {
-      return (
-        <p 
-          className="section-content"
-          style={{
-            ...styles.sectionContent,
-            fontSize: '1rem',
-            color: textColor,
-            fontFamily: fontFamily,
-          }}
-        >
-          {content}
-        </p>
-      );
-    }
-    
-    return content;
-  }, [textColor, fontFamily]);
-
   // Section renderers - separated for clarity and optimization
-  const renderAboutSection = useCallback(() => {
+  const renderAboutSection = useMemo(() => {
+    if (!person.bio) return null;
+    
     return (
       <>
-        {person.bio && person.bio.map((paragraph, idx) => (
-          <p 
-            key={idx} 
-            className="section-content"
-            style={{
-              ...styles.sectionContent,
-              fontSize: '1rem',
-              color: textColor,
-              fontFamily: fontFamily,
-            }}
-          >
-            {paragraph}
-          </p>
+        {person.bio.map((paragraph, idx) => (
+          <SectionContentComponent
+            key={idx}
+            content={paragraph}
+            textColor={textColor}
+            fontFamily={fontFamily}
+          />
         ))}
         
-        {renderStats()}
+        {renderStats}
       </>
     );
   }, [person.bio, renderStats, textColor, fontFamily]);
 
-  const renderExperienceSection = useCallback(() => {
-    if (person.experience) {
-      return person.experience.map((item, expIdx) => (
-        <React.Fragment key={expIdx}>
-          {renderSectionContent(item.content)}
-        </React.Fragment>
-      ));
+  const renderExperienceSection = useMemo(() => {
+    if (!person.experience) {
+      return (
+        <SectionContentComponent
+          content="Throughout my career, I've specialized in developing software systems that seamlessly integrate front-end experiences with robust back-end architectures. My experience spans various domains, from interactive media to data visualization systems."
+          textColor={textColor}
+          fontFamily={fontFamily}
+        />
+      );
     }
     
-    return renderSectionContent(
-      "Throughout my career, I've specialized in developing software systems that seamlessly " +
-      "integrate front-end experiences with robust back-end architectures. My experience spans " +
-      "various domains, from interactive media to data visualization systems."
+    return (
+      <>
+        {person.experience.map((item, expIdx) => (
+          <SectionContentComponent
+            key={expIdx}
+            content={item.content}
+            textColor={textColor}
+            fontFamily={fontFamily}
+          />
+        ))}
+      </>
     );
-  }, [person.experience, renderSectionContent]);
+  }, [person.experience, textColor, fontFamily]);
 
-  const renderProjectsSection = useCallback(() => {
-    if (person.projects) {
-      return person.projects.map((item, projIdx) => (
-        <React.Fragment key={projIdx}>
-          {renderSectionContent(item.content)}
-        </React.Fragment>
-      ));
-    }
+  const renderProjectsSection = useMemo(() => {
+    if (!person.projects) return null;
     
-    return null;
-  }, [person.projects, renderSectionContent]);
+    return (
+      <>
+        {person.projects.map((item, projIdx) => (
+          <SectionContentComponent
+            key={projIdx}
+            content={item.content}
+            textColor={textColor}
+            fontFamily={fontFamily}
+          />
+        ))}
+      </>
+    );
+  }, [person.projects, textColor, fontFamily]);
 
-  // Main section renderer - unified logic for any section type
-  const renderSection = useCallback((section) => {
+  // Main section renderer - unified logic for any section type using memoization
+  const getRenderedSection = useCallback((sectionId) => {
+    // Find section from navigationItems
+    const section = navigationItems.find(item => item.id === sectionId);
+    if (!section) return null;
+    
     if (section.content) {
-      return renderSectionContent(section.content);
+      return (
+        <SectionContentComponent
+          content={section.content}
+          textColor={textColor}
+          fontFamily={fontFamily}
+        />
+      );
     }
     
-    switch (section.id) {
+    switch (sectionId) {
       case 'about':
-        return renderAboutSection();
+        return renderAboutSection;
       case 'experience':
-        return renderExperienceSection();
+        return renderExperienceSection;
       case 'projects':
-        return renderProjectsSection();
+        return renderProjectsSection;
       default:
         return null;
     }
-  }, [renderSectionContent, renderAboutSection, renderExperienceSection, renderProjectsSection]);
+  }, [
+    navigationItems, 
+    renderAboutSection, 
+    renderExperienceSection, 
+    renderProjectsSection, 
+    textColor, 
+    fontFamily
+  ]);
 
   return (
     <>
-      {/* Mobile navigation */}
-      {renderMobileNav()}
+      {/* Mobile navigation with event delegation */}
+      {isMobile && (
+        <MobileNav
+          ref={mobileNavRef}
+          visible={mobileNavVisible}
+        >
+          {navigationItems.map((navItem) => (
+            <MobileNavItemComponent
+              key={navItem.id}
+              navItem={navItem}
+              activeSection={activeSection}
+              highlightColor={highlightColor}
+              textColor={textColor}
+              minLineWidth={minLineWidth}
+              maxLineWidth={maxLineWidth}
+            />
+          ))}
+        </MobileNav>
+      )}
       
-      <motion.div 
+      <Container 
         ref={containerRef}
-        className="profile-container"
+        isMobile={isMobile}
         initial={{ opacity: 0, y: animationConfig?.initialY ?? 30 }}
         animate={controls}
-        style={{
-          display: 'flex',
-          flexDirection: isMobile ? 'column' : 'row',
-          width: '100%',
-          maxWidth: '1300px',
-          margin: '0 auto',
-          minHeight: isMobile ? 'auto' : '70vh',
-          position: 'relative',
-          paddingTop: isMobile ? '80px' : 0, // Add padding for fixed mobile nav
-        }}
       >
         {/* Left sidebar wrapper - desktop only */}
         {!isMobile && (
-          <div 
+          <SidebarWrapper 
             ref={sidebarWrapperRef}
-            className="sidebar-wrapper"
-            style={{
-              width: `${layoutValues.sidebarWidth}%`,
-              position: 'relative',
-            }}
+            width={layoutValues.sidebarWidth}
           >
             {/* Profile sidebar */}
-            <div 
-              ref={sidebarRef}
-              className="profile-sidebar"
-              style={{
-                padding: '3rem 2rem 2rem 0',
-                display: 'flex',
-                flexDirection: 'column',
-                width: '100%',
-                position: 'relative',
-                top: 0,
-              }}
-            >
-              {renderProfileInfo()}
-              {renderNavLinks()}
-            </div>
-          </div>
+            <Sidebar ref={sidebarRef}>
+              <ProfileInfo
+                person={person}
+                isMobile={isMobile}
+                highlightColor={highlightColor}
+                textColor={textColor}
+                fontFamily={fontFamily}
+              />
+              
+              {/* Navigation links with event delegation */}
+              {!isMobile && (
+                <NavLinks ref={navLinksRef}>
+                  {navigationItems.map((navItem) => (
+                    <NavLinkComponent
+                      key={navItem.id}
+                      navItem={navItem}
+                      activeSection={activeSection}
+                      expandedNavItem={expandedNavItem}
+                      onMouseEnter={handleNavItemHover}
+                      onMouseLeave={handleNavItemLeave}
+                      highlightColor={highlightColor}
+                      textColor={textColor}
+                      minLineWidth={minLineWidth}
+                      maxLineWidth={maxLineWidth}
+                    />
+                  ))}
+                </NavLinks>
+              )}
+            </Sidebar>
+          </SidebarWrapper>
         )}
         
         {/* Profile Info for mobile */}
-        {isMobile && renderProfileInfo()}
+        {isMobile && (
+          <ProfileInfo
+            person={person}
+            isMobile={isMobile}
+            highlightColor={highlightColor}
+            textColor={textColor}
+            fontFamily={fontFamily}
+          />
+        )}
         
         {/* Right content section */}
-        <div 
+        <ContentSection 
           ref={contentRef}
-          className="content-section"
-          style={{
-            width: isMobile ? '100%' : `${layoutValues.contentWidth}%`,
-            padding: isMobile 
-              ? '2rem 1.5rem' 
-              : `3rem 0 2rem ${layoutValues.contentPadding}rem`,
-            marginLeft: isMobile ? 0 : 'auto',
-          }}
+          isMobile={isMobile}
+          width={layoutValues.contentWidth}
+          contentPadding={layoutValues.contentPadding}
         >
           {/* Render sections based on navigationItems */}
           {navigationItems.map((section, index) => {
             if (index >= sectionRefs.length) return null;
             
             return (
-              <div 
+              <Section 
                 key={section.id}
                 ref={sectionRefs[index]}
                 data-section={section.id}
-                className="section"
                 id={section.id}
-                style={{
-                  marginBottom: '3rem',
-                  scrollMarginTop: isMobile ? '80px' : '2rem',
-                }}
+                isMobile={isMobile}
               >
-                {renderSection(section)}
-              </div>
+                {getRenderedSection(section.id)}
+              </Section>
             );
           })}
           
           {/* Additional sections */}
           {additionalSections.map((section, index) => (
-            <div 
+            <Section 
               key={`additional-${index}`}
-              className="section"
-              style={{
-                marginBottom: '3rem',
-                scrollMarginTop: isMobile ? '80px' : '2rem',
-              }}
+              isMobile={isMobile}
             >
               {section.title && (
-                <h3 style={{
-                  fontSize: '1.4rem',
-                  color: highlightColor,
-                  marginBottom: '1rem',
-                  fontWeight: '300',
-                }}>
+                <SectionTitle highlightColor={highlightColor}>
                   {section.title}
-                </h3>
+                </SectionTitle>
               )}
-              {renderSectionContent(section.content)}
-            </div>
+              <SectionContentComponent
+                content={section.content}
+                textColor={textColor}
+                fontFamily={fontFamily}
+              />
+            </Section>
           ))}
-        </div>
-      </motion.div>
+        </ContentSection>
+      </Container>
     </>
   );
 };
