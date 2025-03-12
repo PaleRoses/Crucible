@@ -44,6 +44,8 @@ const PersonProfileCard = ({
   const [sidebarMode, setSidebarMode] = useState('normal'); // 'normal', 'fixed', or 'end'
   const [isInitialized, setIsInitialized] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [mobileNavVisible, setMobileNavVisible] = useState(false);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   // Calculate widths based on contentCompression (0-10 scale)
   const compressionFactor = Math.min(Math.max(contentCompression, 0), 10) / 10;
@@ -325,7 +327,7 @@ const PersonProfileCard = ({
     };
   }, [isInitialized, topOffset, sidebarMode, isMobile]);
 
-  // Mobile nav scroll behavior
+  // Mobile nav scroll behavior with auto-hide
   useEffect(() => {
     if (!isInitialized || !isMobile || !mobileNavRef.current) {
       return;
@@ -334,24 +336,51 @@ const PersonProfileCard = ({
     const mobileNav = mobileNavRef.current;
     
     const handleScroll = () => {
-      if (window.scrollY > 50) {
+      const currentScrollY = window.scrollY;
+      
+      // Show navbar when scrolling up or at the top of the page
+      if (currentScrollY < lastScrollY || currentScrollY < 50) {
+        setMobileNavVisible(true);
+      } else {
+        // Hide navbar when scrolling down past the threshold
+        setMobileNavVisible(false);
+      }
+      
+      // Update background opacity based on scroll position
+      if (currentScrollY > 50) {
         mobileNav.style.backgroundColor = 'rgba(17, 17, 17, 0.95)';
         mobileNav.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
       } else {
         mobileNav.style.backgroundColor = 'rgba(17, 17, 17, 0.7)';
         mobileNav.style.boxShadow = 'none';
       }
+      
+      // Store current scroll position
+      setLastScrollY(currentScrollY);
     };
     
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    // Add debounced scroll event listener for better performance
+    let ticking = false;
+    const scrollListener = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
     
-    // Initial state
-    handleScroll();
+    window.addEventListener('scroll', scrollListener, { passive: true });
+    
+    // Initial state - hide by default
+    mobileNav.style.backgroundColor = 'rgba(17, 17, 17, 0.7)';
+    mobileNav.style.boxShadow = 'none';
     
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('scroll', scrollListener);
     };
-  }, [isInitialized, isMobile]);
+  }, [isInitialized, isMobile, lastScrollY]);
 
   // Render profile info section
   const renderProfileInfo = () => (
@@ -427,11 +456,13 @@ const PersonProfileCard = ({
           zIndex: 100,
           backgroundColor: 'rgba(17, 17, 17, 0.7)',
           backdropFilter: 'blur(10px)',
-          transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
+          transition: 'all 0.3s ease',
           padding: '0.75rem 1rem',
           display: 'flex',
           justifyContent: 'space-around',
           alignItems: 'center',
+          transform: mobileNavVisible ? 'translateY(0)' : 'translateY(-100%)',
+          opacity: mobileNavVisible ? 1 : 0,
         }}
       >
         {navigationItems.map((navItem) => (
