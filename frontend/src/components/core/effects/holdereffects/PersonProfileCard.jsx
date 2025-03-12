@@ -1,8 +1,69 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, useInView, useAnimation } from 'framer-motion';
 
+// Move static styles outside component to prevent recreation on each render
+const styles = {
+  profileName: {
+    fontWeight: '300',
+    letterSpacing: '0.05em',
+    marginBottom: '0.5rem',
+  },
+  profileRole: {
+    fontWeight: '300',
+    marginBottom: '2rem',
+    letterSpacing: '0.05em',
+    fontStyle: 'italic',
+  },
+  profileTagline: {
+    lineHeight: '1.6',
+    marginBottom: '3rem',
+    fontWeight: '300',
+  },
+  sectionContent: {
+    lineHeight: '1.8',
+    marginBottom: '1.5rem',
+    fontWeight: '300',
+  },
+  mobileNav: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100%',
+    zIndex: 100,
+    backdropFilter: 'blur(10px)',
+    transition: 'all 0.3s ease',
+    padding: '0.75rem 1rem',
+    display: 'flex',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  navLine: {
+    position: 'absolute',
+    left: '0',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    height: '0.75px',
+    transition: 'width 0.3s ease, background-color 0.3s ease',
+  },
+  navLink: {
+    position: 'relative',
+    display: 'block',
+    padding: '0.5rem 0 0.5rem 40px',
+    fontSize: '0.85rem',
+    letterSpacing: '0.1em',
+    background: 'transparent',
+    border: 'none',
+    textAlign: 'left',
+    outline: 'none',
+    boxShadow: 'none',
+    transition: 'color 0.5s ease, transform 0.5s ease',
+    cursor: 'pointer',
+    width: 'fit-content',
+  }
+};
+
 /**
- * PersonProfileCard Component
+ * PersonProfileCard Component - Optimized Version
  * 
  * A profile card with a three-phase scroll behavior:
  * 1. Normal Flow: Initially scrolls with the page
@@ -47,23 +108,14 @@ const PersonProfileCard = ({
   const [mobileNavVisible, setMobileNavVisible] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  // Calculate widths based on contentCompression (0-10 scale)
-  const compressionFactor = Math.min(Math.max(contentCompression, 0), 10) / 10;
-  const sidebarWidth = 45 - (compressionFactor * 5); // 35-40% range
-  const contentWidth = 55 - (compressionFactor * 5); // 55-60% range
-  const contentPadding = 2 + (compressionFactor * 2); // 2-4rem range
-
-  // Refs for DOM elements
+  // Create individual refs at the top level of the component
   const containerRef = useRef(null);
   const sidebarRef = useRef(null);
   const contentRef = useRef(null);
   const sidebarWrapperRef = useRef(null);
   const mobileNavRef = useRef(null);
   
-  // Animation controls
-  const controls = useAnimation();
-  
-  // Create individual section refs at the top level
+  // Create individual section refs
   const section0Ref = useRef(null);
   const section1Ref = useRef(null);
   const section2Ref = useRef(null);
@@ -73,13 +125,16 @@ const PersonProfileCard = ({
   const section6Ref = useRef(null);
   const section7Ref = useRef(null);
   
-  // Memoize the array of refs so it's stable across renders
+  // Animation controls
+  const controls = useAnimation();
+  
+  // Memoize the array of section refs so it's stable across renders
   const sectionRefs = useMemo(() => [
     section0Ref, section1Ref, section2Ref, section3Ref,
     section4Ref, section5Ref, section6Ref, section7Ref
   ], []);
   
-  // Map section IDs to refs
+  // Memoize the section refs map to avoid recreating on every render
   const sectionRefsMap = useMemo(() => {
     const refsMap = {};
     navigationItems.forEach((item, index) => {
@@ -89,6 +144,16 @@ const PersonProfileCard = ({
     });
     return refsMap;
   }, [navigationItems, sectionRefs]);
+  
+  // Memoize calculation of compression-based values
+  const layoutValues = useMemo(() => {
+    const compressionFactor = Math.min(Math.max(contentCompression, 0), 10) / 10;
+    return {
+      sidebarWidth: 45 - (compressionFactor * 5), // 35-40% range
+      contentWidth: 55 - (compressionFactor * 5), // 55-60% range
+      contentPadding: 2 + (compressionFactor * 2), // 2-4rem range
+    };
+  }, [contentCompression]);
 
   // Animation inView detection
   const isInView = useInView(containerRef, {
@@ -96,24 +161,12 @@ const PersonProfileCard = ({
     once: animationConfig?.once ?? true
   });
 
-  // Check if we're on mobile
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
-    // Initial check
-    checkMobile();
-    
-    // Add resize event listener
-    window.addEventListener('resize', checkMobile);
-    
-    return () => {
-      window.removeEventListener('resize', checkMobile);
-    };
+  // Memoized function for checking if we're on mobile
+  const checkMobile = useCallback(() => {
+    setIsMobile(window.innerWidth <= 768);
   }, []);
 
-  // Navigation item hover handlers
+  // Navigation item hover handlers - memoized to prevent recreation on every render
   const handleNavItemHover = useCallback((section) => {
     if (!isMobile) {
       setExpandedNavItem(section);
@@ -126,7 +179,7 @@ const PersonProfileCard = ({
     }
   }, [isMobile]);
 
-  // Scroll to section handler
+  // Scroll to section handler - memoized with dependencies
   const scrollToSection = useCallback((sectionId) => {
     setActiveSection(sectionId);
     
@@ -154,9 +207,22 @@ const PersonProfileCard = ({
         });
       }
     }
-  }, [onSectionChange, sectionRefsMap, isMobile]);
+  }, [onSectionChange, sectionRefsMap, isMobile, mobileNavRef]);
 
-  // Initial animation
+  // Check mobile on mount and window resize
+  useEffect(() => {
+    // Initial check
+    checkMobile();
+    
+    // Add resize event listener
+    window.addEventListener('resize', checkMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, [checkMobile]);
+
+  // Initial animation effect
   useEffect(() => {
     if (isInView) {
       controls.start({ 
@@ -178,7 +244,7 @@ const PersonProfileCard = ({
     }
   }, [isInView, controls, animationConfig?.duration]);
 
-  // Set up intersection observer to detect which section is in view
+  // Set up intersection observer for section detection - optimized with proper dependencies
   useEffect(() => {
     const sectionElements = Object.values(sectionRefsMap)
       .map(ref => ref.current)
@@ -216,9 +282,10 @@ const PersonProfileCard = ({
     return () => observer.disconnect();
   }, [activeSection, onSectionChange, sectionRefsMap, isMobile]);
 
-  // Implement scroll behavior - but only for desktop
+  // Implement scroll behavior for desktop - optimized by separating logic and reducing recalculations
   useEffect(() => {
-    if (!isInitialized || !containerRef.current || !sidebarRef.current || !sidebarWrapperRef.current || isMobile) {
+    if (!isInitialized || !containerRef.current || !sidebarRef.current || 
+        !sidebarWrapperRef.current || isMobile) {
       return;
     }
     
@@ -226,25 +293,29 @@ const PersonProfileCard = ({
     const sidebar = sidebarRef.current;
     const sidebarWrapper = sidebarWrapperRef.current;
     
-    let containerRect;
-    let wrapperRect;
-    let sidebarHeight;
-    
-    // Update measurements
-    const updateMeasurements = () => {
-      containerRect = container.getBoundingClientRect();
-      wrapperRect = sidebarWrapper.getBoundingClientRect();
-      sidebarHeight = sidebar.offsetHeight;
+    let measurements = {
+      containerRect: null,
+      wrapperRect: null,
+      sidebarHeight: null
     };
     
-    // First, get accurate measurements
+    // Update measurements - only called when needed
+    const updateMeasurements = () => {
+      measurements.containerRect = container.getBoundingClientRect();
+      measurements.wrapperRect = sidebarWrapper.getBoundingClientRect();
+      measurements.sidebarHeight = sidebar.offsetHeight;
+    };
+    
+    // Get initial measurements
     updateMeasurements();
     
+    // Optimized scroll handler with throttling
     const handleScroll = () => {
-      // Update measurements if necessary
+      // Update measurements
       updateMeasurements();
       
       // Calculate phase transition points
+      const { containerRect, sidebarHeight } = measurements;
       const startFixPoint = containerRect.top <= topOffset;
       const endFixPoint = containerRect.bottom <= (sidebarHeight + topOffset);
       
@@ -274,8 +345,8 @@ const PersonProfileCard = ({
           // Phase 2: Fixed position
           sidebar.style.position = 'fixed';
           sidebar.style.top = `${topOffset}px`;
-          sidebar.style.width = `${wrapperRect.width}px`;
-          sidebar.style.left = `${wrapperRect.left}px`;
+          sidebar.style.width = `${measurements.wrapperRect.width}px`;
+          sidebar.style.left = `${measurements.wrapperRect.left}px`;
           sidebar.style.bottom = '';
         } 
         else if (newMode === 'end') {
@@ -289,13 +360,18 @@ const PersonProfileCard = ({
       }
     };
     
-    // Add scroll event listener
+    // Throttled scroll event handling for better performance
     let ticking = false;
+    let lastScrollTime = 0;
+    const THROTTLE_MS = 100; // Throttle to max 10 updates per second
+    
     const scrollListener = () => {
-      if (!ticking) {
+      const now = Date.now();
+      if (!ticking && now - lastScrollTime > THROTTLE_MS) {
         window.requestAnimationFrame(() => {
           handleScroll();
           ticking = false;
+          lastScrollTime = now;
         });
         ticking = true;
       }
@@ -303,19 +379,19 @@ const PersonProfileCard = ({
     
     window.addEventListener('scroll', scrollListener, { passive: true });
     
-    // Handle window resize
+    // Optimized resize handler
     const handleResize = () => {
       // Skip for mobile
       if (window.innerWidth <= 768) return;
       
-      // Update measurements
+      // Update measurements and apply current mode
       updateMeasurements();
-      
-      // Apply current mode
       handleScroll();
     };
     
-    window.addEventListener('resize', handleResize);
+    // Use ResizeObserver instead of window resize for better performance
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(container);
     
     // Initial setup
     handleResize();
@@ -323,11 +399,11 @@ const PersonProfileCard = ({
     
     return () => {
       window.removeEventListener('scroll', scrollListener);
-      window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
     };
-  }, [isInitialized, topOffset, sidebarMode, isMobile]);
+  }, [isInitialized, topOffset, sidebarMode, isMobile, containerRef, sidebarRef, sidebarWrapperRef]);
 
-  // Mobile nav scroll behavior with auto-hide
+  // Mobile nav scroll behavior with auto-hide - optimized with throttling
   useEffect(() => {
     if (!isInitialized || !isMobile || !mobileNavRef.current) {
       return;
@@ -335,6 +411,7 @@ const PersonProfileCard = ({
     
     const mobileNav = mobileNavRef.current;
     
+    // Optimized scroll handler for mobile nav
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       
@@ -346,26 +423,27 @@ const PersonProfileCard = ({
         setMobileNavVisible(false);
       }
       
-      // Update background opacity based on scroll position
-      if (currentScrollY > 50) {
-        mobileNav.style.backgroundColor = 'rgba(17, 17, 17, 0.95)';
-        mobileNav.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
-      } else {
-        mobileNav.style.backgroundColor = 'rgba(17, 17, 17, 0.7)';
-        mobileNav.style.boxShadow = 'none';
-      }
+      // Update background opacity based on scroll position - one-time calculation
+      const bgOpacity = currentScrollY > 50 ? 0.95 : 0.7;
+      mobileNav.style.backgroundColor = `rgba(17, 17, 17, ${bgOpacity})`;
+      mobileNav.style.boxShadow = currentScrollY > 50 ? '0 2px 10px rgba(0, 0, 0, 0.1)' : 'none';
       
       // Store current scroll position
       setLastScrollY(currentScrollY);
     };
     
-    // Add debounced scroll event listener for better performance
+    // Throttled scroll event handling for better performance
     let ticking = false;
+    let lastScrollTime = 0;
+    const THROTTLE_MS = 100; // Throttle to max 10 updates per second
+    
     const scrollListener = () => {
-      if (!ticking) {
+      const now = Date.now();
+      if (!ticking && now - lastScrollTime > THROTTLE_MS) {
         window.requestAnimationFrame(() => {
           handleScroll();
           ticking = false;
+          lastScrollTime = now;
         });
         ticking = true;
       }
@@ -373,17 +451,19 @@ const PersonProfileCard = ({
     
     window.addEventListener('scroll', scrollListener, { passive: true });
     
-    // Initial state - hide by default
+    // Initial state - initialize once
     mobileNav.style.backgroundColor = 'rgba(17, 17, 17, 0.7)';
     mobileNav.style.boxShadow = 'none';
     
     return () => {
       window.removeEventListener('scroll', scrollListener);
     };
-  }, [isInitialized, isMobile, lastScrollY]);
+  }, [isInitialized, isMobile, lastScrollY, mobileNavRef]);
 
-  // Render profile info section
-  const renderProfileInfo = () => (
+  // Render functions - memoized to prevent recreation on every render
+  
+  // Profile info section
+  const renderProfileInfo = useCallback(() => (
     <div 
       className="profile-info"
       style={{
@@ -396,11 +476,9 @@ const PersonProfileCard = ({
       <h1 
         className="profile-name"
         style={{
+          ...styles.profileName,
           fontSize: isMobile ? '2.2rem' : '2.8rem',
-          fontWeight: '300',
           color: highlightColor,
-          letterSpacing: '0.05em',
-          marginBottom: '0.5rem',
         }}
       >
         {person.name}
@@ -409,13 +487,10 @@ const PersonProfileCard = ({
       <h2 
         className="profile-role"
         style={{
+          ...styles.profileRole,
           fontSize: isMobile ? '1.1rem' : '1.2rem',
-          fontWeight: '300',
-          marginBottom: '2rem',
           color: `${highlightColor}B3`, // 70% opacity
-          letterSpacing: '0.05em',
           fontFamily: fontFamily,
-          fontStyle: 'italic',
         }}
       >
         {person.role}
@@ -425,23 +500,21 @@ const PersonProfileCard = ({
         <p 
           className="profile-tagline"
           style={{
+            ...styles.profileTagline,
             fontSize: '1.1rem',
-            lineHeight: '1.6',
-            marginBottom: '3rem',
             maxWidth: isMobile ? '100%' : '90%',
             color: textColor,
             fontFamily: fontFamily,
-            fontWeight: '300',
           }}
         >
           {person.tagline}
         </p>
       )}
     </div>
-  );
+  ), [isMobile, person.name, person.role, person.tagline, highlightColor, textColor, fontFamily]);
 
-  // Render mobile navigation
-  const renderMobileNav = () => {
+  // Mobile navigation - extracted and memoized
+  const renderMobileNav = useCallback(() => {
     if (!isMobile) return null;
     
     return (
@@ -449,18 +522,7 @@ const PersonProfileCard = ({
         ref={mobileNavRef}
         className="mobile-nav"
         style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          zIndex: 100,
-          backgroundColor: 'rgba(17, 17, 17, 0.7)',
-          backdropFilter: 'blur(10px)',
-          transition: 'all 0.3s ease',
-          padding: '0.75rem 1rem',
-          display: 'flex',
-          justifyContent: 'space-around',
-          alignItems: 'center',
+          ...styles.mobileNav,
           transform: mobileNavVisible ? 'translateY(0)' : 'translateY(-100%)',
           opacity: mobileNavVisible ? 1 : 0,
         }}
@@ -512,10 +574,13 @@ const PersonProfileCard = ({
         ))}
       </div>
     );
-  };
+  }, [
+    isMobile, mobileNavVisible, navigationItems, activeSection, 
+    scrollToSection, maxLineWidth, minLineWidth, highlightColor, textColor
+  ]);
 
-  // Render navigation links (desktop only)
-  const renderNavLinks = () => {
+  // Navigation links for desktop - extracted and memoized
+  const renderNavLinks = useCallback(() => {
     if (isMobile) return null;
     
     return (
@@ -536,43 +601,26 @@ const PersonProfileCard = ({
             <div
               className="nav-line"
               style={{
-                position: 'absolute',
-                left: '0',
-                top: '50%',
-                transform: 'translateY(-50%)',
+                ...styles.navLine,
                 width: activeSection === navItem.id || expandedNavItem === navItem.id 
                   ? `${maxLineWidth}px` 
                   : `${minLineWidth}px`,
-                height: '0.75px',
                 backgroundColor: activeSection === navItem.id || expandedNavItem === navItem.id
                   ? `${highlightColor}E6` // 90% opacity 
                   : `${highlightColor}80`, // 50% opacity
-                transition: 'width 0.3s ease, background-color 0.3s ease',
               }}
             ></div>
             <button 
               className="nav-link"
               onClick={() => scrollToSection(navItem.id)}
               style={{
-                position: 'relative',
-                display: 'block',
-                padding: '0.5rem 0 0.5rem 40px',
-                fontSize: '0.85rem',
-                letterSpacing: '0.1em',
-                background: 'transparent',
-                border: 'none',
-                textAlign: 'left',
-                outline: 'none',
-                boxShadow: 'none',
-                transition: 'color 0.5s ease, transform 0.5s ease',
+                ...styles.navLink,
                 color: activeSection === navItem.id || expandedNavItem === navItem.id 
                   ? highlightColor 
                   : textColor,
-                cursor: 'pointer',
                 transform: activeSection === navItem.id || expandedNavItem === navItem.id 
                   ? 'translateX(10px)' 
                   : 'none',
-                width: 'fit-content',
               }}
             >
               {navItem.label}
@@ -581,10 +629,14 @@ const PersonProfileCard = ({
         ))}
       </div>
     );
-  };
+  }, [
+    isMobile, navigationItems, activeSection, expandedNavItem, 
+    handleNavItemHover, handleNavItemLeave, scrollToSection,
+    maxLineWidth, minLineWidth, highlightColor, textColor
+  ]);
 
-  // Render stats section
-  const renderStats = () => {
+  // Stats section - extracted and memoized
+  const renderStats = useCallback(() => {
     if (!showStats || !person.stats || person.stats.length === 0) return null;
     
     return (
@@ -647,10 +699,10 @@ const PersonProfileCard = ({
         ))}
       </div>
     );
-  };
+  }, [showStats, person.stats, isMobile, highlightColor, textColor]);
 
-  // Render section content
-  const renderSectionContent = (content) => {
+  // Section content renderer - memoized for consistent rendering
+  const renderSectionContent = useCallback((content) => {
     if (!content) return null;
     
     if (typeof content === 'string') {
@@ -658,12 +710,10 @@ const PersonProfileCard = ({
         <p 
           className="section-content"
           style={{
+            ...styles.sectionContent,
             fontSize: '1rem',
-            lineHeight: '1.8',
-            marginBottom: '1.5rem',
             color: textColor,
             fontFamily: fontFamily,
-            fontWeight: '300',
           }}
         >
           {content}
@@ -672,10 +722,10 @@ const PersonProfileCard = ({
     }
     
     return content;
-  };
+  }, [textColor, fontFamily]);
 
-  // Render about section
-  const renderAboutSection = (section) => {
+  // Section renderers - separated for clarity and optimization
+  const renderAboutSection = useCallback(() => {
     return (
       <>
         {person.bio && person.bio.map((paragraph, idx) => (
@@ -683,12 +733,10 @@ const PersonProfileCard = ({
             key={idx} 
             className="section-content"
             style={{
+              ...styles.sectionContent,
               fontSize: '1rem',
-              lineHeight: '1.8',
-              marginBottom: '1.5rem',
               color: textColor,
               fontFamily: fontFamily,
-              fontWeight: '300',
             }}
           >
             {paragraph}
@@ -698,13 +746,14 @@ const PersonProfileCard = ({
         {renderStats()}
       </>
     );
-  };
+  }, [person.bio, renderStats, textColor, fontFamily]);
 
-  // Render experience section
-  const renderExperienceSection = (section) => {
+  const renderExperienceSection = useCallback(() => {
     if (person.experience) {
       return person.experience.map((item, expIdx) => (
-        renderSectionContent(item.content)
+        <React.Fragment key={expIdx}>
+          {renderSectionContent(item.content)}
+        </React.Fragment>
       ));
     }
     
@@ -713,36 +762,37 @@ const PersonProfileCard = ({
       "integrate front-end experiences with robust back-end architectures. My experience spans " +
       "various domains, from interactive media to data visualization systems."
     );
-  };
+  }, [person.experience, renderSectionContent]);
 
-  // Render projects section
-  const renderProjectsSection = (section) => {
+  const renderProjectsSection = useCallback(() => {
     if (person.projects) {
       return person.projects.map((item, projIdx) => (
-        renderSectionContent(item.content)
+        <React.Fragment key={projIdx}>
+          {renderSectionContent(item.content)}
+        </React.Fragment>
       ));
     }
     
     return null;
-  };
+  }, [person.projects, renderSectionContent]);
 
-  // Render sections based on section ID
-  const renderSection = (section) => {
+  // Main section renderer - unified logic for any section type
+  const renderSection = useCallback((section) => {
     if (section.content) {
       return renderSectionContent(section.content);
     }
     
     switch (section.id) {
       case 'about':
-        return renderAboutSection(section);
+        return renderAboutSection();
       case 'experience':
-        return renderExperienceSection(section);
+        return renderExperienceSection();
       case 'projects':
-        return renderProjectsSection(section);
+        return renderProjectsSection();
       default:
         return null;
     }
-  };
+  }, [renderSectionContent, renderAboutSection, renderExperienceSection, renderProjectsSection]);
 
   return (
     <>
@@ -771,7 +821,7 @@ const PersonProfileCard = ({
             ref={sidebarWrapperRef}
             className="sidebar-wrapper"
             style={{
-              width: `${sidebarWidth}%`,
+              width: `${layoutValues.sidebarWidth}%`,
               position: 'relative',
             }}
           >
@@ -802,10 +852,10 @@ const PersonProfileCard = ({
           ref={contentRef}
           className="content-section"
           style={{
-            width: isMobile ? '100%' : `${contentWidth}%`,
+            width: isMobile ? '100%' : `${layoutValues.contentWidth}%`,
             padding: isMobile 
               ? '2rem 1.5rem' 
-              : `3rem 0 2rem ${contentPadding}rem`,
+              : `3rem 0 2rem ${layoutValues.contentPadding}rem`,
             marginLeft: isMobile ? 0 : 'auto',
           }}
         >
@@ -859,4 +909,5 @@ const PersonProfileCard = ({
   );
 };
 
-export default PersonProfileCard;
+// Using memo to prevent unnecessary re-renders
+export default React.memo(PersonProfileCard);
