@@ -187,7 +187,7 @@ const CreatorsPage = () => {
   // Creator profile data
   const creatorData = {
     name: "Rosalia Fialkova",
-    role: "Compuer Science Student",
+    role: "Computer Science Student",
     tagline: 
       <>
         I craft immersive systems<br />
@@ -225,7 +225,7 @@ const CreatorsPage = () => {
         content: "I try to approach complex systems by deconstructing abstract concepts into atomic components. The decomposition process reveals the underlying patterns that drive system behavior. Once isolated, these patterns can be translated into modular, reusable components that form building blocks for robust architectures, allowing elegant solutions to emerge from the complexity."
       },
       {
-        content: "In the evolution simulator I'm working on, the trait system organizes attributes hierarchically around a central anchor, with each trait possessing affinities that represent effectiveness against environmental stressors. These affinities combine using hyperbolic tangent normalization, preventing unlimited stacking while ensuring biological plausibility. Traits form dynamic nodal networks where compatibility influences overall effectiveness."
+        content: "In the evolution simulator I'm working on, the trait system organizes attributes hierarchically around a central anchor, with each trait possessing affinities that represent effectiveness against environmental stressors. Traits form dynamic nodal networks where compatibility influences overall effectiveness."
       }
     ],
     projects: [

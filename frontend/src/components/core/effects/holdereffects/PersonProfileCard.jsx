@@ -8,6 +8,11 @@ import { motion, useInView, useAnimation } from 'framer-motion';
  * 1. Normal Flow: Initially scrolls with the page
  * 2. Fixed Position: Sticks to viewport when scrolling through content
  * 3. Release: Returns to normal flow after scrolling past component
+ * 
+ * Mobile improvements:
+ * - Navigation bar moves to top of screen
+ * - Content spans full width for better readability
+ * - Simplified navigation display
  */
 const PersonProfileCard = ({
   person,
@@ -38,6 +43,7 @@ const PersonProfileCard = ({
   const [expandedNavItem, setExpandedNavItem] = useState(null);
   const [sidebarMode, setSidebarMode] = useState('normal'); // 'normal', 'fixed', or 'end'
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Calculate widths based on contentCompression (0-10 scale)
   const compressionFactor = Math.min(Math.max(contentCompression, 0), 10) / 10;
@@ -50,6 +56,7 @@ const PersonProfileCard = ({
   const sidebarRef = useRef(null);
   const contentRef = useRef(null);
   const sidebarWrapperRef = useRef(null);
+  const mobileNavRef = useRef(null);
   
   // Animation controls
   const controls = useAnimation();
@@ -87,14 +94,35 @@ const PersonProfileCard = ({
     once: animationConfig?.once ?? true
   });
 
+  // Check if we're on mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    // Initial check
+    checkMobile();
+    
+    // Add resize event listener
+    window.addEventListener('resize', checkMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, []);
+
   // Navigation item hover handlers
   const handleNavItemHover = useCallback((section) => {
-    setExpandedNavItem(section);
-  }, []);
+    if (!isMobile) {
+      setExpandedNavItem(section);
+    }
+  }, [isMobile]);
   
   const handleNavItemLeave = useCallback(() => {
-    setExpandedNavItem(null);
-  }, []);
+    if (!isMobile) {
+      setExpandedNavItem(null);
+    }
+  }, [isMobile]);
 
   // Scroll to section handler
   const scrollToSection = useCallback((sectionId) => {
@@ -106,12 +134,25 @@ const PersonProfileCard = ({
     
     const sectionRef = sectionRefsMap[sectionId];
     if (sectionRef?.current) {
-      sectionRef.current.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'start'
-      });
+      // Use different scroll methods for mobile vs desktop
+      if (isMobile) {
+        // For mobile, calculate position and use window.scrollTo
+        const offsetTop = sectionRef.current.getBoundingClientRect().top + window.pageYOffset;
+        const mobileNavHeight = mobileNavRef.current ? mobileNavRef.current.offsetHeight : 0;
+        
+        window.scrollTo({
+          top: offsetTop - mobileNavHeight - 20, // Additional offset for spacing
+          behavior: 'smooth'
+        });
+      } else {
+        // For desktop, use the original scrollIntoView method
+        sectionRef.current.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }
     }
-  }, [onSectionChange, sectionRefsMap]);
+  }, [onSectionChange, sectionRefsMap, isMobile]);
 
   // Initial animation
   useEffect(() => {
@@ -143,9 +184,12 @@ const PersonProfileCard = ({
     
     if (sectionElements.length === 0) return;
     
+    // Different margins for mobile and desktop to account for different layouts
     const options = {
       root: null,
-      rootMargin: '-10% 0px -70% 0px', // Consider element in view when in the top 30% of viewport
+      rootMargin: isMobile 
+        ? '-80px 0px -70% 0px'  // For mobile with fixed nav
+        : '-10% 0px -70% 0px',  // For desktop
       threshold: 0
     };
     
@@ -168,19 +212,11 @@ const PersonProfileCard = ({
     sectionElements.forEach(element => observer.observe(element));
     
     return () => observer.disconnect();
-  }, [activeSection, onSectionChange, sectionRefsMap]);
+  }, [activeSection, onSectionChange, sectionRefsMap, isMobile]);
 
-  // Implement scroll behavior
-  // Note: Using traditional scroll handlers instead of framer-motion scroll features
-  
+  // Implement scroll behavior - but only for desktop
   useEffect(() => {
-    if (!isInitialized || !containerRef.current || !sidebarRef.current || !sidebarWrapperRef.current) {
-      return;
-    }
-    
-    // Skip on mobile
-    const isMobile = window.innerWidth <= 768;
-    if (isMobile) {
+    if (!isInitialized || !containerRef.current || !sidebarRef.current || !sidebarWrapperRef.current || isMobile) {
       return;
     }
     
@@ -203,9 +239,6 @@ const PersonProfileCard = ({
     updateMeasurements();
     
     const handleScroll = () => {
-      // Skip on mobile
-      if (window.innerWidth <= 768) return;
-      
       // Update measurements if necessary
       updateMeasurements();
       
@@ -270,22 +303,14 @@ const PersonProfileCard = ({
     
     // Handle window resize
     const handleResize = () => {
+      // Skip for mobile
+      if (window.innerWidth <= 768) return;
+      
       // Update measurements
       updateMeasurements();
       
-      const isMobile = window.innerWidth <= 768;
-      if (isMobile) {
-        // Reset styles for mobile
-        sidebar.style.position = '';
-        sidebar.style.top = '';
-        sidebar.style.bottom = '';
-        sidebar.style.left = '';
-        sidebar.style.width = '';
-        setSidebarMode('normal');
-      } else {
-        // Apply current mode
-        handleScroll();
-      }
+      // Apply current mode
+      handleScroll();
     };
     
     window.addEventListener('resize', handleResize);
@@ -298,7 +323,35 @@ const PersonProfileCard = ({
       window.removeEventListener('scroll', scrollListener);
       window.removeEventListener('resize', handleResize);
     };
-  }, [isInitialized, topOffset, sidebarMode]);
+  }, [isInitialized, topOffset, sidebarMode, isMobile]);
+
+  // Mobile nav scroll behavior
+  useEffect(() => {
+    if (!isInitialized || !isMobile || !mobileNavRef.current) {
+      return;
+    }
+    
+    const mobileNav = mobileNavRef.current;
+    
+    const handleScroll = () => {
+      if (window.scrollY > 50) {
+        mobileNav.style.backgroundColor = 'rgba(17, 17, 17, 0.95)';
+        mobileNav.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
+      } else {
+        mobileNav.style.backgroundColor = 'rgba(17, 17, 17, 0.7)';
+        mobileNav.style.boxShadow = 'none';
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    // Initial state
+    handleScroll();
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isInitialized, isMobile]);
 
   // Render profile info section
   const renderProfileInfo = () => (
@@ -307,12 +360,14 @@ const PersonProfileCard = ({
       style={{
         marginBottom: '2rem',
         paddingLeft: '5px',
+        textAlign: isMobile ? 'center' : 'left',
+        width: '100%',
       }}
     >
       <h1 
         className="profile-name"
         style={{
-          fontSize: '2.8rem',
+          fontSize: isMobile ? '2.2rem' : '2.8rem',
           fontWeight: '300',
           color: highlightColor,
           letterSpacing: '0.05em',
@@ -325,7 +380,7 @@ const PersonProfileCard = ({
       <h2 
         className="profile-role"
         style={{
-          fontSize: '1.2rem',
+          fontSize: isMobile ? '1.1rem' : '1.2rem',
           fontWeight: '300',
           marginBottom: '2rem',
           color: `${highlightColor}B3`, // 70% opacity
@@ -344,7 +399,7 @@ const PersonProfileCard = ({
             fontSize: '1.1rem',
             lineHeight: '1.6',
             marginBottom: '3rem',
-            maxWidth: '90%',
+            maxWidth: isMobile ? '100%' : '90%',
             color: textColor,
             fontFamily: fontFamily,
             fontWeight: '300',
@@ -356,70 +411,146 @@ const PersonProfileCard = ({
     </div>
   );
 
-  // Render navigation links
-  const renderNavLinks = () => (
-    <div className="nav-links" style={{ marginTop: '3rem' }}>
-      {navigationItems.map((navItem) => (
-        <div 
-          key={navItem.id}
-          className="nav-link-container"
-          style={{
-            position: 'relative',
-            marginBottom: '1rem',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-          onMouseEnter={() => handleNavItemHover(navItem.id)}
-          onMouseLeave={handleNavItemLeave}
-        >
+  // Render mobile navigation
+  const renderMobileNav = () => {
+    if (!isMobile) return null;
+    
+    return (
+      <div
+        ref={mobileNavRef}
+        className="mobile-nav"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          zIndex: 100,
+          backgroundColor: 'rgba(17, 17, 17, 0.7)',
+          backdropFilter: 'blur(10px)',
+          transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
+          padding: '0.75rem 1rem',
+          display: 'flex',
+          justifyContent: 'space-around',
+          alignItems: 'center',
+        }}
+      >
+        {navigationItems.map((navItem) => (
           <div
-            className="nav-line"
+            key={navItem.id}
+            className="mobile-nav-item"
             style={{
-              position: 'absolute',
-              left: '0',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: activeSection === navItem.id || expandedNavItem === navItem.id 
-                ? `${maxLineWidth}px` 
-                : `${minLineWidth}px`,
-              height: '0.75px',
-              backgroundColor: activeSection === navItem.id || expandedNavItem === navItem.id
-                ? `${highlightColor}E6` // 90% opacity 
-                : `${highlightColor}80`, // 50% opacity
-              transition: 'width 0.3s ease, background-color 0.3s ease',
-            }}
-          ></div>
-          <button 
-            className="nav-link"
-            onClick={() => scrollToSection(navItem.id)}
-            style={{
-              position: 'relative',
-              display: 'block',
-              padding: '0.5rem 0 0.5rem 40px',
-              fontSize: '0.85rem',
-              letterSpacing: '0.1em',
-              background: 'transparent',
-              border: 'none',
-              textAlign: 'left',
-              outline: 'none',
-              boxShadow: 'none',
-              transition: 'color 0.5s ease, transform 0.5s ease',
-              color: activeSection === navItem.id || expandedNavItem === navItem.id 
-                ? highlightColor 
-                : textColor,
-              cursor: 'pointer',
-              transform: activeSection === navItem.id || expandedNavItem === navItem.id 
-                ? 'translateX(10px)' 
-                : 'none',
-              width: 'fit-content',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
             }}
           >
-            {navItem.label}
-          </button>
-        </div>
-      ))}
-    </div>
-  );
+            <button
+              onClick={() => scrollToSection(navItem.id)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '0.5rem',
+                outline: 'none',
+              }}
+            >
+              <div
+                style={{
+                  width: activeSection === navItem.id ? `${maxLineWidth}px` : `${minLineWidth}px`,
+                  height: '2px',
+                  backgroundColor: activeSection === navItem.id ? highlightColor : `${highlightColor}80`,
+                  transition: 'width 0.3s ease, background-color 0.3s ease',
+                  marginBottom: '0.5rem',
+                }}
+              ></div>
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  color: activeSection === navItem.id ? highlightColor : textColor,
+                  letterSpacing: '0.1em',
+                  transition: 'color 0.3s ease',
+                }}
+              >
+                {navItem.label}
+              </div>
+            </button>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // Render navigation links (desktop only)
+  const renderNavLinks = () => {
+    if (isMobile) return null;
+    
+    return (
+      <div className="nav-links" style={{ marginTop: '3rem' }}>
+        {navigationItems.map((navItem) => (
+          <div 
+            key={navItem.id}
+            className="nav-link-container"
+            style={{
+              position: 'relative',
+              marginBottom: '1rem',
+              display: 'flex',
+              alignItems: 'center',
+            }}
+            onMouseEnter={() => handleNavItemHover(navItem.id)}
+            onMouseLeave={handleNavItemLeave}
+          >
+            <div
+              className="nav-line"
+              style={{
+                position: 'absolute',
+                left: '0',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: activeSection === navItem.id || expandedNavItem === navItem.id 
+                  ? `${maxLineWidth}px` 
+                  : `${minLineWidth}px`,
+                height: '0.75px',
+                backgroundColor: activeSection === navItem.id || expandedNavItem === navItem.id
+                  ? `${highlightColor}E6` // 90% opacity 
+                  : `${highlightColor}80`, // 50% opacity
+                transition: 'width 0.3s ease, background-color 0.3s ease',
+              }}
+            ></div>
+            <button 
+              className="nav-link"
+              onClick={() => scrollToSection(navItem.id)}
+              style={{
+                position: 'relative',
+                display: 'block',
+                padding: '0.5rem 0 0.5rem 40px',
+                fontSize: '0.85rem',
+                letterSpacing: '0.1em',
+                background: 'transparent',
+                border: 'none',
+                textAlign: 'left',
+                outline: 'none',
+                boxShadow: 'none',
+                transition: 'color 0.5s ease, transform 0.5s ease',
+                color: activeSection === navItem.id || expandedNavItem === navItem.id 
+                  ? highlightColor 
+                  : textColor,
+                cursor: 'pointer',
+                transform: activeSection === navItem.id || expandedNavItem === navItem.id 
+                  ? 'translateX(10px)' 
+                  : 'none',
+                width: 'fit-content',
+              }}
+            >
+              {navItem.label}
+            </button>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   // Render stats section
   const renderStats = () => {
@@ -430,10 +561,11 @@ const PersonProfileCard = ({
         className="stats-container"
         style={{
           display: 'flex',
-          justifyContent: 'space-between',
+          justifyContent: isMobile ? 'center' : 'space-between',
           flexWrap: 'wrap',
           marginTop: '3rem',
           width: '100%',
+          gap: isMobile ? '2rem' : 0,
         }}
       >
         {person.stats.map((stat, statIdx) => (
@@ -441,23 +573,27 @@ const PersonProfileCard = ({
             key={statIdx} 
             className="stat"
             style={{
-              flex: '1',
+              flex: isMobile ? '0 0 auto' : '1',
               textAlign: 'center',
               padding: '0 1rem',
-              minWidth: '100px',
+              minWidth: isMobile ? '140px' : '100px',
               transition: 'transform 0.3s ease',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-5px)';
+              if (!isMobile) {
+                e.currentTarget.style.transform = 'translateY(-5px)';
+              }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'none';
+              if (!isMobile) {
+                e.currentTarget.style.transform = 'none';
+              }
             }}
           >
             <div 
               className="stat-value"
               style={{
-                fontSize: '2.5rem',
+                fontSize: isMobile ? '2.2rem' : '2.5rem',
                 fontWeight: '100',
                 color: highlightColor,
                 marginBottom: '0.5rem'
@@ -578,170 +714,117 @@ const PersonProfileCard = ({
   };
 
   return (
-    <motion.div 
-      ref={containerRef}
-      className="profile-container"
-      initial={{ opacity: 0, y: animationConfig?.initialY ?? 30 }}
-      animate={controls}
-      style={{
-        display: 'flex',
-        flexDirection: 'row',
-        width: '100%',
-        maxWidth: '1300px',
-        margin: '0 auto',
-        minHeight: '70vh',
-        position: 'relative',
-      }}
-    >
-      {/* Left sidebar wrapper */}
-      <div 
-        ref={sidebarWrapperRef}
-        className="sidebar-wrapper"
-        style={{
-          width: `${sidebarWidth}%`,
-          position: 'relative',
-        }}
-      >
-        {/* Profile sidebar */}
-        <div 
-          ref={sidebarRef}
-          className="profile-sidebar"
-          style={{
-            padding: '3rem 2rem 2rem 0',
-            display: 'flex',
-            flexDirection: 'column',
-            width: '100%',
-            position: 'relative',
-            top: 0,
-          }}
-        >
-          {renderProfileInfo()}
-          {renderNavLinks()}
-        </div>
-      </div>
+    <>
+      {/* Mobile navigation */}
+      {renderMobileNav()}
       
-      {/* Right content section */}
-      <div 
-        ref={contentRef}
-        className="content-section"
+      <motion.div 
+        ref={containerRef}
+        className="profile-container"
+        initial={{ opacity: 0, y: animationConfig?.initialY ?? 30 }}
+        animate={controls}
         style={{
-          width: `${contentWidth}%`,
-          padding: `3rem 0 2rem ${contentPadding}rem`,
-          marginLeft: 'auto',
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          width: '100%',
+          maxWidth: '1300px',
+          margin: '0 auto',
+          minHeight: isMobile ? 'auto' : '70vh',
+          position: 'relative',
+          paddingTop: isMobile ? '80px' : 0, // Add padding for fixed mobile nav
         }}
       >
-        {/* Render sections based on navigationItems */}
-        {navigationItems.map((section, index) => {
-          if (index >= sectionRefs.length) return null;
-          
-          return (
-            <div 
-              key={section.id}
-              ref={sectionRefs[index]}
-              data-section={section.id}
-              className="section"
-              id={section.id}
-              style={{
-                marginBottom: '3rem',
-                scrollMarginTop: '2rem',
-              }}
-            >
-              {renderSection(section)}
-            </div>
-          );
-        })}
-        
-        {/* Additional sections */}
-        {additionalSections.map((section, index) => (
+        {/* Left sidebar wrapper - desktop only */}
+        {!isMobile && (
           <div 
-            key={`additional-${index}`}
-            className="section"
+            ref={sidebarWrapperRef}
+            className="sidebar-wrapper"
             style={{
-              marginBottom: '3rem',
-              scrollMarginTop: '2rem',
+              width: `${sidebarWidth}%`,
+              position: 'relative',
             }}
           >
-            {section.title && (
-              <h3 style={{
-                fontSize: '1.4rem',
-                color: highlightColor,
-                marginBottom: '1rem',
-                fontWeight: '300',
-              }}>
-                {section.title}
-              </h3>
-            )}
-            {renderSectionContent(section.content)}
+            {/* Profile sidebar */}
+            <div 
+              ref={sidebarRef}
+              className="profile-sidebar"
+              style={{
+                padding: '3rem 2rem 2rem 0',
+                display: 'flex',
+                flexDirection: 'column',
+                width: '100%',
+                position: 'relative',
+                top: 0,
+              }}
+            >
+              {renderProfileInfo()}
+              {renderNavLinks()}
+            </div>
           </div>
-        ))}
-      </div>
-      
-      {/* Media query styles for mobile */}
-      <style jsx>{`
-        @media (max-width: 768px) {
-          .profile-container {
-            flex-direction: column;
-          }
-          
-          .sidebar-wrapper {
-            width: 100% !important;
-          }
-          
-          .profile-sidebar {
-            position: relative !important;
-            padding: 2rem 1rem !important;
-            align-items: center;
-            text-align: center;
-            top: 0 !important;
-            bottom: auto !important;
-          }
-          
-          .profile-name {
-            font-size: 2.2rem !important;
-          }
-          
-          .profile-tagline {
-            max-width: 100% !important;
-            text-align: center;
-          }
-          
-          .content-section {
-            width: 100% !important;
-            padding: 2rem 1rem !important;
-            margin-left: 0 !important;
-          }
-          
-          .stats-container {
-            justify-content: center !important;
-            gap: 2rem;
-          }
-          
-          .nav-links {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            width: 100%;
-          }
-          
-          .nav-link-container {
-            margin: 0.5rem 0 !important;
-          }
-        }
+        )}
         
-        @media (max-width: 480px) {
-          .stats-container {
-            flex-direction: column !important;
-            align-items: center !important;
-            gap: 1.5rem !important;
-          }
+        {/* Profile Info for mobile */}
+        {isMobile && renderProfileInfo()}
+        
+        {/* Right content section */}
+        <div 
+          ref={contentRef}
+          className="content-section"
+          style={{
+            width: isMobile ? '100%' : `${contentWidth}%`,
+            padding: isMobile 
+              ? '2rem 1.5rem' 
+              : `3rem 0 2rem ${contentPadding}rem`,
+            marginLeft: isMobile ? 0 : 'auto',
+          }}
+        >
+          {/* Render sections based on navigationItems */}
+          {navigationItems.map((section, index) => {
+            if (index >= sectionRefs.length) return null;
+            
+            return (
+              <div 
+                key={section.id}
+                ref={sectionRefs[index]}
+                data-section={section.id}
+                className="section"
+                id={section.id}
+                style={{
+                  marginBottom: '3rem',
+                  scrollMarginTop: isMobile ? '80px' : '2rem',
+                }}
+              >
+                {renderSection(section)}
+              </div>
+            );
+          })}
           
-          .stat {
-            width: 100% !important;
-            max-width: 180px !important;
-          }
-        }
-      `}</style>
-    </motion.div>
+          {/* Additional sections */}
+          {additionalSections.map((section, index) => (
+            <div 
+              key={`additional-${index}`}
+              className="section"
+              style={{
+                marginBottom: '3rem',
+                scrollMarginTop: isMobile ? '80px' : '2rem',
+              }}
+            >
+              {section.title && (
+                <h3 style={{
+                  fontSize: '1.4rem',
+                  color: highlightColor,
+                  marginBottom: '1rem',
+                  fontWeight: '300',
+                }}>
+                  {section.title}
+                </h3>
+              )}
+              {renderSectionContent(section.content)}
+            </div>
+          ))}
+        </div>
+      </motion.div>
+    </>
   );
 };
 
