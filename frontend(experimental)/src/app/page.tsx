@@ -1,53 +1,40 @@
 'use client'
 
 import React from 'react';
-import {
-  PageLoader,
-  LoadableComponent,
-  ResourceLoader,
-  useLoading
-} from '../lib/progressiveloading';
 
-// Component that displays loading progress information
-function LoadingStats() {
-  const { progress, criticalProgress, isPageLoaded } = useLoading();
-  
-  return (
-    <div className="fixed bottom-4 left-4 bg-black/80 text-white p-4 rounded-lg shadow-lg text-sm z-50">
-      <div>Overall Progress: {progress}%</div>
-      <div>Critical Progress: {criticalProgress}%</div>
-      <div>Page Loaded: {isPageLoaded ? 'Yes' : 'No'}</div>
-    </div>
-  );
-}
-
-// Main page component
 export default function Home() {
   return (
-    <PageLoader>
-      <main className="relative min-h-screen flex items-center justify-center z-10">
-        <LoadingStats />
-        
-        <LoadableComponent
-          id="simple-content"
-          priority="critical"
-        >
-          <div className="relative z-10 text-white">
-            <h1 className="text-6xl font-bold">Hi</h1>
+    <div className="container animate-fade-in" style={{ color: 'var(--color-text)' }}>
+      <section className="text-center">
+        <h1 className="text-6xl" style={{ color: 'var(--color-primary)' }}>Welcome</h1>
+        <p style={{ color: 'var(--color-text-secondary)' }}>A personal portfolio and showcase</p>
+        <div className="divider"></div>
+      </section>
+      
+      <section>
+        <div className="card">
+          <h2 style={{ color: 'var(--color-primary)' }}>About Me</h2>
+          <p style={{ color: 'var(--color-text-secondary)' }}>
+            I consider myself a curator of experiences, much like the Plain Doll. 
+            I guide visitors through this digital realm with careful attention to detail.
+          </p>
+          <p style={{ color: 'var(--color-text-secondary)' }}>
+            My favorite color is gold—the warm, muted tones that invoke a sense of timeless elegance. 
+            Youll notice this preference reflected throughout this sites design, from the subtle 
+            highlights to the carefully crafted interactive elements.
+          </p>
+        </div>
+      </section>
+      
+      <section>
+        <h3 style={{ color: 'var(--color-primary-light)' }}>Featured Projects</h3>
+        <div className="visualization-container">
+          <div className="p-4">
+            <p style={{ color: 'var(--color-primary)' }}>Projects coming soon...</p>
+            <button className="button mt-4">Learn More</button>
           </div>
-        </LoadableComponent>
-        
-        <ResourceLoader 
-          id="page-resources"
-          priority="critical"
-          options={{
-            trackImages: true,
-            trackFonts: true,
-            trackScripts: true,
-            trackStyles: true
-          }}
-        />
-      </main>
-    </PageLoader>
+        </div>
+      </section>
+    </div>
   );
 }

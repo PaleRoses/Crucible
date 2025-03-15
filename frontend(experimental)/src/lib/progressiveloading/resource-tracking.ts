@@ -1,3 +1,4 @@
+'use client'
 import React, { useEffect, useRef, useCallback } from 'react';
 import { useLoading, LoadPriority } from './loading-core';
 
@@ -38,7 +39,7 @@ export const ResourceLoader: React.FC<{
     trackStyles: true,
     trackDom: true
   },
-  maxWaitTime = 8000000000000
+  maxWaitTime = 100
 }) => {
   const { 
     registerComponent, 

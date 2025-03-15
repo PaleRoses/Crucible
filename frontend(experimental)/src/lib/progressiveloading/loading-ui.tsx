@@ -1,18 +1,10 @@
-/**
- * Progressive Loading System - UI Components
- * 
- * This module provides UI components for the progressive loading system,
- * including a customizable comet loader animation with enhanced visual effects.
- */
+'use client'
 
 import React, { useRef, useState, useEffect, useCallback, memo } from 'react';
 import { useLoading } from './loading-core';
 import { ResourceLoader, ResourceOptions } from './resource-tracking';
 
-// ========================================================
-// TYPES AND INTERFACES
-// ========================================================
-
+// Types preserved but simplified
 export interface LoaderAppearance {
   width?: number;
   height?: number;
@@ -35,10 +27,6 @@ export interface PageTransitionOptions {
   showPercentage?: boolean;
 }
 
-// ========================================================
-// PAGE LOADER COMPONENT
-// ========================================================
-
 interface PageLoaderProps {
   children: React.ReactNode;
   options?: PageTransitionOptions;
@@ -47,9 +35,6 @@ interface PageLoaderProps {
   maxWaitTime?: number;
 }
 
-/**
- * PageLoader component that displays an enhanced comet animation during page loading
- */
 export const PageLoader: React.FC<PageLoaderProps> = memo(function PageLoader({
   children,
   options = {},
@@ -60,96 +45,79 @@ export const PageLoader: React.FC<PageLoaderProps> = memo(function PageLoader({
     trackScripts: true,
     trackStyles: true
   },
-  maxWaitTime = 10000000
+  maxWaitTime = 0
 }) {
-  // Destructure options with defaults
+  // Options with defaults
   const {
-    minDisplayTime = 500,
+    minDisplayTime = 0,
     fadeOutDuration = 600,
     transitionDuration = 400,
-    showProgressBar = true,
+    showProgressBar = false,
     showPercentage = true
   } = options;
 
-  // Get loading state from context
-  const {
-    isPageLoaded,
-    // Only use the properties we need
-    progress
-  } = useLoading();
+  // Use only needed loading state
+  const { isPageLoaded, progress } = useLoading();
 
-  // Component state
+  // Core component state
   const [minTimeElapsed, setMinTimeElapsed] = useState(minDisplayTime === 0);
   const [visualState, setVisualState] = useState<'loading' | 'fadeOut' | 'complete'>(
     isPageLoaded ? 'complete' : 'loading'
   );
 
-  // References for animation
+  // Animation refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
   const transitionStartRef = useRef<number | null>(null);
   const rotationRef = useRef(0);
   const lastTimeRef = useRef(0);
 
-  // Configure appearance properties with improved defaults and smaller comet head
+  // Loader configuration
   const loaderConfig = {
-    width: appearance.width || 240, // Reduced from 300
-    height: appearance.height || 240, // Reduced from 300
-    radius: appearance.radius || 80, // Reduced from 90
+    width: appearance.width || 240,
+    height: appearance.height || 240, // Increased for proper aspect ratio
+    radius: appearance.radius || 80,
     speed: appearance.speed || 0.12,
     trailLength: appearance.trailLength || 120,
     trailSegments: appearance.trailSegments || 20,
-    cometSize: appearance.cometSize || 3, // Reduced from 5 for smaller head
-    cometHeadScale: appearance.cometHeadScale || 0.6, // Reduced from 0.7
+    cometSize: appearance.cometSize || 3,
+    cometHeadScale: appearance.cometHeadScale || 0.6,
     coreColor: appearance.coreColor || 'rgba(255, 250, 235, 1)',
-    glowColor: appearance.glowColor || 'rgba(255, 215, 0, 0.8)', // Reduced opacity
-    trailColor: appearance.trailColor || 'rgba(218, 165, 32, 0.6)' // Reduced opacity
+    glowColor: appearance.glowColor || 'rgba(255, 215, 0, 0.8)',
+    trailColor: appearance.trailColor || 'rgba(218, 165, 32, 0.6)'
   };
 
-  // Handle minimum display time
+  // Minimum display time effect
   useEffect(() => {
     if (minDisplayTime <= 0) return;
-
-    const timer = setTimeout(() => {
-      setMinTimeElapsed(true);
-    }, minDisplayTime);
-
+    const timer = setTimeout(() => setMinTimeElapsed(true), minDisplayTime);
     return () => clearTimeout(timer);
   }, [minDisplayTime]);
 
-  // Handle transition based on loading state
+  // Transition handler
   useEffect(() => {
-    // Start transition when conditions are met
+    // Handle normal completion transition
     if (isPageLoaded && minTimeElapsed && visualState === 'loading') {
       setVisualState('fadeOut');
       transitionStartRef.current = performance.now();
-
-      // Complete transition after fadeOut duration
-      const timer = setTimeout(() => {
-        setVisualState('complete');
-      }, fadeOutDuration);
-
+      const timer = setTimeout(() => setVisualState('complete'), fadeOutDuration);
       return () => clearTimeout(timer);
     }
 
-    // Safety timeout - force transition after maxWaitTime
+    // Safety timeout
     if (visualState === 'loading') {
       const safetyTimer = setTimeout(() => {
         if (visualState === 'loading') {
+          console.warn('Safety timeout triggered - forcing loader completion');
           setVisualState('fadeOut');
-          transitionStartRef.current = performance.now();
-          
-          setTimeout(() => {
-            setVisualState('complete');
-          }, fadeOutDuration);
+          setTimeout(() => setVisualState('complete'), fadeOutDuration);
         }
       }, maxWaitTime);
-
       return () => clearTimeout(safetyTimer);
     }
   }, [isPageLoaded, minTimeElapsed, visualState, fadeOutDuration, maxWaitTime]);
 
-  // Enhanced draw comet animation on canvas (inspired by introSequence.js)
+  // Comet drawing function (preserved as is since user mentioned it's good)
   const drawComet = useCallback((timestamp: number) => {
     if (!canvasRef.current || visualState === 'complete') return;
 
@@ -286,12 +254,11 @@ export const PageLoader: React.FC<PageLoaderProps> = memo(function PageLoader({
     loaderConfig.trailColor
   ]);
 
-  // Start animation when component mounts
+  // Animation start/cleanup
   useEffect(() => {
     if (visualState !== 'complete') {
       animationRef.current = requestAnimationFrame(drawComet);
     }
-
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
@@ -300,36 +267,40 @@ export const PageLoader: React.FC<PageLoaderProps> = memo(function PageLoader({
   }, [drawComet, visualState]);
 
   return (
-    <div className="progressive-loader-container">
-      {/* Resource tracking */}
+    <div className="progressive-loader-container relative">
+      {/* Resource tracking - simplified priority */}
       <ResourceLoader 
         priority="critical"
         maxWaitTime={maxWaitTime}
         options={resourceOptions}
       />
       
-      {/* Loader overlay - positioned above background but below content when needed */}
+      {/* Loader overlay - FIXED with proper z-index and positioning */}
       {visualState !== 'complete' && (
         <div 
-          className="fixed inset-0 flex flex-col items-center justify-center bg-gray-900 bg-opacity-90 z-40"
+          className="fixed inset-0 flex items-center justify-center"
           style={{
+            zIndex: 9999, // Very high z-index to ensure it's on top
+            backgroundColor: 'rgba(17, 17, 17, 0.9)',
             opacity: visualState === 'fadeOut' ? 0 : 1,
-            transition: `opacity ${fadeOutDuration}ms ease-out`,
-            pointerEvents: 'none' // Allow clicks to pass through when fading
+            transition: `opacity ${fadeOutDuration}ms ease-out`
           }}
         >
-          <div className="flex flex-col items-center justify-center w-full h-full pointer-events-auto">
-            {/* Canvas for comet animation - with explicit centering styles */}
+          <div className="relative flex flex-col items-center justify-center">
+            {/* Canvas positioned absolutely */}
             <canvas 
               ref={canvasRef} 
               width={loaderConfig.width} 
               height={loaderConfig.height}
-              className="block mx-auto" 
-              style={{ display: 'block', margin: '0 auto' }} 
+              style={{ 
+                display: 'block',
+                maxWidth: '100vw',
+                maxHeight: '100vh'
+              }} 
               data-testid="comet-loader-canvas"
             />
             
-            {/* Progress indicator */}
+            {/* Progress indicators */}
             {(showPercentage || showProgressBar) && (
               <div className="mt-6 text-center">
                 {showPercentage && (
@@ -355,15 +326,14 @@ export const PageLoader: React.FC<PageLoaderProps> = memo(function PageLoader({
         </div>
       )}
       
-      {/* Page content - positioned to appear above loader once completed */}
+      {/* Page content */}
       <div
-        className="transition-opacity relative z-50"
+        className="relative"
         style={{
           opacity: visualState === 'complete' ? 1 : 0,
           visibility: visualState === 'complete' ? 'visible' : 'hidden',
-          transitionDuration: `${transitionDuration}ms`,
-          transitionProperty: 'opacity, visibility',
-          transitionTimingFunction: 'ease-in-out'
+          transition: `opacity ${transitionDuration}ms ease-in-out, visibility ${transitionDuration}ms ease-in-out`,
+          zIndex: visualState === 'complete' ? 1 : -1
         }}
       >
         {children}
@@ -373,10 +343,6 @@ export const PageLoader: React.FC<PageLoaderProps> = memo(function PageLoader({
 });
 
 PageLoader.displayName = 'PageLoader';
-
-// ========================================================
-// EXPORTS
-// ========================================================
 
 export { ResourceLoader } from './resource-tracking';
 export { useLoading } from './loading-core';

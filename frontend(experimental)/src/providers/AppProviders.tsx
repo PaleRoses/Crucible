@@ -16,8 +16,8 @@ interface AppProvidersProps {
 export default function AppProviders({
   children,
   initialLoaderThreshold = 75,
-  enableAnalytics = process.env.NODE_ENV === 'development',
-  debugMode = process.env.NODE_ENV === 'development',
+  enableAnalytics = false,
+  debugMode = false,
   maxLoadingTime = 20000
 }: AppProvidersProps) {
   // Create a stable query client instance
@@ -64,8 +64,6 @@ export default function AppProviders({
     }
   };
 
-  // First LoadingProvider, then QueryClientProvider to ensure loading context is available
-  // to any query hooks from the start
   return (
     <LoadingProvider
       onComplete={handleComplete}
