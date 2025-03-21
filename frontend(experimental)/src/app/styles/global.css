@@ -8,9 +8,9 @@
  */
 :root {
   /* Typography */
-  --font-heading: "Avenir", "Avenir Next", sans-serif;
-  --font-body: "Adobe Caslon Pro", "Caslon", serif;
-  --font-mono: "IBM Plex Mono", "Consolas", monospace;
+  --font-heading: "Avenir Next", "Avenir", "haboro-soft-condensed", sans-serif;
+  --font-body: "adobe-caslon-pro", "LTC Caslon", serif;
+  --font-mono: "ibm-plex-mono", "Consolas", monospace;
 
   /* Colors - Primary Palette */
   --color-background: #080808;
@@ -120,15 +120,17 @@
   h5,
   h6 {
     font-family: var(--font-heading);
-    font-weight: 50;
+    font-weight: 200;
+    letter-spacing: 0.1em;
     line-height: 1.2;
     margin-bottom: 1rem;
     color: var(--gold);
+    font-optical-sizing: none;
   }
 
   h1 {
     font-size: 2.5rem;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.14em;
   }
 
   h2 {
@@ -171,6 +173,52 @@
   section {
     padding-top: 4rem;
     padding-bottom: 4rem;
+  }
+
+  /* Custom Scrollbar - Global styling for all scrollbars */
+  ::-webkit-scrollbar {
+    width: 2px; /* Changed from 3px to 2px */
+    height: 2px; /* Changed from 3px to 2px */
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--gold-dark); /* Removed rgba with low opacity */
+    border-radius: var(--radius-medium);
+  }
+
+  /* Simplify hover and active states to maintain constant opacity */
+  ::-webkit-scrollbar-thumb:hover,
+  ::-webkit-scrollbar-thumb:active {
+    background-color: var(--gold-dark);
+  }
+
+  /* Add simple line arrows at the ends of the scrollbar */
+  ::-webkit-scrollbar-button:vertical:decrement {
+    height: 6px;
+    background-color: transparent;
+    border-bottom: 2px solid var(--gold-dark);
+  }
+
+  ::-webkit-scrollbar-button:vertical:increment {
+    height: 6px;
+    background-color: transparent;
+    border-top: 2px solid var(--gold-dark);
+  }
+
+  /* Firefox scrollbar styling */
+  * {
+    scrollbar-color: var(--gold-dark) transparent; /* Changed from rgba with low opacity */
+    scrollbar-width: thin;
+  }
+
+  /* Remove conditional styling since we want constant opacity */
+  html.is-scrolling ::-webkit-scrollbar-thumb,
+  html.is-scrolling * {
+    scrollbar-color: var(--gold-dark) transparent;
   }
 }
 

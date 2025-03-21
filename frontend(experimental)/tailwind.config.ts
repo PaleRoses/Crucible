@@ -208,12 +208,12 @@ export default {
         // Typography utility classes
         '.font-display': {
           'font-family': 'var(--font-heading)',
-          'font-weight': '300',
+          'font-weight': '100',
           'letter-spacing': '0.05em',
         },
         '.font-body': {
           'font-family': 'var(--font-body)',
-          'font-weight': '300',
+          'font-weight': '100',
         },
         '.text-gold-gradient': {
           'background': 'linear-gradient(to right, rgba(160, 142, 97, 0.7), rgba(160, 142, 97, 0))',
@@ -223,11 +223,11 @@ export default {
         '.heading-gold': {
           'color': 'var(--gold)',
           'letter-spacing': '0.05em',
-          'font-weight': '300',
+          'font-weight': '100',
         },
         '.body-text': {
           'color': 'rgba(224, 224, 224, 0.7)',
-          'font-weight': '300',
+          'font-weight': '100',
           'line-height': '1.8',
         },
         

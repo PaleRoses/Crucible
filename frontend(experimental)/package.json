@@ -30,7 +30,8 @@
     "regl": "^2.1.1",
     "simplex-noise": "^4.0.3",
     "styled-components": "^6.1.15",
-    "voronoi": "^1.0.0"
+    "voronoi": "^1.0.0",
+    "webfontloader": "^1.6.28"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -40,6 +41,7 @@
     "@types/node": "^20.17.24",
     "@types/react-dom": "^19",
     "@types/react-window": "^1.8.8",
+    "@types/webfontloader": "^1.6.38",
     "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.2.2",

@@ -1,8 +1,9 @@
 'use client'
 
-import React from 'react';
-import './styles/global.css'; // Corrected import path with specific file
+import React, { useEffect } from 'react';
+import './styles/global.css';
 import Background from '../components/layout/Layout';
+import NavigationBar from '../components/navbars/primarynavbar/NavigationBar';
 
 /**
  * Root Layout component for Next.js App Router
@@ -13,6 +14,26 @@ interface RootLayoutProps {
 }
 
 export default function RootLayout({ children }: RootLayoutProps) {
+  // Font loading with WebFontLoader
+  useEffect(() => {
+    import('webfontloader').then((WebFontModule) => {
+      const WebFont = WebFontModule.default || WebFontModule;
+      WebFont.load({
+        typekit: {
+          id: 'hcw7ssx'
+        },
+        active: function() {
+          console.log('Adobe fonts successfully loaded');
+        },
+        inactive: function() {
+          console.log('Adobe fonts failed to load');
+        }
+      });
+    }).catch(err => {
+      console.error('Error loading WebFontLoader:', err);
+    });
+  }, []);
+  
   return (
     <html lang="en">
       <body>
@@ -20,15 +41,14 @@ export default function RootLayout({ children }: RootLayoutProps) {
           {/* Background component persists across page transitions */}
           <Background />
           
-          {/* Main content area where your route components are rendered */}
-          <main className="transition-opacity duration-300 ease-in-out">
+          {/* Navigation bar fixed at the top */}
+          <NavigationBar />
+          
+          {/* Main content area with top padding to accommodate fixed navbar */}
+          <main className="transition-opacity duration-300 ease-in-out pt-[100px]">
             {children}
           </main>
           
-          {/*
-            CSS classes for transitions - these can be applied dynamically
-            with a state management library or transition component
-          */}
           <style jsx>{`
             /* Transition animations */
             .fade-enter {

@@ -4,10 +4,10 @@ import dynamic from 'next/dynamic';
 import { NextPage } from 'next';
 
 const ElementCard = dynamic(
-  () => import('../components/legacyeffects/holdereffects/ElementCard'),
+  () => import('../components/navbars/ElementCard'),
   { ssr: false }
 );
-import MeteorShower from '../components/legacyeffects/cosmiceffects/MeteorShower';
+import MeteorShower from '../components/effects/cosmic/MeteorShower';
 
 const HomePage: NextPage = () => {
   // Define the data object for the new ElementCard component
@@ -16,11 +16,7 @@ const HomePage: NextPage = () => {
     subheader: "Fantasy Environments",
     tagline: "Explore the uncharted territories of imagination",
     description: ["Mythic Realms is a vast fantasy world comprising diverse regions, each with unique environments, creatures, and magic systems. From enchanted forests to floating isles, every corner offers new adventures and discoveries."],
-    stats: [
-      { label: "Regions", value: "6" },
-      { label: "Creatures", value: "1000+" },
-      { label: "Magic Systems", value: "12" }
-    ]
+
   };
   
   // Navigation items with section-specific content and subsection headers
