@@ -211,6 +211,7 @@ const CosmicStars: React.FC<CosmicStarsProps> = ({ config = {} }) => {
   // Get scroll position using framer-motion
   const { scrollY } = useScroll();
   
+  
   // Use spring physics for smoother scrolling effect
   const springScrollY = useSpring(scrollY, {
     stiffness: 1,
