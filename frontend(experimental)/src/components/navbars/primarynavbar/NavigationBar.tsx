@@ -461,11 +461,11 @@ const LogoContainer = styled(motion.div)`
   display: flex;
   align-items: center;
   position: absolute;
-  left: 1.5rem;
+  left: 3rem; /* Moved slightly to the right */
   opacity: 1; /* Ensure visibility even before JS loads */
   
   @media (max-width: 768px) {
-    left: 1rem;
+    left: 3rem; /* Kept consistent with desktop */
   }
 `;
 
@@ -678,13 +678,12 @@ const MobileMenuButton = styled.button`
   cursor: pointer;
   font-size: 1.5rem;
   position: absolute;
-  right: 1.5rem;
+  left: 1rem; /* Moved to left side */
   
   @media (max-width: 768px) {
     display: flex;
     align-items: center;
     justify-content: center;
-    right: 1rem;
   }
 `;
 
@@ -692,12 +691,13 @@ const MobileMenu = styled(motion.div)`
   display: none;
   position: fixed;
   top: 60px;
+  width: 230px; /* Fixed width */
   left: 0;
-  width: 100%;
   height: calc(100vh - 60px);
   background: rgba(8, 8, 8, 0.95);
   z-index: 99;
   overflow-y: auto;
+  box-shadow: 4px 0 10px rgba(0, 0, 0, 0.3);
   
   @media (max-width: 768px) {
     display: block;
@@ -707,48 +707,31 @@ const MobileMenu = styled(motion.div)`
 const MobileNavItems = styled(motion.div)`
   display: flex;
   flex-direction: column;
-  padding: 1.5rem;
-  gap: 1.5rem;
+  padding: 1rem;
+  gap: 1rem;
 `;
 
 const MobileSubmenuContainer = styled(motion.div)`
   margin-top: 0.5rem;
-  margin-left: 1.5rem;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem 0;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
   background: rgba(10, 10, 10, 0.75);
-  backdrop-filter: blur(8px);
 `;
 
-const MobileSubmenuHeader = styled.div`
-  padding: 0.5rem 0.75rem;
-  margin-bottom: 0.25rem;
-  font-family: var(--font-heading);
-  color: var(--gold);
-  font-size: 0.9rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-`;
 
-const MobileSubmenuDescription = styled.div`
-  padding: 0.5rem 0.75rem;
-  margin-bottom: 0.75rem;
-  font-size: 0.8rem;
-  color: rgba(224, 224, 224, 0.7);
-  line-height: 1.4;
-`;
 
 const MobileSubmenuItemWrapper = styled(motion.div)<ActiveProps>`
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 1rem;
-  padding: 0.8rem 1rem;
+  padding: 0.6rem 1rem;
   cursor: pointer;
   color: ${props => props.$isActive ? 'rgba(46, 213, 115, 0.9)' : 'rgba(224, 224, 224, 0.7)'};
   transition: all 0.3s ease;
+  font-size: 0.85rem;
   
   &:hover {
     background-color: rgba(46, 213, 115, 0.08);
@@ -924,6 +907,7 @@ const MobileNavItemComponent: React.FC<{
       <NavItem
         $isActive={isActive}
         onClick={() => setIsSubmenuOpen(!isSubmenuOpen)}
+        style={{ fontSize: '0.9rem' }} // Smaller text
       >
         <NavItemContent>
           <NavItemLabel>
@@ -948,13 +932,6 @@ const MobileNavItemComponent: React.FC<{
             animate="open"
             exit="closed"
           >
-            <MobileSubmenuHeader>{item.label}</MobileSubmenuHeader>
-            {item.id && (
-              <MobileSubmenuDescription>
-                {submenuDescriptions[item.id as keyof typeof submenuDescriptions]}
-              </MobileSubmenuDescription>
-            )}
-
             {item.submenu.map((subItem) => (
               <MobileSubmenuItemWrapper
                 key={subItem.id}
@@ -963,18 +940,10 @@ const MobileNavItemComponent: React.FC<{
                 variants={submenuItemVariants}
                 onClick={() => router.push(subItem.href)}
               >
-                <SubmenuItemIcon>
-                  {typeof subItem.icon === 'string' 
-                    ? getIconByName(subItem.icon as string)
-                    : subItem.icon}
-                </SubmenuItemIcon>
-                <SubmenuItemLink>
-                  <SubmenuItemLabel>{subItem.label}</SubmenuItemLabel>
-                  {subItem.description && (
-                    <SubmenuItemDescription>
-                      {subItem.description}
-                    </SubmenuItemDescription>
-                  )}
+                <SubmenuItemLink style={{ flexDirection: 'row', fontSize: '0.85rem' }}>
+                  <SubmenuItemLabel style={{ fontSize: '0.85rem', margin: 0 }}>
+                    {subItem.label}
+                  </SubmenuItemLabel>
                 </SubmenuItemLink>
               </MobileSubmenuItemWrapper>
             ))}
@@ -993,7 +962,10 @@ const MobileMenuComponent: React.FC<{
   toggleMenu: () => void;
   items: EnhancedNavItem[];
   isActiveRoute: (href: string) => boolean;
-}> = ({ isOpen, toggleMenu, items, isActiveRoute }) => {
+  isClient: boolean;
+}> = ({ isOpen, toggleMenu, items, isActiveRoute, isClient }) => {
+  if (!isClient) return null;
+  
   return (
     <>
       <MobileMenuButton onClick={toggleMenu}>
@@ -1040,6 +1012,9 @@ const MobileMenuComponent: React.FC<{
 const NavigationBar: React.FC<NavigationBarProps> = ({ 
   items = defaultNavItems 
 }) => {
+  // Add state to track client-side rendering
+  const [isClient, setIsClient] = useState(false);
+  
   // Transform items to use actual icon components
   const navItems: EnhancedNavItem[] = items.map(item => ({
     ...item,
@@ -1068,8 +1043,11 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  // Use effect for client-side initialization - simplified
+  // Use effect for client-side initialization
   useEffect(() => {
+    // Set isClient to true after component mounts
+    setIsClient(true);
+    
     // Fix for RulesIcon SVG path (once, not with observer)
     const fixSvgPath = () => {
       const rulesIcons = document.querySelectorAll('path[d="M13 2H3C2.45 2 2 2.45 2 3V13C13 13.55 2.45 14 3 14H13C13.55 14 14 13.55 14 13V3C14 2.45 13.55 2 13 2ZM7 12H4V10H7V12ZM7 9H4V7H7V9ZM7 6H4V4H7V6ZM12 12H8V10H12V12ZM12 9H8V7H12V9ZM12 6H8V4H12V6Z"]');
@@ -1083,11 +1061,14 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
     fixSvgPath();
   }, []);
 
+  // Return null when not on client
+  if (!isClient) return null;
+
   return (
     <NavContext.Provider value={{ openSubmenuId, setOpenSubmenuId }}>
       <NavContainer>
         <NavContent>
-          {/* Logo - No conditional rendering */}
+          {/* Logo */}
           <LogoContainer 
             initial={{ opacity: 1, x: 0 }}
             animate={{ opacity: 1, x: 0 }}
@@ -1111,12 +1092,13 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
             ))}
           </NavItemsContainer>
 
-          {/* Mobile Menu - No conditional rendering */}
+          {/* Mobile Menu */}
           <MobileMenuComponent 
             isOpen={isMobileMenuOpen}
             toggleMenu={toggleMobileMenu}
             items={navItems}
             isActiveRoute={isActiveRoute}
+            isClient={isClient}
           />
         </NavContent>
       </NavContainer>
