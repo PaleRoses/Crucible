@@ -3,15 +3,81 @@
 @tailwind utilities;
 
 /**
+ * FONT LOADING OPTIMIZATION
+ * Font-specific settings to prevent FOUC
+ */
+@layer base {
+  /* Adobe fonts optimizations */
+  :root {
+    /* Define font variable availability flag for JS detection */
+    --fonts-loaded: 0;
+  }
+
+  /* Add font-display property to Adobe fonts */
+  @font-face {
+    font-family: "adobe-caslon-pro";
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: "haboro-soft-condensed";
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: "ibm-plex-mono";
+    font-display: swap;
+  }
+
+  /* Size-adjusted fallback fonts to minimize layout shift */
+  @font-face {
+    font-family: "adobe-caslon-pro-fallback";
+    src: local("Georgia");
+    size-adjust: 105%;
+    ascent-override: 95%;
+    descent-override: 22%;
+    line-gap-override: 0%;
+  }
+
+  @font-face {
+    font-family: "haboro-soft-condensed-fallback";
+    src: local("Avenir"), local("Helvetica Neue"), local("Helvetica"),
+      local("Arial");
+    size-adjust: 100%;
+    ascent-override: 90%;
+    descent-override: 25%;
+    line-gap-override: 0%;
+  }
+
+  @font-face {
+    font-family: "ibm-plex-mono-fallback";
+    src: local("Courier New"), local("Courier"), local("monospace");
+    size-adjust: 105%;
+    ascent-override: 90%;
+    descent-override: 25%;
+    line-gap-override: 0%;
+  }
+
+  /* Apply fallback fonts first in the stack */
+  :root {
+    --font-heading: "haboro-soft-condensed-fallback", "haboro-soft-condensed",
+      "Avenir Next", "Avenir", sans-serif;
+    --font-body: "adobe-caslon-pro-fallback", "adobe-caslon-pro", "LTC Caslon",
+      Georgia, serif;
+    --font-mono: "ibm-plex-mono-fallback", "ibm-plex-mono", "Consolas",
+      monospace;
+  }
+
+  html.fonts-loaded:root {
+    --fonts-loaded: 1;
+  }
+}
+
+/**
  * DESIGN SYSTEM VARIABLES
  * Core design tokens that define the visual language
  */
 :root {
-  /* Typography */
-  --font-heading: "Avenir Next", "Avenir", "haboro-soft-condensed", sans-serif;
-  --font-body: "adobe-caslon-pro", "LTC Caslon", serif;
-  --font-mono: "ibm-plex-mono", "Consolas", monospace;
-
   /* Colors - Primary Palette */
   --color-background: #080808;
   --color-text: #e0e0e0;
@@ -177,8 +243,8 @@
 
   /* Custom Scrollbar - Global styling for all scrollbars */
   ::-webkit-scrollbar {
-    width: 2px; /* Changed from 3px to 2px */
-    height: 2px; /* Changed from 3px to 2px */
+    width: 2px;
+    height: 2px;
   }
 
   ::-webkit-scrollbar-track {
@@ -186,7 +252,7 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: var(--gold-dark); /* Removed rgba with low opacity */
+    background-color: var(--gold-dark);
     border-radius: var(--radius-medium);
   }
 
@@ -211,14 +277,26 @@
 
   /* Firefox scrollbar styling */
   * {
-    scrollbar-color: var(--gold-dark) transparent; /* Changed from rgba with low opacity */
+    scrollbar-color: var(--gold-dark) transparent;
     scrollbar-width: thin;
   }
 
-  /* Remove conditional styling since we want constant opacity */
-  html.is-scrolling ::-webkit-scrollbar-thumb,
-  html.is-scrolling * {
-    scrollbar-color: var(--gold-dark) transparent;
+  /* Navbar critical styles to prevent FOUC */
+  nav {
+    opacity: 1 !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100;
+    background: rgba(8, 8, 8, 0.7);
+    backdrop-filter: blur(8px);
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    transition: background-color 0.3s ease;
   }
 }
 
@@ -393,23 +471,3 @@
  * Note: Some of these are already defined in the Tailwind config
  * but are included here for backwards compatibility
  */
-@keyframes pulse {
-  0% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.6;
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}

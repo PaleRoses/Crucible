@@ -11,6 +11,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.67.3",
     "@types/react": "^19.0.12",
+    "clsx": "^2.1.1",
     "d3": "^7.9.0",
     "delaunator": "^5.0.1",
     "framer-motion": "^12.5.0",
@@ -30,6 +31,7 @@
     "regl": "^2.1.1",
     "simplex-noise": "^4.0.3",
     "styled-components": "^6.1.15",
+    "tailwind-merge": "^3.0.2",
     "voronoi": "^1.0.0",
     "webfontloader": "^1.6.28"
   },

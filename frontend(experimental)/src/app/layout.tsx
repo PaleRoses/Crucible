@@ -1,9 +1,11 @@
-'use client'
+'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import './styles/global.css';
+import { StyledComponentsRegistry } from '../lib/registry';
 import Background from '../components/layout/Layout';
 import NavigationBar from '../components/navbars/primarynavbar/NavigationBar';
+import Script from 'next/script';
 
 /**
  * Root Layout component for Next.js App Router
@@ -14,62 +16,123 @@ interface RootLayoutProps {
 }
 
 export default function RootLayout({ children }: RootLayoutProps) {
-  // Font loading with WebFontLoader
-  useEffect(() => {
-    import('webfontloader').then((WebFontModule) => {
-      const WebFont = WebFontModule.default || WebFontModule;
-      WebFont.load({
-        typekit: {
-          id: 'hcw7ssx'
-        },
-        active: function() {
-          console.log('Adobe fonts successfully loaded');
-        },
-        inactive: function() {
-          console.log('Adobe fonts failed to load');
-        }
-      });
-    }).catch(err => {
-      console.error('Error loading WebFontLoader:', err);
-    });
-  }, []);
-  
   return (
     <html lang="en">
+      <head>
+        {/* Preload Adobe Fonts with high priority */}
+        <link
+          rel="preload"
+          href="https://use.typekit.net/hcw7ssx.css"
+          as="style"
+        />
+        {/* Preload Adobe Fonts CSS */}
+        <link
+          rel="preload"
+          href="https://use.typekit.net/hcw7ssx.css"
+          as="style"
+        />
+        
+        {/* Load Adobe Fonts directly */}
+        <link
+          rel="stylesheet"
+          href="https://use.typekit.net/hcw7ssx.css"
+        />
+        
+        {/* Load Adobe Fonts JS early with beforeInteractive strategy */}
+        <Script
+          id="adobe-fonts"
+          strategy="beforeInteractive"
+          src="https://use.typekit.net/hcw7ssx.js"
+          onLoad={() => {
+            try {
+              // @ts-expect-error - Typekit is added to window by the script but not typed
+              Typekit.load({ async: false });
+            } catch (e) {
+              console.error('Error loading Adobe fonts:', e);
+            }
+          }}
+        />
+        
+        {/* Critical CSS to prevent layout shift during font loading */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          /* Font swap behavior to prevent FOUC */
+          @font-face {
+            font-family: 'adobe-caslon-pro';
+            font-display: swap;
+          }
+          
+          @font-face {
+            font-family: 'haboro-soft-condensed';
+            font-display: swap;
+          }
+          
+          @font-face {
+            font-family: 'ibm-plex-mono';
+            font-display: swap;
+          }
+          
+          /* Size-adjusted fallback fonts to minimize layout shift */
+          @font-face {
+            font-family: 'adobe-caslon-pro-fallback';
+            src: local('Georgia');
+            size-adjust: 105%;
+            ascent-override: 95%;
+            descent-override: 22%;
+            line-gap-override: 0%;
+          }
+          
+          @font-face {
+            font-family: 'haboro-soft-condensed-fallback';
+            src: local('Avenir'), local('Helvetica Neue'), local('Helvetica'), local('Arial');
+            size-adjust: 100%;
+            ascent-override: 90%;
+            descent-override: 25%;
+            line-gap-override: 0%;
+          }
+          
+          /* Set font loading visibility */
+          html {
+            visibility: visible;
+            opacity: 1;
+          }
+          
+          /* Basic styling to avoid additional layout shifts */
+          body {
+            background-color: #080808;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 0;
+            font-family: 'adobe-caslon-pro-fallback', 'adobe-caslon-pro', Georgia, serif;
+          }
+          
+          /* Navbar critical styling to ensure consistent rendering */
+          nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 100;
+            background: rgba(8, 8, 8, 0.7);
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            backdrop-filter: blur(8px);
+            font-family: 'haboro-soft-condensed-fallback', 'haboro-soft-condensed', 'Avenir Next', sans-serif;
+            padding: 0 1.5rem;
+          }
+        `}} />
+      </head>
       <body>
-        <div className="relative min-h-screen">
-          {/* Background component persists across page transitions */}
-          <Background />
-          
-          {/* Navigation bar fixed at the top */}
-          <NavigationBar />
-          
-          {/* Main content area with top padding to accommodate fixed navbar */}
-          <main className="transition-opacity duration-300 ease-in-out pt-[100px]">
-            {children}
-          </main>
-          
-          <style jsx>{`
-            /* Transition animations */
-            .fade-enter {
-              opacity: 0;
-            }
-            
-            .fade-enter-active {
-              opacity: 1;
-              transition: opacity 300ms ease-in;
-            }
-            
-            .fade-exit {
-              opacity: 1;
-            }
-            
-            .fade-exit-active {
-              opacity: 0;
-              transition: opacity 300ms ease-out;
-            }
-          `}</style>
-        </div>
+        <StyledComponentsRegistry>
+          <div className="relative min-h-screen">
+            <Background />
+            <NavigationBar />
+            <main className="transition-opacity duration-300 ease-in-out pt-[100px]">
+              {children}
+            </main>
+          </div>
+        </StyledComponentsRegistry>
       </body>
     </html>
   );
