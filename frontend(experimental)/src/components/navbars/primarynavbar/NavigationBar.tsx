@@ -59,6 +59,7 @@ interface NavigationBarProps {
 interface NavContextType {
   openSubmenuId: string | null;
   setOpenSubmenuId: (id: string | null) => void;
+  visible?: boolean;
 }
 
 /**
@@ -252,6 +253,7 @@ const mobileItemVariants = {
 const NavContext = React.createContext<NavContextType>({
   openSubmenuId: null,
   setOpenSubmenuId: () => {},
+  visible: true,
 });
 
 // ==========================================================
@@ -263,10 +265,13 @@ const NavContext = React.createContext<NavContextType>({
  */
 const MoonIcon: React.FC = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path 
-      d="M3.32 11.68C3.32 16.95 7.61 21.24 12.88 21.24C16.65 21.24 19.93 18.99 21.38 15.74C21.83 14.74 21.27 14.2 20.2 14.47C19.33 14.68 18.38 14.8 17.35 14.8C11.35 14.8 6.5 9.95 6.5 3.95C6.5 2.92 6.62 1.97 6.83 1.1C7.1 0.03 6.56 -0.53 5.56 -0.08C2.31 1.37 3.32 6.41 3.32 11.68Z" 
-      fill="currentColor" 
-    />
+    <defs>
+      <mask id="moonMask">
+        <rect x="0" y="0" width="24" height="24" fill="white" />
+        <circle cx="14.4" cy="12" r="9" fill="black" />
+      </mask>
+    </defs>
+    <circle cx="12" cy="12" r="10.8" fill="currentColor" mask="url(#moonMask)" />
   </svg>
 );
 
@@ -423,7 +428,7 @@ const getIconByName = (iconName: string | undefined): React.ReactNode => {
 // ==========================================================
 
 // Base navbar styles - always visible regardless of JS loading state
-const NavContainer = styled.nav`
+const NavContainer = styled.nav<{ $visible: boolean }>`
   position: fixed;
   top: 0;
   left: 0;
@@ -432,11 +437,14 @@ const NavContainer = styled.nav`
   backdrop-filter: blur(8px);
   background: rgba(8, 8, 8, 0.7);
   padding: 0 1.5rem;
-  height: 60px;
+  height: 45px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  transition: background-color 0.3s ease, opacity 0.3s ease;
+  transition: transform 0.3s ease, background-color 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease;
+  transform: translateY(${props => props.$visible ? '0' : '-100%'});
+  opacity: ${props => props.$visible ? '1' : '0'};
+  box-shadow: ${props => props.$visible ? '0 2px 10px rgba(0, 0, 0, 0.2)' : 'none'};
   
   &:hover {
     background: rgba(8, 8, 8, 0.8);
@@ -458,14 +466,15 @@ const NavContent = styled.div`
 
 // Remove conditional rendering for animations in LogoContainer
 const LogoContainer = styled(motion.div)`
-  display: flex;
+ display: flex;
   align-items: center;
   position: absolute;
-  left: 3rem; /* Moved slightly to the right */
-  opacity: 1; /* Ensure visibility even before JS loads */
+  left: 3rem;
+  opacity: 1;
   
   @media (max-width: 768px) {
-    left: 3rem; /* Kept consistent with desktop */
+    display: none; /* Hide completely on mobile */
+  }
   }
 `;
 
@@ -670,15 +679,17 @@ const SubmenuItemDescription = styled.div`
 // Styled Components - Mobile
 // ==========================================================
 
-const MobileMenuButton = styled.button`
+const MobileMenuButton = styled.button<{ $visible?: boolean }>`
   display: none;
   background: transparent;
   border: none;
   color: var(--color-text);
   cursor: pointer;
   font-size: 1.5rem;
-  position: absolute;
-  left: 1rem; /* Moved to left side */
+  position: ${props => props.$visible === false ? 'fixed' : 'absolute'};
+  top: ${props => props.$visible === false ? '10px' : 'auto'};
+  left: 1rem;
+  z-index: 101; /* Higher than navbar */
   
   @media (max-width: 768px) {
     display: flex;
@@ -687,17 +698,23 @@ const MobileMenuButton = styled.button`
   }
 `;
 
-const MobileMenu = styled(motion.div)`
+const MobileMenu = styled(motion.div)<{ $visible?: boolean }>`
   display: none;
   position: fixed;
-  top: 60px;
-  width: 230px; /* Fixed width */
+  top: ${props => props.$visible === false ? '0' : '60px'};
+  width: 170px; /* Fixed width */
   left: 0;
-  height: calc(100vh - 60px);
+  height: ${props => props.$visible === false ? '100vh' : 'calc(100vh - 60px)'};
   background: rgba(8, 8, 8, 0.95);
   z-index: 99;
   overflow-y: auto;
   box-shadow: 4px 0 10px rgba(0, 0, 0, 0.3);
+  transition: top 0.3s ease, height 0.3s ease;
+  
+  /* Ensure backdrop filter is only applied within menu width */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  clip-path: inset(0 -100% 0 0); /* Clip the backdrop filter to the menu width */
   
   @media (max-width: 768px) {
     display: block;
@@ -720,8 +737,6 @@ const MobileSubmenuContainer = styled(motion.div)`
   padding: 0.5rem 0;
   background: rgba(10, 10, 10, 0.75);
 `;
-
-
 
 const MobileSubmenuItemWrapper = styled(motion.div)<ActiveProps>`
   display: flex;
@@ -964,17 +979,20 @@ const MobileMenuComponent: React.FC<{
   isActiveRoute: (href: string) => boolean;
   isClient: boolean;
 }> = ({ isOpen, toggleMenu, items, isActiveRoute, isClient }) => {
+  const { visible } = useContext(NavContext);
+  
   if (!isClient) return null;
   
   return (
     <>
-      <MobileMenuButton onClick={toggleMenu}>
+      <MobileMenuButton onClick={toggleMenu} $visible={visible}>
         {isOpen ? '✕' : '☰'}
       </MobileMenuButton>
 
       <AnimatePresence>
         {isOpen && (
           <MobileMenu
+            $visible={visible}
             variants={mobileMenuVariants}
             initial="closed"
             animate="open"
@@ -1015,6 +1033,10 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   // Add state to track client-side rendering
   const [isClient, setIsClient] = useState(false);
   
+  // State for tracking scroll behavior
+  const [prevScrollPos, setPrevScrollPos] = useState(0);
+  const [visible, setVisible] = useState(true);
+  
   // Transform items to use actual icon components
   const navItems: EnhancedNavItem[] = items.map(item => ({
     ...item,
@@ -1043,10 +1065,48 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
+  // Scroll handler to show/hide navbar
+  useEffect(() => {
+    if (!isClient) return;
+    
+    const handleScroll = () => {
+      const currentScrollPos = window.scrollY;
+      
+      // Determine if navbar should be visible
+      // 1. Always visible at the top of the page
+      // 2. Visible when scrolling up
+      // 3. Hidden when scrolling down (beyond a threshold)
+      const scrollingUp = prevScrollPos > currentScrollPos;
+      const atTop = currentScrollPos < 10;
+      const scrollThreshold = 5; // Changed from 20px to 5px
+      const significantChange = Math.abs(currentScrollPos - prevScrollPos) > scrollThreshold;
+      
+      // Update visibility based on conditions
+      if (atTop || (scrollingUp && significantChange)) {
+        setVisible(true);
+      } else if (!scrollingUp && significantChange && !isMobileMenuOpen) {
+        setVisible(false);
+      }
+      
+      setPrevScrollPos(currentScrollPos);
+    };
+    
+    // Add scroll event listener
+    window.addEventListener('scroll', handleScroll);
+    
+    // Clean up the event listener on unmount
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isClient, prevScrollPos, isMobileMenuOpen]);
+
   // Use effect for client-side initialization
   useEffect(() => {
     // Set isClient to true after component mounts
     setIsClient(true);
+    
+    // Initial scroll position
+    setPrevScrollPos(window.scrollY);
     
     // Fix for RulesIcon SVG path (once, not with observer)
     const fixSvgPath = () => {
@@ -1065,8 +1125,8 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   if (!isClient) return null;
 
   return (
-    <NavContext.Provider value={{ openSubmenuId, setOpenSubmenuId }}>
-      <NavContainer>
+    <NavContext.Provider value={{ openSubmenuId, setOpenSubmenuId, visible }}>
+      <NavContainer $visible={visible}>
         <NavContent>
           {/* Logo */}
           <LogoContainer 
