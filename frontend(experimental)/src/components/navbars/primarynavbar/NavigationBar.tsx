@@ -230,6 +230,7 @@ const ANIMATIONS = {
         ease: [0.4, 0, 1, 1] 
       }
     },
+    // Enhanced slide variants that respect exit states
     slideRight: {
       initial: {
         opacity: 0,
@@ -1175,6 +1176,7 @@ DesktopNavItemComponent.displayName = 'DesktopNavItemComponent';
  * Global Submenu Component - persistent across all navigation changes
  * Memoized to prevent unnecessary re-renders
  */
+// Using forwardRef to properly access the submenu DOM element
 const GlobalSubmenuComponent = React.memo(({
   items,
   activeItemId,
@@ -1200,7 +1202,7 @@ const GlobalSubmenuComponent = React.memo(({
     if (activeItemId) {
       setIsFinalExit(false);
     }
-  }, [activeItemId]);
+  }, [activeItemId, setIsFinalExit]);
   
   // Update slide direction based on item index change
   useEffect(() => {
@@ -1212,7 +1214,7 @@ const GlobalSubmenuComponent = React.memo(({
       
       // Determine slide direction based on index comparison
       setSlideDirection(currentIndex > prevIndex ? 'right' : 'left');
-      setIsFinalExit(false);
+      setIsFinalExit(false); // Reset exit state for transitions
     } else if (activeItemId === null && prevItemId !== null) {
       // We're closing the menu completely
       setIsFinalExit(true);
@@ -1222,56 +1224,146 @@ const GlobalSubmenuComponent = React.memo(({
     if (activeItemId !== prevItemId) {
       setPrevItemId(activeItemId);
     }
-  }, [activeItemId, prevItemId, items]);
+  }, [activeItemId, prevItemId, items, setIsFinalExit]);
   
-  // Create a custom hook to detect when the mouse actually leaves the submenu area
+  // COMPLETELY REDESIGNED EXIT DETECTION SYSTEM
+  // Uses explicit edge detection that maps to the visual menu boundaries
   useEffect(() => {
+    if (!activeItemId || !submenuRef.current) return;
+    
+    // Force an immediate exit (used for direct edge exits)
+    const forceExit = () => {
+      setIsFinalExit(true);
+    };
+    
+    // Track the last position to determine exit direction
+    let lastX = 0;
+    let lastY = 0;
+    
     const handleGlobalMouseMove = (e: MouseEvent) => {
       if (!activeItemId || !submenuRef.current) return;
       
-      // Get submenu position
-      const rect = submenuRef.current.getBoundingClientRect();
-      const buffer = 30; // Increased buffer zone for smoother transitions
+      // Store current position to track direction
+      const currentX = e.clientX;
+      const currentY = e.clientY;
       
-      // Get nav container position to check if we're moving between menu items
-      const navItems = document.querySelectorAll('[data-nav-item]');
+      // Get submenu and navbar elements
+      const submenuEl = submenuRef.current;
+      const navbarEl = document.querySelector('[role="navigation"]');
+      const firstNavItem = document.querySelector('[data-nav-item="codex"]'); // Leftmost nav item
+      const lastNavItem = document.querySelector('[data-nav-item="characters"]'); // Rightmost nav item
+      
+      if (!submenuEl || !navbarEl) {
+        return;
+      }
+      
+      // Get precise boundary rectangles
+      const submenuRect = submenuEl.getBoundingClientRect();
+      const navbarRect = navbarEl.getBoundingClientRect();
+      
+      // Get the leftmost and rightmost boundaries of the nav items
+      let leftBoundary = navbarRect.left;
+      let rightBoundary = navbarRect.right;
+      
+      if (firstNavItem) {
+        const firstItemRect = (firstNavItem as HTMLElement).getBoundingClientRect();
+        leftBoundary = firstItemRect.left - 20; // Add buffer to left edge
+      }
+      
+      if (lastNavItem) {
+        const lastItemRect = (lastNavItem as HTMLElement).getBoundingClientRect();
+        rightBoundary = lastItemRect.right + 20; // Add buffer to right edge
+      }
+      
+      // EXPLICIT EDGE EXIT ZONES:
+      // 1. Left of the first nav item (CODEX)
+      // 2. Right of the last nav item (CHARACTERS)
+      // 3. Below the submenu
+      // 4. Far away from any menu elements
+      
+      // Define the exit zones
+      const isLeftEdgeExit = currentX < leftBoundary && lastX >= leftBoundary;
+      const isRightEdgeExit = currentX > rightBoundary && lastX <= rightBoundary;
+      const isBottomExit = currentY > (submenuRect.bottom + 20) && lastY <= (submenuRect.bottom + 20);
+      
+      // Check if mouse is over any nav item (for transitions between sections)
       let isOverNavItem = false;
+      let hoveredNavItemId: string | null = null;
       
       // Check if mouse is over any nav item
+      const navItems = document.querySelectorAll('[data-nav-item]');
       navItems.forEach((item) => {
         const navRect = (item as HTMLElement).getBoundingClientRect();
         if (
-          e.clientX >= navRect.left && 
-          e.clientX <= navRect.right && 
-          e.clientY >= navRect.top && 
-          e.clientY <= navRect.bottom
+          currentX >= navRect.left && 
+          currentX <= navRect.right && 
+          currentY >= navRect.top && 
+          currentY <= navRect.bottom
         ) {
           isOverNavItem = true;
+          hoveredNavItemId = (item as HTMLElement).getAttribute('data-nav-item');
         }
       });
       
-      // Check if mouse is outside the submenu area plus buffer AND not over a nav item
-      const isOutside = (
-        e.clientX < rect.left - buffer || 
-        e.clientX > rect.right + buffer || 
-        e.clientY < rect.top - buffer || 
-        e.clientY > rect.bottom + buffer
+      // When over a different nav item, we want to transition between menus
+      if (isOverNavItem && hoveredNavItemId !== activeItemId) {
+        setIsFinalExit(false);
+        return;
+      }
+      
+      // CREATE 3 DISTINCT CASES FOR EDGE EXITS:
+      
+      // Case 1: Explicit edge exits (highest priority)
+      if (isLeftEdgeExit || isRightEdgeExit || isBottomExit) {
+        forceExit();
+        return;
+      }
+      
+      // Case 2: Check if mouse is outside all menu components
+      const isOverSubmenu = (
+        currentX >= submenuRect.left - 10 &&
+        currentX <= submenuRect.right + 10 &&
+        currentY >= submenuRect.top - 10 &&
+        currentY <= submenuRect.bottom + 10
       );
       
-      // Only set final exit if actually leaving the nav area completely
-      if (isOutside && !isOverNavItem) {
-        setIsFinalExit(true);
+      const isOverNavbar = (
+        currentX >= navbarRect.left &&
+        currentX <= navbarRect.right &&
+        currentY >= navbarRect.top &&
+        currentY <= navbarRect.bottom
+      );
+      
+      // If outside both menu elements, it's an exit
+      if (!isOverSubmenu && !isOverNavbar && !isOverNavItem) {
+        // Give a small delay to prevent flickering
+        setTimeout(() => {
+          setIsFinalExit(true);
+        }, 50);
       } else {
         setIsFinalExit(false);
+      }
+      
+      // Update last position
+      lastX = currentX;
+      lastY = currentY;
+    };
+    
+    // Add direct window edge exit detection
+    const handleMouseLeaveWindow = () => {
+      if (activeItemId) {
+        forceExit();
       }
     };
     
     document.addEventListener('mousemove', handleGlobalMouseMove);
+    document.documentElement.addEventListener('mouseleave', handleMouseLeaveWindow);
     
     return () => {
       document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.documentElement.addEventListener('mouseleave', handleMouseLeaveWindow);
     };
-  }, [activeItemId]);
+  }, [activeItemId, setIsFinalExit]);
 
   // Add keyboard navigation for submenu items
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -1342,19 +1434,20 @@ const GlobalSubmenuComponent = React.memo(({
   const handleMouseLeave = useCallback(() => {
     setIsFinalExit(true);
     onMouseLeave();
-  }, [onMouseLeave]);
+  }, [onMouseLeave, setIsFinalExit]);
   
   // Choose the appropriate animation variant based on context
   const getAnimationVariant = useCallback(() => {
+    // IMPORTANT: Always prioritize the final exit animation
+    // This ensures the fade-out animation plays properly regardless of direction
     if (isFinalExit) {
-      // Use the submenu exit animation when fully closing
       return ANIMATIONS.submenu;
-    } else {
-      // Use directional slide for transitions between menu items
-      return slideDirection === 'right' 
-        ? ANIMATIONS.submenuContent.slideRight 
-        : ANIMATIONS.submenuContent.slideLeft;
-    }
+    } 
+    
+    // Only use slide animations for transitions between menu items
+    return slideDirection === 'right' 
+      ? ANIMATIONS.submenuContent.slideRight 
+      : ANIMATIONS.submenuContent.slideLeft;
   }, [isFinalExit, slideDirection]);
 
   // Memoized handler for submenu item clicks
@@ -1383,6 +1476,7 @@ const GlobalSubmenuComponent = React.memo(({
             role="menu"
             id={submenuId}
             aria-labelledby={`nav-item-${activeItemId}`}
+            data-exiting={isFinalExit ? "true" : "false"}
           >
             <SubmenuGridContainer role="presentation">
               {activeItem && (
@@ -1455,7 +1549,28 @@ const MobileNavItemComponent = React.memo(({
     router.push(href);
   }, [router]);
 
-irst submenu item
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // Find all main menu items for navigation purposes
+    const menuItems = document.querySelectorAll('[id^="mobile-nav-item-"]');
+    const menuItemsArray = Array.from(menuItems) as HTMLElement[];
+    const currentIndex = menuItemsArray.findIndex(el => el.id === mobileNavItemId);
+    
+    switch (e.key) {
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        toggleSubmenu();
+        break;
+      case 'Escape':
+        e.preventDefault();
+        if (isSubmenuOpen) {
+          setIsSubmenuOpen(false);
+        }
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        if (isSubmenuOpen) {
+          // Focus first submenu item
           const firstSubmenuItem = document.getElementById(`mobile-submenu-item-${item.id}-${item.submenu[0].id}`);
           if (firstSubmenuItem) {
             firstSubmenuItem.focus();
@@ -1485,22 +1600,19 @@ irst submenu item
           // Start from the previous item and work backwards
           for (let i = currentIndex - 1; i >= 0; i--) {
             const prevId = menuItemsArray[i].id.replace('mobile-nav-item-', '');
-            const prevItem = items.find(item => item.id === prevId);
             
-            if (prevItem) {
-              // Check if this previous item has its submenu open
-              const prevSubmenuContainer = document.getElementById(`mobile-submenu-${prevItem.id}`);
-              if (prevSubmenuContainer) {
-                // This previous item has an open submenu, focus its last submenu item
-                const prevSubmenuItems = prevItem.submenu;
-                if (prevSubmenuItems.length > 0) {
-                  const lastSubmenuItemId = `mobile-submenu-item-${prevItem.id}-${prevSubmenuItems[prevSubmenuItems.length - 1].id}`;
-                  const lastSubmenuItem = document.getElementById(lastSubmenuItemId);
-                  if (lastSubmenuItem) {
-                    lastSubmenuItem.focus();
-                    foundPreviousOpenSubmenu = true;
-                    break;
-                  }
+            // Check if this previous item has its submenu open
+            const prevSubmenuContainer = document.getElementById(`mobile-submenu-${prevId}`);
+            if (prevSubmenuContainer) {
+              // Get all submenu items of this previous menu item
+              const prevSubmenuItems = document.querySelectorAll(`[id^="mobile-submenu-item-${prevId}-"]`);
+              if (prevSubmenuItems.length > 0) {
+                // Focus the last submenu item
+                const lastSubmenuItem = prevSubmenuItems[prevSubmenuItems.length - 1] as HTMLElement;
+                if (lastSubmenuItem) {
+                  lastSubmenuItem.focus();
+                  foundPreviousOpenSubmenu = true;
+                  break;
                 }
               }
             }
@@ -1521,7 +1633,7 @@ irst submenu item
         }
         break;
     }
-  }, [isSubmenuOpen, toggleSubmenu, mobileNavItemId, item.id, item.submenu, items]);
+  }, [isSubmenuOpen, toggleSubmenu, mobileNavItemId, item.id, item.submenu]);
 
   // Handle keyboard navigation for submenu items
   const handleSubmenuKeyDown = useCallback((e: React.KeyboardEvent, subItemId: string, href: string) => {
@@ -1675,8 +1787,6 @@ MobileNavItemComponent.displayName = 'MobileNavItemComponent';
   isActiveRoute: (href: string) => boolean;
   isClient: boolean;
 }) => {
-  const mobileMenuRef = useRef<HTMLDivElement>(null);
-
   // Set up keyboard navigation for the mobile menu
   useEffect(() => {
     if (!isOpen || !isClient) return;
@@ -1697,11 +1807,8 @@ MobileNavItemComponent.displayName = 'MobileNavItemComponent';
 
   if (!isClient) return null;
   
-// Add this function to check if submenu is open
-const isSubmenuOpen = (itemId: string): boolean => {
-  const submenuContainer = document.getElementById(`mobile-submenu-${itemId}`);
-  return !!submenuContainer;
-};
+// Function that checks if a specific submenu is currently displayed in the DOM
+// (This is used internally by our keyboard navigation handlers)
 
   return (
     <>
@@ -1736,7 +1843,7 @@ const isSubmenuOpen = (itemId: string): boolean => {
             aria-label="Mobile Navigation"
           >
             <MobileNavItems role="menubar" aria-label="Main Navigation">
-              {items.map((item, index) => (
+              {items.map((item) => (
                 <MobileNavItemComponent
                   key={item.id}
                   item={item}
@@ -1913,7 +2020,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
     setIsMobileMenuOpen(prev => !prev);
   }, []);
 
-  // Handle keyboard navigation for the main menu bar
+  // Add keyboard event listener for the main menu bar
   const handleMenuKeyDown = useCallback((e: KeyboardEvent) => {
     // Skip if a submenu is open (it has its own key handler)
     if (activeItemId) return;
@@ -2035,7 +2142,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
     };
   }, [visible, isClient]);
 
-  // Client-side initialization
+    // Client-side initialization
   useEffect(() => {
     setIsClient(true);
     setPrevScrollPos(window.scrollY);
@@ -2083,6 +2190,26 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
     };
     
     addSkipLink();
+    
+    // Log debug info about nav items (helps with edge detection)
+    const logNavItemPositions = () => {
+      if (process.env.NODE_ENV === 'development') {
+        setTimeout(() => {
+          const firstNavItem = document.querySelector('[data-nav-item="codex"]');
+          const lastNavItem = document.querySelector('[data-nav-item="characters"]');
+          
+          if (firstNavItem && lastNavItem) {
+            const firstRect = (firstNavItem as HTMLElement).getBoundingClientRect();
+            const lastRect = (lastNavItem as HTMLElement).getBoundingClientRect();
+            
+            console.log('First nav item (left edge):', firstRect.left);
+            console.log('Last nav item (right edge):', lastRect.right);
+          }
+        }, 1000);
+      }
+    };
+    
+    logNavItemPositions();
   }, []);
 
   if (!isClient) return null;
