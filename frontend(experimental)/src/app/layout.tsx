@@ -4,7 +4,7 @@ import React from 'react';
 import './styles/global.css';
 import { StyledComponentsRegistry } from '../lib/registry';
 import Background from '../components/layout/Layout';
-import NavigationBar from '../components/navbars/primarynavbar/NavigationBar';
+import NavigationBar from '../components/navbars/NavigationBar';
 import Script from 'next/script';
 
 /**

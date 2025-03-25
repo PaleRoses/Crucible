@@ -40,6 +40,7 @@ interface NavItem extends BaseMenuItem {
 interface NavigationBarProps {
   items?: NavItem[];
   ariaLabel?: string; // Added prop for navigation ARIA label
+  showItemDescriptions?: boolean; // Option to show/hide submenu item descriptions
 }
 
 /**
@@ -724,9 +725,10 @@ const NavItemWrapper = styled.div`
   position: relative;
 `;
 
+// Standardize font sizes for all nav items
 const DesktopNavItem = styled(NavItemBase)`
   letter-spacing: 0.2em;
-  font-size: 1rem;
+  font-size: 0.95rem;
 `;
 
 // ==========================================================
@@ -756,9 +758,9 @@ const SubmenuContainer = styled(motion.div)`
   border: 1px solid rgba(255, 255, 255, 0.08);
   pointer-events: auto;
   will-change: transform, opacity;
-  width: 80%;
-  max-width: 1200px;
+  margin: 0 auto;
   transform-origin: top center;
+  /* Width is now controlled dynamically in the component */
 `;
 
 const SubmenuGridContainer = styled.div`
@@ -848,7 +850,7 @@ const SubmenuItemIcon = styled.div`
 `;
 
 const SubmenuItemLabel = styled.span`
-  font-size: 1.2rem;
+  font-size: 0.85rem;
   letter-spacing: 0.1em;
   font-weight: 400;
   margin-bottom: 0.25rem;
@@ -980,10 +982,12 @@ const MemoizedSubmenuItem = React.memo(({
   subItem,
   onClick,
   parentId,
+  showDescription = false,
 }: {
   subItem: SubmenuItem;
   onClick: () => void;
   parentId: string;
+  showDescription?: boolean;
 }) => {
   // Generate unique ID for this submenu item for ARIA attributes
   const submenuItemId = `${parentId}-submenu-item-${subItem.id}`;
@@ -1013,7 +1017,7 @@ const MemoizedSubmenuItem = React.memo(({
             : subItem.icon}
         </SubmenuItemIcon>
         <SubmenuItemLabel>{subItem.label}</SubmenuItemLabel>
-        {subItem.description && (
+        {showDescription && subItem.description && (
           <SubmenuItemDescription>
             {subItem.description}
           </SubmenuItemDescription>
@@ -1023,10 +1027,11 @@ const MemoizedSubmenuItem = React.memo(({
   );
 }, (prevProps, nextProps) => {
   // Custom comparison function for optimized re-renders
-  // Only re-render if the id or href changes
+  // Only re-render if the id, href, or description visibility changes
   return (
     prevProps.subItem.id === nextProps.subItem.id &&
-    prevProps.subItem.href === nextProps.subItem.href
+    prevProps.subItem.href === nextProps.subItem.href &&
+    prevProps.showDescription === nextProps.showDescription
   );
 });
 
@@ -1176,17 +1181,18 @@ DesktopNavItemComponent.displayName = 'DesktopNavItemComponent';
  * Global Submenu Component - persistent across all navigation changes
  * Memoized to prevent unnecessary re-renders
  */
-// Using forwardRef to properly access the submenu DOM element
 const GlobalSubmenuComponent = React.memo(({
   items,
   activeItemId,
   onMouseEnter,
   onMouseLeave,
+  props,
 }: {
   items: NavItem[];
   activeItemId: string | null;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
+  props: NavigationBarProps;
 }) => {
   const router = useRouter();
   const { setActiveItemId } = useContext(NavContext);
@@ -1477,6 +1483,12 @@ const GlobalSubmenuComponent = React.memo(({
             id={submenuId}
             aria-labelledby={`nav-item-${activeItemId}`}
             data-exiting={isFinalExit ? "true" : "false"}
+            style={{
+              // Calculate dynamic width based on number of items
+              // Base width for header section + width for each menu item
+              width: `min(90%, ${200 + (activeItem ? activeItem.submenu.length * 220 : 0)}px)`,
+              maxWidth: '1200px'
+            }}
           >
             <SubmenuGridContainer role="presentation">
               {activeItem && (
@@ -1493,6 +1505,7 @@ const GlobalSubmenuComponent = React.memo(({
                     <SubmenuHeader id={`submenu-header-${activeItem.id}`}>
                       {activeItem.label}
                     </SubmenuHeader>
+                    {/* Always show main category descriptions */}
                     <SubmenuDescription id={`submenu-description-${activeItem.id}`}>
                       {SUBMENU_DESCRIPTIONS[activeItem.id as keyof typeof SUBMENU_DESCRIPTIONS]}
                     </SubmenuDescription>
@@ -1504,6 +1517,7 @@ const GlobalSubmenuComponent = React.memo(({
                       subItem={subItem}
                       onClick={() => handleSubmenuItemClick(subItem.href)}
                       parentId={activeItem.id}
+                      showDescription={props.showItemDescriptions}
                     />
                   ))}
                 </SubmenuContentContainer>
@@ -1879,7 +1893,8 @@ MobileMenuComponent.displayName = 'MobileMenuComponent';
  */
 const NavigationBar: React.FC<NavigationBarProps> = ({ 
   items = DEFAULT_NAV_ITEMS,
-  ariaLabel = "Main Navigation"
+  ariaLabel = "Main Navigation",
+  showItemDescriptions = false, // Default to not showing submenu item descriptions
 }) => {
   const [isClient, setIsClient] = useState(false);
   const [prevScrollPos, setPrevScrollPos] = useState(0);
@@ -2265,6 +2280,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
           activeItemId={activeItemId} 
           onMouseEnter={cancelSubmenuClosing}
           onMouseLeave={closeSubmenuWithDelay}
+          props={{ showItemDescriptions, items, ariaLabel }}
         />
       </div>
       
