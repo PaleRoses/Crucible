@@ -187,10 +187,12 @@ const ANIMATIONS = {
 // ==========================================================
 
 const Container = styled.div`
-  width: 100%;
+  width: 90%;
   max-width: 95vw;
   margin: 0 auto;
   padding: 1.5rem 1rem;
+  margin-left: 2.5%;
+  margin-right: 5%;
   
   @media (min-width: 1400px) {
     max-width: 90vw;
@@ -198,7 +200,9 @@ const Container = styled.div`
 `;
 
 const TitleContainer = styled.div`
-  text-align: center;
+  margin-left: 1rem;
+  margin-top: 2.5rem;
+  text-align: left;
   margin-bottom: 2.5rem;
 `;
 

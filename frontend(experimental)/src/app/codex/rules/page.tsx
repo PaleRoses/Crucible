@@ -12,7 +12,7 @@ const ItemNavigation = dynamic(
     ssr: false,
     loading: () => (
       <div className="w-full h-64 flex items-center justify-center">
-        <div className="text-gold/60">Loading rules navigation...</div>
+        <div className="text-gold/60"> </div>
       </div>
     )
   }
@@ -52,7 +52,7 @@ const ruleItems = [
     href: '/codex/rules/motivations',
     icon: <CoreIcon />,
     description: 'Lunar and Solar motivations, the motivation track',
-    color: '#E16D6D'
+    color: '#a08e61'
   },
   {
     id: 'actions',
@@ -60,7 +60,7 @@ const ruleItems = [
     href: '/codex/rules/actions',
     icon: <CoreIcon />,
     description: 'Action ratings, outcomes, impact, difficulty',
-    color: '#E16D6D'
+    color: '#a08e61'
   },
   {
     id: 'harm',
@@ -68,7 +68,7 @@ const ruleItems = [
     href: '/codex/rules/harm',
     icon: <CoreIcon />,
     description: 'Physical, emotional, and spiritual harm mechanics',
-    color: '#E16D6D'
+    color: '#a08e61'
   },
   {
     id: 'equipment',
@@ -76,7 +76,7 @@ const ruleItems = [
     href: '/codex/rules/equipment',
     icon: <CoreIcon />,
     description: 'Items, special abilities, augmetics',
-    color: '#E16D6D'
+    color: '#a08e61'
   },
   {
     id: 'moves',
@@ -84,7 +84,7 @@ const ruleItems = [
     href: '/codex/rules/moves',
     icon: <CoreIcon />,
     description: 'Reckon, Connect, Investigate, confronts',
-    color: '#E16D6D'
+    color: '#a08e61'
   },
   {
     id: 'experience',
@@ -92,7 +92,7 @@ const ruleItems = [
     href: '/codex/rules/experience',
     icon: <CoreIcon />,
     description: 'Experience gain, aspect upgrades, advancement',
-    color: '#E16D6D'
+    color: '#a08e61'
   },
   
   // World & Character section
@@ -102,7 +102,7 @@ const ruleItems = [
     href: '/codex/rules/creation',
     icon: <WorldIcon />,
     description: 'Character creation, cycle generation, regions',
-    color: '#7CB2E1'
+    color: '#ccd6e1'
   },
   {
     id: 'sites',
@@ -110,7 +110,7 @@ const ruleItems = [
     href: '/codex/rules/sites',
     icon: <WorldIcon />,
     description: 'Caverns, dungeons, habitats, passes',
-    color: '#7CB2E1'
+    color: '#ccd6e1'
   },
   {
     id: 'environments',
@@ -118,7 +118,7 @@ const ruleItems = [
     href: '/codex/rules/environments',
     icon: <WorldIcon />,
     description: 'Forest, jungle, freeze, drown, swamp, etc.',
-    color: '#7CB2E1'
+    color: '#ccd6e1'
   },
   {
     id: 'godrealms',
@@ -126,7 +126,7 @@ const ruleItems = [
     href: '/codex/rules/godrealms',
     icon: <WorldIcon />,
     description: 'Cityscape, nightmare, eschaton layers',
-    color: '#7CB2E1'
+    color: '#ccd6e1'
   },
   
   // Advanced Mechanics section
@@ -209,7 +209,7 @@ const RulesPage: NextPage = () => {
       {isHydrated && (
         <ItemNavigation
           items={ruleItems}
-          title="RULES"
+          title="Crescent Rules"
           subtitle="Comprehensive rules for the Crescent system"
           columns={3}
           mobileColumns={1}

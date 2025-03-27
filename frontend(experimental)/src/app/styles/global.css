@@ -89,16 +89,36 @@
   --gold-dark: #786b49;
   --gold-muted: #8a7c57;
   --gold-glow: rgba(160, 142, 97, 0.3);
+  --gold-glow-light: rgba(191, 173, 127, 0.25);
+  --silver: #ccd6e1;
+  --silver-light: #e0e0e0;
+  --silver-dark: #b0b0b0;
+  --silver-muted: #d0d0d0;
+  --silver-glow: rgba(224, 224, 224, 0.25);
+  --cerulean: #3987b3;
+  --cerulean-light: #4fa1d3;
+  --cerulean-dark: #2b5a7d;
+  --cerulean-muted: #3a7b9f;
+  --scarlet: #b75e79;
+  --scarlet-light: #d77a8c;
+  --scarlet-dark: #8b3f54;
+  --scarlet-muted: #a65b6c;
 
   /* Secondary Gold Colors */
   --gold-secondary: #9c8352;
   --gold-secondary-light: #b09b6b;
   --gold-secondary-dark: #7d6942;
   --gold-secondary-glow: rgba(156, 131, 82, 0.25);
+  --silver-secondary: #d0d0d0;
+  --silver-secondary-light: #e0e0e0;
+  --silver-secondary-dark: #b0b0b0;
+  --silver-secondary-muted: #d0d0d0;
 
   /* Tertiary Gold Colors */
   --gold-tertiary: #a48e6f;
   --gold-tertiary-light: #c4b395;
+  --silver-tertiary: #d0d0d0;
+  --silver-tertiary-light: #e0e0e0;
 
   /* Surface and UI Colors */
   --surface-light: #191919;

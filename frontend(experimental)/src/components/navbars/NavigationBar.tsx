@@ -185,6 +185,41 @@ interface NavContextType {
 // ==========================================================
 
 /**
+ * Centralized color system
+ * Adjust these values to control colors throughout the component
+ */
+const COLORS = {
+  // Primary color for logo and important elements
+  primary: 'rgba(255, 215, 0, 0.9)', // Gold-like color
+  
+  // Secondary color for backgrounds and secondary elements
+  secondary: 'rgba(8, 8, 8, 0.85)', // Dark background
+  
+  // Tertiary color for unaltered text
+  tertiary: 'rgba(255, 255, 255, 0.8)', // Off-white text
+  
+  // Glow color for hover effects
+  glow: 'rgba(255, 215, 0, 0.10)', // Very subtle gold for glow effects
+  
+  // Additional utility colors
+  background: {
+    light: 'rgba(20, 20, 20, 0.7)',
+    dark: 'rgba(10, 10, 10, 0.98)'
+  },
+  text: {
+    muted: 'rgba(224, 224, 224, 0.7)',
+    dimmed: 'rgba(224, 224, 224, 0.5)'
+  },
+  border: 'rgba(255, 255, 255, 0.1)',
+  borderAccent: 'rgba(255, 215, 0, 0.15)',
+  tooltip: {
+    background: 'rgba(0, 0, 0, 0.85)',
+    text: 'rgba(255, 255, 255, 0.9)',
+    border: 'rgba(255, 215, 0, 0.3)'
+  }
+};
+
+/**
  * Font size configuration for different elements
  * Adjust these values to control text sizing throughout the component
  */
@@ -198,6 +233,9 @@ const FONT_SIZES = {
   // Mobile sizes
   mobileNavItem: '1.1rem',
   mobileSubmenuItem: '0.9rem',
+  
+  // Additional sizes
+  tooltip: '0.75rem'
 };
 
 /**
@@ -545,6 +583,7 @@ const getIconComponent = (icon: React.ReactNode | string | undefined, iconMappin
 
 /**
  * The NavigationBar is composed of several sub-components:
+ * - LogoTooltip: Tooltip component that appears when hovering over the logo
  * - MemoizedSubmenuItem: Individual items within a submenu
  * - DesktopNavItemComponent: Top-level navigation items in desktop view
  * - GlobalSubmenuComponent: Manages submenu display with animations
@@ -554,6 +593,69 @@ const getIconComponent = (icon: React.ReactNode | string | undefined, iconMappin
  * Each component is memoized to prevent unnecessary re-renders and
  * improve performance as the navigation state changes.
  */
+
+/**
+ * Logo Tooltip Component
+ * Shows a tooltip with "Home Page" text after hovering over the logo for a second
+ */
+const LogoTooltip = memo(({
+  visible,
+}: {
+  visible: boolean;
+}) => {
+  const styles = {
+    tooltipContainer: {
+      position: 'absolute' as const,
+      bottom: '-30px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      opacity: visible ? 1 : 0,
+      visibility: visible ? 'visible' as const : 'hidden' as const,
+      transition: 'opacity 0.3s ease, visibility 0.3s ease',
+      zIndex: 200,
+    },
+    tooltip: {
+      background: COLORS.tooltip.background,
+      color: COLORS.tooltip.text,
+      padding: '4px 8px',
+      borderRadius: '4px',
+      fontSize: FONT_SIZES.tooltip,
+      fontWeight: 'normal',
+      letterSpacing: '0.05em',
+      whiteSpace: 'nowrap' as const,
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+      border: `1px solid ${COLORS.tooltip.border}`,
+    },
+    arrow: {
+      position: 'absolute' as const,
+      top: '-4px',
+      left: '50%',
+      transform: 'translateX(-50%) rotate(45deg)',
+      width: '8px',
+      height: '8px',
+      background: COLORS.tooltip.background,
+      border: `1px solid ${COLORS.tooltip.border}`,
+      borderBottom: 'none',
+      borderRight: 'none',
+    }
+  };
+  
+  return (
+    <div 
+      style={styles.tooltipContainer}
+      role="tooltip"
+      id="logo-tooltip"
+    >
+      <div style={styles.arrow} aria-hidden="true" />
+      <div style={styles.tooltip}>
+        Home Page
+      </div>
+    </div>
+  );
+});
+
+// Display name for debugging
+LogoTooltip.displayName = 'LogoTooltip';
 
 /**
  * Memoized Submenu Item Component
@@ -582,20 +684,20 @@ const MemoizedSubmenuItem = memo(({
       alignItems: 'flex-start',
       padding: '1rem',
       cursor: 'pointer',
-      color: 'rgba(224, 224, 224, 0.7)',
+      color: COLORS.text.muted,
       textAlign: 'left' as const,
       borderRadius: 'var(--radius-small, 4px)',
       willChange: 'transform, background-color',
       transition: 'all 0.2s ease',
       backgroundColor: 'transparent',
       border: 'none',
-      borderLeft: '1px solid var(--color-accent, rgba(255, 215, 0, 0.15))',
+      borderLeft: `1px solid var(--color-accent, ${COLORS.borderAccent})`,
     },
     hoverState: {
       backgroundColor: 'rgba(255, 255, 255, 0.1)',
       transform: 'scale(1.03)',
       boxShadow: '0 0 5px rgba(255, 255, 255, 0.2)',
-      borderLeft: '1px solid var(--color-accent, rgba(255, 215, 0, 0.15))',
+      borderLeft: `1px solid var(--color-accent, ${COLORS.borderAccent})`,
     },
     link: {
       display: 'flex',
@@ -611,22 +713,28 @@ const MemoizedSubmenuItem = memo(({
       display: 'flex',
       alignSelf: 'center',
       justifyContent: 'center',
-      color: 'var(--color-accent, currentColor)',
+      color: `var(--color-accent, ${COLORS.primary})`,
+      marginTop: '0rem',
+      marginLeft: '0rem',
+      marginRight: '0rem',
       marginBottom: '1rem',
-      width: '48px',
-      height: '48px'
+      width: '170px',
+      height: '128px'
     },
     label: {
       fontSize: FONT_SIZES.desktopSubmenuItem,
+      marginTop: '0rem',
+      marginLeft: '0rem',
+      marginRight: '0rem',
       letterSpacing: '0.1em',
-      fontWeight: 400,
-      marginBottom: '0.25rem',
+      fontWeight: 300,
+      marginBottom: '-0.5rem',
       textTransform: 'uppercase' as const,
       transition: 'color 0.2s ease',
     },
     description: {
       fontSize: FONT_SIZES.desktopSubmenuDescription,
-      color: 'rgba(224, 224, 224, 0.5)',
+      color: COLORS.text.dimmed,
       maxWidth: '200px',
       lineHeight: 1.4,
     }
@@ -718,7 +826,7 @@ const DesktopNavItemComponent = memo(({
       fontWeight: 'normal',
       letterSpacing: '0.2em',
       fontSize: FONT_SIZES.desktopNavItem,
-      color: isItemActive || isActive ? 'var(--color-accent, #fff)' : 'var(--color-text, rgba(255, 255, 255, 0.8))',
+      color: isItemActive || isActive ? `var(--color-accent, ${COLORS.primary})` : `var(--color-text, ${COLORS.tertiary})`,
       padding: '0.5rem 0.75rem',
       border: 'none',
       background: 'transparent',
@@ -728,7 +836,7 @@ const DesktopNavItemComponent = memo(({
       display: 'flex',
       alignItems: 'center',
       gap: '0.5rem',
-      color: isItemActive || isActive ? 'var(--color-accent, #fff)' : 'inherit'
+      color: isItemActive || isActive ? `var(--color-accent, ${COLORS.primary})` : 'inherit'
     },
     icon: {
       display: 'flex',
@@ -739,13 +847,13 @@ const DesktopNavItemComponent = memo(({
     label: {
       textTransform: 'uppercase' as const,
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      color: isItemActive || isActive ? 'var(--color-accent, #fff)' : 'inherit'
+      color: isItemActive || isActive ? `var(--color-accent, ${COLORS.primary})` : 'inherit'
     },
     arrow: {
       display: 'flex',
       alignItems: 'center',
       marginTop: '2px',
-      color: isItemActive ? 'var(--color-accent, #fff)' : 'inherit'
+      color: isItemActive ? `var(--color-accent, ${COLORS.primary})` : 'inherit'
     },
     screenReaderOnly: {
       position: 'absolute' as const,
@@ -837,6 +945,7 @@ const DesktopNavItemComponent = memo(({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={onMouseLeave}
       data-nav-item={item.id}
+      role="presentation"
     >
       <motion.button
         id={navItemId}
@@ -850,6 +959,8 @@ const DesktopNavItemComponent = memo(({
         aria-haspopup="true"
         aria-expanded={isItemActive}
         aria-controls={submenuId}
+        aria-label={`${item.label} navigation section${item.submenu.length > 0 ? ' with submenu' : ''}`}
+        aria-current={isActive ? 'page' : undefined}
         tabIndex={0}
       >
         <div style={styles.content}>
@@ -926,13 +1037,13 @@ const GlobalSubmenuComponent = memo(({
       ...submenuStyle
     },
     submenuContainer: {
-      background: 'rgba(10, 10, 10, 0.98)',
+      background: COLORS.background.dark,
       backdropFilter: 'blur(50px)',
       borderRadius: '6px',
       boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 0 12px rgba(255, 255, 255, 0.3)',
       overflow: 'hidden',
-      border: '1px solid rgba(255, 255, 255, 0.08)',
-      borderLeft: '3px solid var(--color-accent, rgba(255, 215, 0, 0.15))',
+      border: `1px solid ${COLORS.border}`,
+      borderLeft: `3px solid var(--color-accent, ${COLORS.borderAccent})`,
       pointerEvents: 'auto' as const,
       willChange: 'transform, opacity',
       margin: '0 auto',
@@ -950,7 +1061,7 @@ const GlobalSubmenuComponent = memo(({
     },
     header: {
       fontFamily: 'var(--font-heading, inherit)',
-      color: 'var(--color-accent, #fff)',
+      color: `var(--color-accent, ${COLORS.primary})`,
       fontSize: FONT_SIZES.desktopSubmenuHeader,
       letterSpacing: '0.1em',
       textTransform: 'uppercase' as const,
@@ -958,7 +1069,7 @@ const GlobalSubmenuComponent = memo(({
     },
     description: {
       fontSize: FONT_SIZES.desktopSubmenuDescription,
-      color: 'rgba(224, 224, 224, 0.7)',
+      color: COLORS.text.muted,
       lineHeight: 1.4,
     },
     contentContainer: {
@@ -1657,7 +1768,7 @@ const MobileMenuComponent = memo(({
       left: '0',
       width: '100%',
       height: '100%',
-      background: 'rgba(8, 8, 8, 0.98)',
+      background: COLORS.background.dark,
       zIndex: 200,
       overflowY: 'hidden', // Changed from 'auto' to 'hidden' to disable main container scroll
       overflowX: 'hidden' as const,
@@ -1707,19 +1818,19 @@ const MobileMenuComponent = memo(({
     logoLink: {
       display: 'flex',
       alignItems: 'center',
-      color: 'var(--color-accent, #fff)',
+      color: `var(--color-accent, ${COLORS.primary})`,
       transition: 'all 0.2s ease',
       cursor: 'pointer'
     },
     headerText: {
-      color: 'var(--color-text, rgba(255, 255, 255, 0.8))',
+      color: `var(--color-text, ${COLORS.tertiary})`,
       fontSize: '1.2rem',
       fontWeight: 'normal',
       textAlign: 'center' as const,
       margin: 0
     },
     titleText: {
-      color: 'var(--color-accent, #fff)',
+      color: `var(--color-accent, ${COLORS.primary})`,
       fontSize: '1.4rem',
       fontWeight: 'bold',
       textAlign: 'center' as const,
@@ -1919,6 +2030,45 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastFocusedElementRef = useRef<HTMLElement | null>(null);
   
+  const [isLogoHovered, setIsLogoHovered] = useState(false);
+  const [showLogoTooltip, setShowLogoTooltip] = useState(false);
+  const logoTooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Handle logo hover events
+  const handleLogoMouseEnter = useCallback(() => {
+    setIsLogoHovered(true);
+    
+    // Clear any existing timeout
+    if (logoTooltipTimeoutRef.current) {
+      clearTimeout(logoTooltipTimeoutRef.current);
+    }
+    
+    // Set a timeout to show the tooltip after 1 second
+    logoTooltipTimeoutRef.current = setTimeout(() => {
+      setShowLogoTooltip(true);
+    }, 1000);
+  }, []);
+  
+  const handleLogoMouseLeave = useCallback(() => {
+    setIsLogoHovered(false);
+    setShowLogoTooltip(false);
+    
+    // Clear any existing timeout
+    if (logoTooltipTimeoutRef.current) {
+      clearTimeout(logoTooltipTimeoutRef.current);
+      logoTooltipTimeoutRef.current = null;
+    }
+  }, []);
+  
+  // Clean up the tooltip timeout when the component unmounts
+  useEffect(() => {
+    return () => {
+      if (logoTooltipTimeoutRef.current) {
+        clearTimeout(logoTooltipTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Styling based on props
   const styles = {
     navContainer: {
@@ -1929,7 +2079,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
       zIndex,
       backdropFilter,
       WebkitBackdropFilter: backdropFilter,
-      background: backgroundColor,
+      background: backgroundColor || COLORS.secondary,
       padding: `${verticalPadding} ${horizontalPadding}`,
       height,
       display: 'flex',
@@ -1939,7 +2089,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
       transform: visible ? 'translateY(0)' : 'translateY(-100%)',
       opacity: visible ? 1 : 0,
       boxShadow: visible ? boxShadow : 'none',
-      borderBottom: borderStyle,
+      borderBottom: borderStyle || `1px solid ${COLORS.border}`,
     },
     navContent: {
       display: 'flex',
@@ -1959,12 +2109,16 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
     logoLink: {
       display: 'flex',
       alignItems: 'center',
-      color: 'var(--color-accent, #fff)',
-      transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+      justifyContent: 'center',
+      color: `var(--color-accent, ${COLORS.primary})`,
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       cursor: 'pointer',
-      '&:hover': {
-        color: 'var(--color-accent-light, #fff)',
-      }
+      position: 'relative' as const,
+      padding: '8px',
+      borderRadius: '50%',
+      background: isLogoHovered ? `${COLORS.glow}` : 'transparent',
+      boxShadow: isLogoHovered ? `0 0 18px 8px ${COLORS.glow}` : 'none',
+      transform: isLogoHovered ? 'scale(1.1)' : 'scale(1)',
     },
     navItemsContainer: {
       display: 'flex',
@@ -2178,6 +2332,39 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
     };
   }, [mobileBreakpoint, isMobileMenuOpen]);
   
+  // Reset logo hover state when pathname changes (page navigation)
+  useEffect(() => {
+    setIsLogoHovered(false);
+    setShowLogoTooltip(false);
+    
+    if (logoTooltipTimeoutRef.current) {
+      clearTimeout(logoTooltipTimeoutRef.current);
+      logoTooltipTimeoutRef.current = null;
+    }
+  }, [pathname]);
+  
+  // Reset logo hover state when tab visibility changes (switching between tabs)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setIsLogoHovered(false);
+        setShowLogoTooltip(false);
+        
+        if (logoTooltipTimeoutRef.current) {
+          clearTimeout(logoTooltipTimeoutRef.current);
+          logoTooltipTimeoutRef.current = null;
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Clean up the event listener when component unmounts
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+  
   // Effect to handle body overflow when mobile menu is open/closed
   useEffect(() => {
     if (!isClient) return;
@@ -2258,12 +2445,25 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
           aria-label={ariaLabel}
         >
           <div style={styles.navContent}>
-            {/* Logo */}
+            {/* Logo with hover effects and tooltip */}
             {logo && (
-              <div style={styles.logoContainer}>
+              <div 
+                style={styles.logoContainer}
+                onMouseEnter={handleLogoMouseEnter}
+                onMouseLeave={handleLogoMouseLeave}
+                onFocus={handleLogoMouseEnter}
+                onBlur={handleLogoMouseLeave}
+              >
                 <Link href={homeHref} passHref>
-                  <div style={styles.logoLink} tabIndex={0} aria-label="Home">
+                  <div 
+                    style={styles.logoLink} 
+                    tabIndex={0} 
+                    aria-label="Navigate to Home Page"
+                    aria-describedby={showLogoTooltip ? "logo-tooltip" : undefined}
+                    role="link"
+                  >
                     {logo}
+                    <LogoTooltip visible={showLogoTooltip} />
                   </div>
                 </Link>
               </div>
