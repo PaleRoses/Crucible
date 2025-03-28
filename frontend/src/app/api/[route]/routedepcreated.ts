@@ -1,8 +1,7 @@
-// app/api/[...route]/route.ts
-import {NextResponse } from 'next/server';
+// src/app/api/[...route]/route.ts
+import { NextRequest, NextResponse } from 'next/server';
 
-// Your data can come from anywhere: database, CMS, file system, etc.
-// This can be replaced with actual data fetching logic
+// Your data store implementation
 const dataStore = {
   "app-config": {
     title: "Your Application Title",
@@ -19,19 +18,22 @@ const dataStore = {
   // Include other data objects
 };
 
-export async function GET(request: Request, { params }: { params: { route: string[] } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { route: string[] } }
+) {
   // Validate params to prevent errors
   if (!params || !params.route || !Array.isArray(params.route)) {
     return NextResponse.json(
-      { error: 'Invalid route parameters' }, 
+      { error: 'Invalid route parameters' },
       { status: 400 }
     );
   }
-
+  
   // Safely join the route segments
   const endpoint = params.route.join('/');
   console.log(`[API] Request for: ${endpoint}`);
-
+  
   try {
     // Return the data if it exists
     if (endpoint in dataStore) {
@@ -40,7 +42,7 @@ export async function GET(request: Request, { params }: { params: { route: strin
     
     // Handle endpoint not found
     return NextResponse.json(
-      { error: `Endpoint '${endpoint}' not found` }, 
+      { error: `Endpoint '${endpoint}' not found` },
       { status: 404 }
     );
   } catch (error) {
