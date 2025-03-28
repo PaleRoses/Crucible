@@ -4,7 +4,7 @@ import styled from 'styled-components';
 // Import for virtualization
 import { FixedSizeList as List } from 'react-window';
 
-// Consolidated contexts for better organization
+// Shared context types for responsiveness
 interface ElementCardContextType {
   isMobile: boolean;
   mobileSectionTextAlign: 'center' | 'left' | 'right';
@@ -14,6 +14,7 @@ interface ElementCardContextType {
   mobileContentMaxWidth: number;
 }
 
+// Combined context with default values
 const ElementCardContext = createContext<ElementCardContextType>({
   isMobile: false,
   mobileSectionTextAlign: 'center',
@@ -45,47 +46,43 @@ const ElementCardContext = createContext<ElementCardContextType>({
 /**
  * =====================================================================
  * TYPE DEFINITIONS & INTERFACES
- * Comprehensive type system for component props and data structures
+ * Optimized type system with composition
  * =====================================================================
  */
 
-// Base interfaces for reuse
-interface BaseItem {
-  id?: string;
-  label?: string;
-  title?: string;
-}
+// Base types for reuse across interfaces
+type Content = React.ReactNode | string;
+type ContentArray = (React.ReactNode | string)[];
 
-interface ContentItem {
-  content?: React.ReactNode | string | (React.ReactNode | string)[];
-  sectionTitle?: string; 
-}
-
+// Stats and navigation types
 interface StatItem {
   value: string | number;
   label: string;
 }
 
-// Extended interfaces with composition
-interface NavigationItem extends BaseItem, ContentItem {
+interface NavigationItem {
   id: string;
   label: string;
+  content?: Content | ContentArray;
+  sectionTitle?: string; // Optional title to display above section content
   stats?: StatItem[];
 }
 
-interface AdditionalSection extends ContentItem {
+interface AdditionalSection {
   title?: string;
-  content: React.ReactNode | string;
+  content: Content | ContentArray;
 }
 
-interface InfoData extends BaseItem {
+// Core data structure
+interface InfoData {
   title: string;
   subheader: string;
   tagline?: string;
-  description?: (React.ReactNode | string)[];
+  description?: ContentArray;
   stats?: StatItem[];
 }
 
+// Animation configuration
 interface AnimationConfig {
   threshold?: number;
   once?: boolean;
@@ -94,56 +91,73 @@ interface AnimationConfig {
 }
 
 /**
- * Grouped interface properties for better organization
+ * Component props broken down into logical groups for better organization
  */
+// Core styling props
 interface StyleProps {
+  /** Primary color for highlights, headings, and active elements */
   highlightColor?: string;
+  /** Main color for regular text content */
   textColor?: string;
+  /** Font family for text content */
   fontFamily?: string;
 }
 
-interface NavigationProps {
-  navigationItems?: NavigationItem[];
+// Navigation styling props
+interface NavStyleProps {
+  /** Minimum width for navigation indicator lines (px) */
   minLineWidth?: number;
+  /** Maximum width for navigation indicator lines when active (px) */
   maxLineWidth?: number;
-  taglineNavSpacing?: number;
-  showOverview?: boolean;
 }
 
+// Layout configuration props
 interface LayoutProps {
+  /** Content compression factor (0-10) affecting column widths and spacing */
   contentCompression?: number;
-  maxSections?: number;
+  /** Column spacing between sidebar and content (in rem) */
   columnSpacing?: number;
+  /** Space between tagline and navigation (in rem) */
+  taglineNavSpacing?: number;
+  /** Distance from top of viewport when sidebar switches to fixed position (px) */
   topOffset?: number;
 }
 
+// Mobile-specific props
 interface MobileProps {
+  /** Left and right margin for mobile content (rem) */
   mobileContentMargin?: number;
+  /** Breakpoint for mobile view (px) */
   mobileBreakpoint?: number;
+  /** Mobile content text alignment ('center', 'left', 'right') */
   mobileSectionTextAlign?: 'center' | 'left' | 'right';
+  /** Maximum width for mobile content as percentage */
   mobileContentMaxWidth?: number;
+  /** Padding for section content in mobile mode (rem) */
   mobileSectionContentPadding?: number;
+  /** Mobile fade-in animation duration override (seconds) */
   mobileFadeDuration?: number;
+  /** Whether to handle overflow in mobile mode */
   handleMobileOverflow?: boolean;
+  /** Mobile font size adjustment factor (0.8-1.2) */
   mobileFontSizeFactor?: number;
 }
 
+// Virtualization props
 interface VirtualizationProps {
+  /** Whether to use virtualization for long lists */
   useVirtualization?: boolean;
+  /** Height for virtualized list items (px) */
   virtualItemHeight?: number;
+  /** Minimum items to use virtualization */
   virtualListThreshold?: number;
 }
 
 /**
- * Main component props with grouped parameters for better organization
+ * Main component props with extended parameterization options
+ * Each parameter is documented with its purpose and default value
  */
-interface ElementCardProps extends 
-  StyleProps, 
-  NavigationProps, 
-  LayoutProps, 
-  MobileProps, 
-  VirtualizationProps {
-  
+interface ElementCardProps extends StyleProps, NavStyleProps, LayoutProps, MobileProps, VirtualizationProps {
   /** Core data object containing information */
   data: InfoData;
   
@@ -156,8 +170,17 @@ interface ElementCardProps extends
   /** Callback function triggered when active section changes */
   onSectionChange?: ((sectionId: string) => void) | null;
   
+  /** Navigation sections to display - determines content structure */
+  navigationItems?: NavigationItem[];
+  
+  /** Maximum number of sections to support (default: 8) */
+  maxSections?: number;
+  
   /** Position for global stats: 'top', 'bottom', or 'none' */
   statsPosition?: 'top' | 'bottom' | 'none';
+  
+  /** Whether to show the overview/about section (default: true) */
+  showOverview?: boolean;
   
   /** Enable enhanced accessibility features (default: true) */
   enhancedAccessibility?: boolean;
@@ -173,91 +196,85 @@ interface LayoutValues {
 }
 
 /**
- * Performance utility functions for throttling and debouncing
+ * Utility Functions
+ * Extracted utility functions for better organization and reuse
  */
-const performanceUtils = {
-  /**
-   * Throttle function to limit the rate at which a function can fire
-   */
-  throttle: <T extends (...args: unknown[]) => unknown>(fn: T, wait: number): ((...args: Parameters<T>) => void) => {
-    let lastCalled = 0;
-    let timeout: number | null = null;
-    let lastArgs: Parameters<T> | null = null;
-    
-    return (...args: Parameters<T>) => {
-      const now = Date.now();
-      const remaining = wait - (now - lastCalled);
-      
-      lastArgs = args;
-      
-      if (remaining <= 0 || remaining > wait) {
-        if (timeout !== null) {
-          window.clearTimeout(timeout);
-          timeout = null;
-        }
-        lastCalled = now;
-        fn(...args);
-      } else if (timeout === null) {
-        timeout = window.setTimeout(() => {
-          lastCalled = Date.now();
-          timeout = null;
-          if (lastArgs) fn(...lastArgs);
-        }, remaining);
-      }
-    };
-  },
 
-  /**
-   * Debounce function to delay invoking a function until after a specific time
-   */
-  debounce: <T extends (...args: unknown[]) => unknown>(fn: T, wait: number): ((...args: Parameters<T>) => void) => {
-    let timeout: number | null = null;
+/**
+ * Throttle function to limit the rate at which a function can fire
+ * @param fn - The function to throttle
+ * @param wait - The rate limit in milliseconds
+ */
+const throttle = <T extends (...args: unknown[]) => unknown>(fn: T, wait: number): ((...args: Parameters<T>) => void) => {
+  let lastCalled = 0;
+  let timeout: number | null = null;
+  let lastArgs: Parameters<T> | null = null;
+  
+  return (...args: Parameters<T>) => {
+    const now = Date.now();
+    const remaining = wait - (now - lastCalled);
     
-    return (...args: Parameters<T>) => {
+    lastArgs = args;
+    
+    if (remaining <= 0 || remaining > wait) {
       if (timeout !== null) {
         window.clearTimeout(timeout);
+        timeout = null;
       }
-      
+      lastCalled = now;
+      fn(...args);
+    } else if (timeout === null) {
       timeout = window.setTimeout(() => {
-        fn(...args);
-      }, wait);
-    };
-  }
+        lastCalled = Date.now();
+        timeout = null;
+        if (lastArgs) fn(...lastArgs);
+      }, remaining);
+    }
+  };
+};
+
+/**
+ * Debounce function to delay invoking a function until after a specific time
+ * @param fn - The function to debounce
+ * @param wait - The delay in milliseconds
+ */
+const debounce = <T extends (...args: unknown[]) => unknown>(fn: T, wait: number): ((...args: Parameters<T>) => void) => {
+  let timeout: number | null = null;
+  
+  return (...args: Parameters<T>) => {
+    if (timeout !== null) {
+      window.clearTimeout(timeout);
+    }
+    
+    timeout = window.setTimeout(() => {
+      fn(...args);
+    }, wait);
+  };
 };
 
 /**
  * =====================================================================
  * STYLED COMPONENTS
- * CSS-in-JS implementation with TypeScript props typing and improved reuse
+ * CSS-in-JS implementation with TypeScript props typing
  * =====================================================================
  */
 
-// Common style mixins for reuse
-const responsiveTextMixin = (mobileFontSize: string, desktopFontSize: string) => `
-  font-size: ${mobileFontSize};
-  
-  @media (min-width: 768px) {
-    font-size: ${desktopFontSize};
-  }
-`;
-
-const textAlignMixin = (isMobile: boolean, alignment = 'left') => `
-  text-align: ${isMobile ? 'center' : alignment};
-`;
-
-// Basic shared props
-interface SharedStyleProps {
-  $isMobile?: boolean;
+// Base shared styled component props
+interface ResponsiveProps {
+  $isMobile: boolean;
 }
 
-interface ColorProps extends SharedStyleProps {
-  $highlightColor?: string;
+interface ColorProps {
+  $highlightColor: string;
   $color?: string;
+}
+
+interface TextProps {
   $fontFamily?: string;
 }
 
-// Container component
-const Container = styled(motion.div)<SharedStyleProps>`
+// Consolidated styled components with composition
+const Container = styled(motion.div)<ResponsiveProps>`
   display: flex;
   flex-direction: ${props => props.$isMobile ? 'column' : 'row'};
   width: 90%;
@@ -272,7 +289,6 @@ const Container = styled(motion.div)<SharedStyleProps>`
   }
 `;
 
-// Layout components
 const SidebarWrapper = styled.div<{$width: number}>`
   width: ${props => `${props.$width}%`};
   position: relative;
@@ -287,14 +303,15 @@ const Sidebar = styled.div`
   top: 0;
 `;
 
-const ContentSection = styled.div<{
-  $isMobile: boolean;
+interface ContentSectionProps extends ResponsiveProps {
   $width: number;
   $contentPadding: number;
   $mobileContentMargin: number;
   $mobileContentMaxWidth?: number;
   $handleMobileOverflow?: boolean;
-}>`
+}
+
+const ContentSection = styled.div<ContentSectionProps>`
   width: ${props => props.$isMobile ? '100%' : `${props.$width}%`};
   padding: ${props => props.$isMobile ? 
     `0rem ${props.$mobileContentMargin}rem` : 
@@ -317,34 +334,36 @@ const ContentSection = styled.div<{
   }
 `;
 
-const Section = styled.div<SharedStyleProps>`
+const Section = styled.div<ResponsiveProps>`
   margin-bottom: 3rem;
   scroll-margin-top: ${props => props.$isMobile ? '80px' : '2rem'};
 `;
 
-// Typography components with shared props and styling
-const BaseText = styled.div<ColorProps>`
-  color: ${props => props.$color || 'inherit'};
-  font-family: ${props => props.$fontFamily || 'inherit'};
-  ${props => textAlignMixin(!!props.$isMobile)}
-`;
+// Typography components with shared props
+interface TextComponentProps extends ResponsiveProps, Partial<ColorProps> {
+  $fontFamily?: string;
+}
 
-const SectionTitle = styled(BaseText).attrs({ as: 'h3' })<{$highlightColor: string; $isMobile?: boolean}>`
-  ${responsiveTextMixin('1.1rem', 'clamp(1.2rem, 2vw, 1.4rem)')}
+const SectionTitle = styled.h3<TextComponentProps>`
+  font-size: clamp(1.2rem, 2vw, 1.4rem);
   color: ${props => props.$highlightColor};
   margin-bottom: 1rem;
   font-weight: 100;
   text-align: ${props => props.$isMobile ? 'center' : 'left'};
+  
+  @media (max-width: 480px) {
+    font-size: 1.1rem;
+  }
 `;
 
-const InfoContainer = styled.div<SharedStyleProps>`
+const InfoContainer = styled.div<ResponsiveProps>`
   margin-bottom: 2rem;
   padding-left: 5px;
   text-align: ${props => props.$isMobile ? 'center' : 'left'};
   width: 100%;
 `;
 
-const Title = styled(BaseText).attrs({ as: 'h1' })<{$highlightColor: string; $isMobile: boolean}>`
+const Title = styled.h1<TextComponentProps>`
   font-weight: 30000;
   letter-spacing: 0.1em;
   margin-bottom: 0.5rem;
@@ -352,23 +371,48 @@ const Title = styled(BaseText).attrs({ as: 'h1' })<{$highlightColor: string; $is
   color: ${props => props.$highlightColor};
 `;
 
-const Subheader = styled(BaseText).attrs({ as: 'h2' })<{$isMobile: boolean}>`
+interface SubheaderProps extends TextComponentProps {
+  $color: string;
+}
+
+const Subheader = styled.h2<SubheaderProps>`
   font-weight: 100;
   margin-bottom: 2rem;
   letter-spacing: 0.05em;
   font-style: italic;
   font-size: ${props => props.$isMobile ? '1.1rem' : '1.2rem'};
+  color: ${props => props.$color};
+  font-family: ${props => props.$fontFamily};
 `;
 
-const Tagline = styled(BaseText).attrs({ as: 'p' })<{$isMobile: boolean; $spacing: number}>`
+interface TaglineProps extends TextComponentProps {
+  $color: string;
+  $spacing: number;
+}
+
+const Tagline = styled.p<TaglineProps>`
   line-height: 1.6;
   margin-bottom: ${props => `${props.$spacing}rem`};
   font-weight: 100;
   font-size: 1.1rem;
   max-width: ${props => props.$isMobile ? '100%' : '90%'};
+  color: ${props => props.$color};
+  font-family: ${props => props.$fontFamily};
 `;
 
-// Navigation components
+// Consolidated navigation-related components
+interface ActiveStateProps {
+  $active: boolean;
+  $activeColor: string;
+  $inactiveColor: string;
+}
+
+interface NavLineBaseProps extends ActiveStateProps {
+  $minWidth: number;
+  $maxWidth: number;
+}
+
+// Common styles for both desktop and mobile navigation
 const NavLinks = styled.div`
   display: flex;
   flex-direction: column;
@@ -381,52 +425,46 @@ const NavLinkContainer = styled.div`
   align-items: center;
 `;
 
-interface NavLineProps {
-  $expanded: boolean;
-  $activeColor: string;
-  $inactiveColor: string;
-  $minWidth: number;
-  $maxWidth: number;
-}
+// Shared line component styles
+const BaseNavLine = styled.div<NavLineBaseProps>`
+  background-color: ${props => props.$active ? props.$activeColor : props.$inactiveColor};
+  width: ${props => props.$active ? `${props.$maxWidth}px` : `${props.$minWidth}px`};
+  transition: width 0.3s ease, background-color 0.3s ease;
+`;
 
-const NavLine = styled.div<NavLineProps>`
+const NavLine = styled(BaseNavLine)`
   position: absolute;
   left: 0;
   top: 50%;
   transform: translateY(-50%);
   height: 0.75px;
-  width: ${props => props.$expanded ? `${props.$maxWidth}px` : `${props.$minWidth}px`};
-  background-color: ${props => props.$expanded ? props.$activeColor : props.$inactiveColor};
-  transition: width 0.3s ease, background-color 0.3s ease;
 `;
 
-interface NavButtonProps {
-  $active: boolean;
-  $activeColor: string;
-  $inactiveColor: string;
-}
+// Base button styles
+const BaseButton = styled.button`
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+`;
 
-const NavButton = styled.button<NavButtonProps>`
+const NavButton = styled(BaseButton)<ActiveStateProps>`
   position: relative;
   display: block;
   padding: 0.5rem 0 0.5rem 40px;
   font-size: clamp(0.7rem, 1vw, 0.85rem);
   letter-spacing: 0.2em;
-  background: transparent;
-  border: none;
   text-align: left;
-  outline: none;
   box-shadow: none;
   transition: color 0.3s ease, transform 0.3s ease;
-  cursor: pointer;
   width: fit-content;
   color: ${props => props.$active ? props.$activeColor : props.$inactiveColor};
   transform: ${props => props.$active ? 'translateX(10px)' : 'none'};
-  
-  &:focus-visible {
-    outline: 2px solid ${props => props.$activeColor};
-    outline-offset: 2px;
-  }
   
   &:hover:not(:active) {
     transform: translateX(5px);
@@ -438,11 +476,8 @@ const NavButton = styled.button<NavButtonProps>`
   }
 `;
 
-interface MobileNavProps {
-  $highlightColor: string;
-}
-
-const MobileNav = styled.div<MobileNavProps>`
+// Mobile navigation components
+const MobileNav = styled.div<{$highlightColor: string}>`
   width: 100%;
   padding: 0.75rem 1rem;
   display: flex;
@@ -463,21 +498,12 @@ const MobileNavItem = styled.div`
   position: relative;
 `;
 
-const MobileNavButton = styled.button`
+const MobileNavButton = styled(BaseButton)`
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: transparent;
-  border: none;
-  cursor: pointer;
   padding: 0.5rem;
-  outline: none;
   transition: transform 0.2s ease;
-  
-  &:focus-visible {
-    outline: 2px solid currentColor;
-    outline-offset: 2px;
-  }
   
   &:hover {
     transform: translateY(-2px);
@@ -488,29 +514,12 @@ const MobileNavButton = styled.button`
   }
 `;
 
-interface MobileNavLineProps {
-  $active: boolean;
-  $activeColor: string;
-  $inactiveColor: string;
-  $minWidth: number;
-  $maxWidth: number;
-}
-
-const MobileNavLine = styled.div<MobileNavLineProps>`
-  width: ${props => props.$active ? `${props.$maxWidth}px` : `${props.$minWidth}px`};
+const MobileNavLine = styled(BaseNavLine)`
   height: 2px;
-  background-color: ${props => props.$active ? props.$activeColor : props.$inactiveColor};
-  transition: width 0.3s ease, background-color 0.3s ease;
   margin-bottom: 0.5rem;
 `;
 
-interface MobileNavLabelProps {
-  $active: boolean;
-  $activeColor: string;
-  $inactiveColor: string;
-}
-
-const MobileNavLabel = styled.div<MobileNavLabelProps>`
+const MobileNavLabel = styled.div<ActiveStateProps>`
   font-size: 0.75rem;
   color: ${props => props.$active ? props.$activeColor : props.$inactiveColor};
   letter-spacing: 0.1em;
@@ -523,13 +532,13 @@ const MobileNavLabel = styled.div<MobileNavLabelProps>`
   }
 `;
 
-interface StatsContainerProps {
-  $isMobile: boolean;
+// Stats components with shared props
+interface MarginProps {
   $marginTop?: number;
   $marginBottom?: number;
 }
 
-const StatsContainer = styled.div<StatsContainerProps>`
+const StatsContainer = styled.div<ResponsiveProps & MarginProps>`
   display: flex;
   justify-content: ${props => props.$isMobile ? 'center' : 'space-between'};
   flex-wrap: wrap;
@@ -539,8 +548,7 @@ const StatsContainer = styled.div<StatsContainerProps>`
   gap: ${props => props.$isMobile ? '2rem' : '0'};
 `;
 
-interface StatItemProps {
-  $isMobile: boolean;
+interface StatItemProps extends ResponsiveProps {
   $isHovering: boolean;
 }
 
@@ -553,32 +561,23 @@ const StatItem = styled.div<StatItemProps>`
   transform: ${props => props.$isHovering ? 'translateY(-5px)' : 'none'};
 `;
 
-interface StatValueProps {
-  $isMobile: boolean;
-  $color: string;
-}
-
-const StatValue = styled.div<StatValueProps>`
+const StatValue = styled.div<ResponsiveProps & {$color: string}>`
   font-size: ${props => props.$isMobile ? '2.2rem' : '2.5rem'};
   font-weight: 300;
   color: ${props => props.$color};
   margin-bottom: 0.5rem;
 `;
 
-interface StatLabelProps {
-  $color: string;
-}
-
-const StatLabel = styled.div<StatLabelProps>`
+const StatLabel = styled.div<{$color: string}>`
   font-size: 0.85rem;
   color: ${props => props.$color};
   text-transform: uppercase;
   letter-spacing: 0.1em;
 `;
 
-interface SectionContentProps {
+// Content related styled components
+interface SectionContentProps extends TextProps {
   $color: string;
-  $fontFamily: string;
   $isMobile?: boolean;
   $mobileSectionTextAlign?: 'center' | 'left' | 'right';
   $mobileSectionContentPadding?: number;
@@ -610,7 +609,7 @@ const SectionContent = styled.p<SectionContentProps>`
   }
 `;
 
-// Styling for virtualized list container
+// Virtualized list styling
 const VirtualListContainer = styled.div`
   width: 100%;
   margin-bottom: 1.5rem;
@@ -818,7 +817,7 @@ const NavLinkComponent = React.memo(({
       onMouseLeave={onMouseLeave}
     >
       <NavLine 
-        $expanded={isActive}
+        $active={isActive}
         $activeColor={`${highlightColor}E6`}
         $inactiveColor={`${highlightColor}80`}
         $minWidth={minLineWidth}
@@ -1416,7 +1415,7 @@ const ElementCard = (props: ElementCardProps) => {
   
   // Throttled scroll handler
   const throttledScrollHandler = useMemo(() => 
-    performanceUtils.throttle(handleScroll, 16), // ~60fps
+    throttle(handleScroll, 16), // ~60fps
   [handleScroll]);
   
   /**
@@ -1437,7 +1436,7 @@ const ElementCard = (props: ElementCardProps) => {
   
   // Debounced resize handler
   const debouncedResizeHandler = useMemo(() => 
-    performanceUtils.debounce(handleResize, 100),
+    debounce(handleResize, 100),
   [handleResize]);
   
   // Mobile nav functionality removed - using simpler navigation approach
@@ -1449,7 +1448,7 @@ const ElementCard = (props: ElementCardProps) => {
    * =====================================================================
    */
   const resizeObserver = useMemo(() => new ResizeObserver(
-    performanceUtils.debounce(() => {
+    debounce(() => {
       if (containerRef.current) {
         requestAnimationFrame(() => {
           debouncedResizeHandler();
@@ -1772,13 +1771,13 @@ const ElementCard = (props: ElementCardProps) => {
    */
   return (
     <ElementCardContext.Provider value={{
-        isMobile,
-        mobileSectionTextAlign: mobileSectionTextAlign || 'center',
-        mobileSectionContentPadding: mobileSectionContentPadding || 0.5,
-        mobileFontSizeFactor: mobileFontSizeFactor || 1,
-        handleMobileOverflow: handleMobileOverflow !== false,
-        mobileContentMaxWidth: mobileContentMaxWidth || 95
-      }}>
+      isMobile,
+      mobileSectionTextAlign: mobileSectionTextAlign || 'center',
+      mobileSectionContentPadding: mobileSectionContentPadding || 0.5,
+      mobileFontSizeFactor: mobileFontSizeFactor || 1,
+      handleMobileOverflow: handleMobileOverflow !== false,
+      mobileContentMaxWidth: mobileContentMaxWidth || 95
+    }}>
         <Container 
           ref={containerRef}
           $isMobile={isMobile}
@@ -1906,7 +1905,10 @@ const ElementCard = (props: ElementCardProps) => {
                 $isMobile={isMobile}
               >
                 {section.title && (
-                  <SectionTitle $highlightColor={highlightColor}>
+                  <SectionTitle 
+                    $highlightColor={highlightColor}
+                    $isMobile={isMobile}
+                  >
                     {section.title}
                   </SectionTitle>
                 )}
@@ -1930,7 +1932,7 @@ const ElementCard = (props: ElementCardProps) => {
           })}
         </ContentSection>
     </Container>
-      </ElementCardContext.Provider>
+    </ElementCardContext.Provider>
   );
 };
 
