@@ -5,173 +5,260 @@ import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
-// ==========================================================
-// TYPES & INTERFACES
-// ==========================================================
+// Custom hooks
+function useSubmenuManager(submenuBehavior: 'hover' | 'click', submenuCloseDelay: number) {
+  const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const [focusedItemId, setFocusedItemId] = useState<string | null>(null);
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastFocusedElementRef = useRef<HTMLElement | null>(null);
+  
+  // Store and restore focus state when activating/deactivating submenu
+  useEffect(() => {
+    if (activeItemId) {
+      lastFocusedElementRef.current = document.activeElement as HTMLElement;
+    } else if (lastFocusedElementRef.current) {
+      lastFocusedElementRef.current.focus();
+      lastFocusedElementRef.current = null;
+    }
+  }, [activeItemId]);
+  
+  // Clear timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+      }
+    };
+  }, []);
 
-/**
- * These interfaces define the data structure for navigation items,
- * supporting hierarchical menus with nested submenu items.
- * The component is built to be highly configurable through props.
- */
+  // Handle delayed submenu closing for hover behavior
+  const closeSubmenuWithDelay = useCallback(() => {
+    if (submenuBehavior !== 'hover') return;
+    
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+    }
+    
+    closeTimeoutRef.current = setTimeout(() => {
+      setActiveItemId(null);
+    }, submenuCloseDelay);
+  }, [submenuBehavior, submenuCloseDelay]);
 
-/**
- * Customizable Navigation Bar Component
- * 
- * A highly customizable navigation bar with responsive design, animation,
- * and accessibility features. This component is designed to be flexible and reusable
- * across various projects by accepting configuration parameters.
- * 
- * @param {NavigationBarProps} props - Configuration props for the navigation bar
- * 
- * Usage example:
- * ```jsx
- * // In your app layout or parent component:
- * const navigationItems = [
- *   {
- *     id: 'products',
- *     label: 'Products',
- *     href: '/products',
- *     submenu: [
- *       {
- *         id: 'feature1',
- *         label: 'Feature 1',
- *         href: '/products/feature1',
- *         description: 'Description of feature 1'
- *       },
- *       // More submenu items...
- *     ]
- *   },
- *   // More navigation items...
- * ];
- * 
- * <NavigationBar 
- *   items={navigationItems}
- *   logo={<YourLogoComponent />}
- *   homeHref="/"
- *   submenuBehavior="hover"
- *   showOnScroll={true}
- * />
- * ```
- */
+  // Cancel submenu closing if mouse re-enters
+  const cancelSubmenuClosing = useCallback(() => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  }, []);
+  
+  // Handle mouse enter for menu items
+  const handleNavItemMouseEnter = useCallback((itemId: string) => {
+    if (submenuBehavior === 'hover') {
+      cancelSubmenuClosing();
+      setActiveItemId(itemId);
+    }
+  }, [cancelSubmenuClosing, submenuBehavior]);
+  
+  // Handle mouse leave for menu items
+  const handleNavItemMouseLeave = useCallback(() => {
+    if (submenuBehavior === 'hover') {
+      closeSubmenuWithDelay();
+    }
+  }, [closeSubmenuWithDelay, submenuBehavior]);
 
-/**
- * Base menu item interface with shared properties
- */
+  return {
+    activeItemId,
+    setActiveItemId,
+    focusedItemId,
+    setFocusedItemId,
+    handleNavItemMouseEnter,
+    handleNavItemMouseLeave,
+    cancelSubmenuClosing,
+    closeSubmenuWithDelay
+  };
+}
+
+function useResponsiveNavigation(mobileBreakpoint: number, hideOnScroll: boolean, scrollThreshold: number) {
+  const [isClient, setIsClient] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [prevScrollPos, setPrevScrollPos] = useState(0);
+  const [visible, setVisible] = useState(true);
+  const scrollPositionRef = useRef(0);
+  
+  // Client-side initialization and responsive handling
+  useEffect(() => {
+    setIsClient(true);
+    setPrevScrollPos(window.scrollY);
+    
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth <= mobileBreakpoint);
+    };
+    
+    checkMobileView();
+    window.addEventListener('resize', checkMobileView);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobileView);
+      if (isMobileMenuOpen) {
+        document.body.style.overflow = '';
+      }
+    };
+  }, [mobileBreakpoint, isMobileMenuOpen]);
+
+  // Toggle mobile menu
+  const toggleMobileMenu = useCallback(() => {
+    if (isMobileView) {
+      const mobileMenuButton = document.querySelector('[aria-controls="mobile-menu"]') as HTMLElement;
+      const wasOpen = isMobileMenuOpen;
+      
+      setIsMobileMenuOpen(prev => !prev);
+      
+      if (wasOpen && mobileMenuButton) {
+        setTimeout(() => {
+          mobileMenuButton.focus();
+        }, 50);
+      }
+    }
+  }, [isMobileView, isMobileMenuOpen]);
+
+  // Scroll behavior
+  useEffect(() => {
+    if (!isClient || !hideOnScroll) return;
+    
+    const handleScroll = () => {
+      const currentScrollPos = window.scrollY;
+      const scrollingUp = prevScrollPos > currentScrollPos;
+      const atTop = currentScrollPos < 10;
+      const significantChange = Math.abs(currentScrollPos - prevScrollPos) > scrollThreshold;
+      
+      if (atTop || (scrollingUp && significantChange)) {
+        setVisible(true);
+      } else if (!scrollingUp && significantChange && !isMobileMenuOpen) {
+        setVisible(false);
+      }
+      
+      setPrevScrollPos(currentScrollPos);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isClient, prevScrollPos, isMobileMenuOpen, hideOnScroll, scrollThreshold]);
+
+  // Handle body scroll lock for mobile menu
+  useEffect(() => {
+    if (!isClient) return;
+    
+    const scrollRef = scrollPositionRef;
+    
+    if (isMobileMenuOpen && isMobileView) {
+      const currentScrollPos = window.pageYOffset || document.documentElement.scrollTop;
+      scrollRef.current = currentScrollPos;
+      
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      
+      document.documentElement.style.overflow = 'hidden';
+      document.documentElement.style.paddingRight = `${scrollbarWidth}px`;
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+      document.body.style.touchAction = 'none';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.top = `-${currentScrollPos}px`;
+    } else if (isClient) {
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.paddingRight = '';
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+      document.body.style.touchAction = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.top = '';
+      
+      window.scrollTo(0, scrollRef.current);
+    }
+    
+    return () => {
+      if (isClient) {
+        document.documentElement.style.overflow = '';
+        document.documentElement.style.paddingRight = '';
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        document.body.style.touchAction = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.top = '';
+        
+        window.scrollTo(0, scrollRef.current);
+      }
+    };
+  }, [isMobileMenuOpen, isMobileView, isClient]);
+
+  return {
+    isClient,
+    isMobileView,
+    isMobileMenuOpen,
+    visible,
+    toggleMobileMenu,
+    scrollPositionRef
+  };
+}
+
+// Types & Interfaces
 export interface BaseMenuItem {
-  /** Unique identifier for the menu item */
   id: string;
-  /** Display text for the menu item */
   label: string;
-  /** URL or route to navigate to when clicked */
   href: string;
-  /** Optional icon component or string identifier for predefined icons */
   icon?: React.ReactNode | string;
 }
 
-/**
- * Submenu item with optional description
- */
 export interface SubmenuItem extends BaseMenuItem {
-  /** Optional description text for the submenu item */
   description?: string;
 }
 
-/**
- * Navigation item with submenu
- */
 export interface NavItem extends BaseMenuItem {
-  /** Array of submenu items to display in dropdown */
   submenu: SubmenuItem[];
 }
 
-/**
- * Props for the main navigation bar component
- */
 export interface NavigationBarProps {
   // Content Configuration
-  /** Navigation items configuration - defines the structure and content of the menu */
   items?: NavItem[];
-  
-  /** Custom logo component to display on the left side of the navigation bar */
   logo?: React.ReactNode;
-  
-  /** URL or route for the home/landing page when logo is clicked */
   homeHref?: string;
-  
-  /** ARIA label for the navigation element for accessibility */
   ariaLabel?: string;
-  
-  /** Whether to show descriptions for submenu items */
   showItemDescriptions?: boolean;
-  
-  /** Icon mapping for string-based icon references */
   iconMapping?: Record<string, React.ComponentType>;
-  
-  /** Optional header text to display in mobile menu */
   mobileHeader?: React.ReactNode;
-  
-  /** Optional title to display in mobile menu (default: 'Crescent') */
   mobileTitle?: string;
-  
-  /** Optional custom mobile menu icon */
   mobileMenuIcon?: React.ReactNode;
   
   // Layout & Dimensions
-  /** Height of the navigation bar (CSS value) */
   height?: string | number;
-  
-  /** Width of the navigation bar (CSS value, usually '100%') */
   width?: string;
-  
-  /** Maximum width of the navigation bar (CSS value) */
   maxWidth?: string;
-  
-  /** Horizontal padding of the navigation bar (CSS value) */
   horizontalPadding?: string;
-  
-  /** Vertical padding of the navigation bar (CSS value) */
   verticalPadding?: string;
-  
-  /** Z-index for the navigation bar */
   zIndex?: number;
-  
-  /** Gap between navigation items (CSS value) */
   itemGap?: string;
-  
-  /** Breakpoint for mobile layout (in px) */
   mobileBreakpoint?: number;
   
   // Behavior
-  /** Whether to use hover or click to activate submenus */
   submenuBehavior?: 'hover' | 'click';
-  
-  /** Delay before closing submenu when mouse leaves (in ms) */
   submenuCloseDelay?: number;
-  
-  /** Whether to hide the navigation bar when scrolling down */
   hideOnScroll?: boolean;
-  
-  /** Scroll threshold to trigger hide/show (in px) */
   scrollThreshold?: number;
   
   // Visual Styling
-  /** Background color or gradient (CSS value) */
   backgroundColor?: string;
-  
-  /** Backdrop filter value (e.g., 'blur(10px)') */
   backdropFilter?: string;
-  
-  /** Border style for the navigation bar (CSS value) */
   borderStyle?: string;
-  
-  /** Box shadow for the navigation bar (CSS value) */
   boxShadow?: string;
 }
 
-/**
- * Context type for managing navigation state
- */
 interface NavContextType {
   activeItemId: string | null;
   setActiveItemId: (id: string | null) => void;
@@ -180,345 +267,702 @@ interface NavContextType {
   setFocusedItemId: (id: string | null) => void;
 }
 
-// ==========================================================
-// DEFAULT VALUES & CONSTANTS
-// ==========================================================
+// Type definitions for the styles
+// Simple type definitions for shadows
+interface Shadows {
+  standard: string;
+  submenu: string;
+  mobile: string;
+}
 
-/**
- * Centralized color system
- * Adjust these values to control colors throughout the component
- */
-const COLORS = {
-  // Primary color for logo and important elements
-  primary: 'rgba(255, 215, 0, 0.9)', // Gold-like color
-  
-  // Secondary color for backgrounds and secondary elements
-  secondary: 'rgba(8, 8, 8, 0.85)', // Dark background
-  
-  // Tertiary color for unaltered text
-  tertiary: 'rgba(255, 255, 255, 0.8)', // Off-white text
-  
-  // Glow color for hover effects
-  glow: 'rgba(255, 215, 0, 0.10)', // Very subtle gold for glow effects
-  
-  // Additional utility colors
-  background: {
-    light: 'rgba(20, 20, 20, 0.7)',
-    dark: 'rgba(10, 10, 10, 0.98)'
-  },
-  text: {
-    muted: 'rgba(224, 224, 224, 0.7)',
-    dimmed: 'rgba(224, 224, 224, 0.5)'
-  },
-  border: 'rgba(255, 255, 255, 0.1)',
-  borderAccent: 'rgba(255, 215, 0, 0.15)',
-  tooltip: {
-    background: 'rgba(0, 0, 0, 0.85)',
-    text: 'rgba(255, 255, 255, 0.9)',
-    border: 'rgba(255, 215, 0, 0.3)'
-  }
+interface FontsType {
+  desktopNavItem: string;
+  desktopSubmenuHeader: string;
+  desktopSubmenuItem: string;
+  desktopSubmenuDescription: string;
+  mobileNavItem: string;
+  mobileSubmenuItem: string;
+  tooltip: string;
+}
+
+interface CommonStylesType {
+  screenReaderOnly: React.CSSProperties;
+}
+
+interface LogoStylesType {
+  container: React.CSSProperties;
+  link: React.CSSProperties;
+}
+
+interface NavBarStylesType {
+  container: (visible: boolean, height: string | number, width: string, zIndex: number, backdropFilter: string, boxShadow: string, borderStyle: string) => React.CSSProperties;
+  content: (maxWidth: string, horizontalPadding: string, verticalPadding: string) => React.CSSProperties;
+  itemsContainer: (itemGap: string) => React.CSSProperties;
+}
+
+interface TooltipStylesType {
+  container: (visible: boolean) => React.CSSProperties;
+  content: React.CSSProperties;
+  arrow: React.CSSProperties;
+}
+
+interface SubmenuItemStylesType {
+  wrapper: React.CSSProperties;
+  hoverState: React.CSSProperties;
+  link: React.CSSProperties;
+  icon: React.CSSProperties;
+  label: React.CSSProperties;
+  description: React.CSSProperties;
+}
+
+interface DesktopNavItemStylesType {
+  wrapper: (itemStyle?: React.CSSProperties) => React.CSSProperties;
+  navItem: (isItemActive: boolean, isActive: boolean) => React.CSSProperties;
+  content: (isItemActive: boolean, isActive: boolean) => React.CSSProperties;
+  icon: React.CSSProperties;
+  label: (isItemActive: boolean, isActive: boolean) => React.CSSProperties;
+  arrow: (isItemActive: boolean) => React.CSSProperties;
+}
+
+interface GlobalSubmenuStylesType {
+  container: (submenuStyle?: React.CSSProperties) => React.CSSProperties;
+  submenuContainer: React.CSSProperties;
+  grid: React.CSSProperties;
+  header: React.CSSProperties;
+  title: React.CSSProperties;
+  description: React.CSSProperties;
+}
+
+interface MobileNavItemStylesType {
+  navItem: (isActive: boolean) => React.CSSProperties;
+  content: React.CSSProperties;
+  label: React.CSSProperties;
+  arrow: React.CSSProperties;
+  submenuContainer: React.CSSProperties;
+  submenuItem: React.CSSProperties;
+  submenuItemActive: React.CSSProperties;
+  submenuItemLink: React.CSSProperties;
+  submenuItemIcon: React.CSSProperties;
+  submenuItemLabel: React.CSSProperties;
+}
+
+interface MobileMenuStylesType {
+  button: (isOpen: boolean, visible: boolean) => React.CSSProperties;
+  container: (mobileMenuStyle?: React.CSSProperties) => React.CSSProperties;
+  navItems: React.CSSProperties;
+  header: React.CSSProperties;
+  logoContainer: React.CSSProperties;
+  titleContainer: (mobileHeader?: React.ReactNode) => React.CSSProperties;
+  logoLink: React.CSSProperties;
+  headerText: React.CSSProperties;
+  titleText: React.CSSProperties;
+}
+
+interface StylesType {
+  colors: Colors;
+  shadows: Shadows;
+  fonts: FontsType;
+  common: CommonStylesType;
+  logo: LogoStylesType;
+  navBar: NavBarStylesType;
+  tooltip: TooltipStylesType;
+  submenuItem: SubmenuItemStylesType;
+  desktopNavItem: DesktopNavItemStylesType;
+  globalSubmenu: GlobalSubmenuStylesType;
+  mobileNavItem: MobileNavItemStylesType;
+  mobileMenu: MobileMenuStylesType;
+}
+
+// Radically simplified color interface - just 5 colors
+interface Colors {
+  primary: string;   // Gold accent
+  secondary: string; // Dark background 
+  tertiary: string;  // Border color
+  text: string;      // Text color
+  glow: string;      // Glow effect
+}
+
+// Our 5 core colors
+const COLORS: Colors = {
+  primary: 'var(--gold)',              // Gold accent color
+  secondary: 'rgba(8, 8, 8, 1)',    // Dark background
+  tertiary: 'rgba(255, 255, 255, 0.15)', // Light border
+  text: 'rgba(255, 255, 255, 0.8)',    // Light text
+  glow: 'rgba(255, 215, 0, 0.10)'      // Gold glow
 };
 
-/**
- * Font size configuration for different elements
- * Adjust these values to control text sizing throughout the component
- */
-const FONT_SIZES = {
-  // Desktop sizes
+// Define fonts
+const FONTS: FontsType = {
   desktopNavItem: '0.95rem',
   desktopSubmenuHeader: '1.25rem',
   desktopSubmenuItem: '0.85rem',
   desktopSubmenuDescription: '0.8rem',
-  
-  // Mobile sizes
   mobileNavItem: '1.1rem',
-  mobileSubmenuItem: '0.9rem',
-  
-  // Additional sizes
+  mobileSubmenuItem:   '0.9rem',
   tooltip: '0.75rem'
 };
 
-/**
- * Default navigation items if none are provided
- */
-const DEFAULT_NAV_ITEMS: NavItem[] = [
-  {
-    id: 'home',
-    label: 'Home',
-    href: '/',
-    submenu: [
-      {
-        id: 'welcome',
-        label: 'Welcome',
-        href: '/',
-        description: 'Back to the home page'
-      }
-    ]
-  },
-  {
-    id: 'about',
-    label: 'About',
-    href: '/about',
-    submenu: [
-      {
-        id: 'company',
-        label: 'Company',
-        href: '/about/company',
-        description: 'Learn more about our company'
-      },
-      {
-        id: 'team',
-        label: 'Team',
-        href: '/about/team',
-        description: 'Meet our team'
-      }
-    ]
-  }
-];
-
-/**
- * Default arrow icon component
- */
-const DefaultArrowIcon = memo(() => (
-  <svg 
-    width="24" 
-    height="24" 
-    viewBox="0 0 12 12" 
-    fill="none" 
-    xmlns="http://www.w3.org/2000/svg" 
-    aria-hidden="true"
-    focusable="false"
-  >
-    <path 
-      d="M2 4L6 8L10 4" 
-      stroke="currentColor"
-      strokeWidth="0.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
-    />
-  </svg>
-));
-DefaultArrowIcon.displayName = 'DefaultArrowIcon';
-
-/**
- * Default home icon component
- */
-const DefaultHomeIcon = memo(() => (
-  <svg 
-    width="24" 
-    height="24" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-    focusable="false"
-  >
-    <path 
-      d="M12 5.69L17 10.19V18H15V12H9V18H7V10.19L12 5.69ZM12 3L2 12H5V20H11V14H13V20H19V12H22L12 3Z" 
-      fill="currentColor" 
-    />
-  </svg>
-));
-DefaultHomeIcon.displayName = 'DefaultHomeIcon';
-
-/**
- * Default submenu item icon
- */
-const DefaultSubmenuIcon = memo(() => (
-  <svg 
-    width="16" 
-    height="16" 
-    viewBox="0 0 16 16" 
-    fill="none" 
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-    focusable="false"
-  >
-    <path 
-      d="M8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2ZM8 3C10.7614 3 13 5.23858 13 8C13 10.7614 10.7614 13 8 13C5.23858 13 3 10.7614 3 8C3 5.23858 5.23858 3 8 3ZM8 6C7.44772 6 7 6.44772 7 7V11C7 11.5523 7.44772 12 8 12C8.55228 12 9 11.5523 9 11V7C9 6.44772 8.55228 6 8 6ZM8 4C7.44772 4 7 4.44772 7 5C7 5.55228 7.44772 6 8 6C8.55228 6 9 5.55228 9 5C9 4.44772 8.55228 4 8 4Z" 
-      fill="currentColor" 
-    />
-  </svg>
-));
-DefaultSubmenuIcon.displayName = 'DefaultSubmenuIcon';
-
-/**
- * Default icon mapping
- */
-const DEFAULT_ICON_MAPPING: Record<string, React.ComponentType> = {
-  'arrow': DefaultArrowIcon,
-  'home': DefaultHomeIcon,
-  'submenu': DefaultSubmenuIcon
+// Define shadow values - derived from our colors
+const SHADOWS: Shadows = {
+  standard: '0 8px 16px -2px rgba(0, 0, 0, 0.15)',
+  submenu: `0 8px 32px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 0 7px ${COLORS.text}`,
+  mobile: '0 2px 10px rgba(0, 0, 0, 0.3)'
 };
 
-/**
- * Animation variants for different components
- * These define how elements animate when state changes (hover, open/close, etc.)
- * Using Framer Motion animation system for smooth transitions
- */
-const DEFAULT_ANIMATIONS = {
+// Centralized style system
+const STYLES: StylesType = {
+  colors: COLORS,
+  shadows: SHADOWS,
+  fonts: FONTS,
+  common: {
+    screenReaderOnly: {
+      position: 'absolute',
+      width: '1px',
+      height: '1px',
+      padding: 0,
+      margin: '-1px',
+      overflow: 'hidden',
+      clip: 'rect(0, 0, 0, 0)',
+      whiteSpace: 'nowrap',
+      borderWidth: 0,
+    }
+  },
+  logo: {
+    container: {
+      display: 'flex',
+      alignItems: 'center',
+      position: 'absolute',
+      left: '3rem',
+      opacity: 1,
+    },
+    link: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: COLORS.primary,
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      cursor: 'pointer',
+      position: 'relative',
+      padding: '8px',
+      borderRadius: '50%',
+    },
+  },
+  navBar: {
+    container: (visible, height, width, zIndex, backdropFilter, boxShadow, borderStyle) => ({
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width,
+      zIndex,
+      backdropFilter,
+      WebkitBackdropFilter: backdropFilter,
+      background: COLORS.secondary,
+      height,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      transition: 'transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease',
+      transform: visible ? 'translateY(0)' : 'translateY(-100%)',
+      opacity: visible ? 1 : 0,
+      boxShadow: visible ? boxShadow : 'none',
+      borderBottom: borderStyle || `1px solid ${COLORS.primary}`,
+    }),
+    content: (maxWidth, horizontalPadding, verticalPadding) => ({
+      display: 'flex',
+      alignItems: 'center',
+      width: '100%',
+      maxWidth,
+      margin: '0 auto',
+      justifyContent: 'center',
+      padding: `${verticalPadding} ${horizontalPadding}`,
+    }),
+    itemsContainer: (itemGap) => ({
+      display: 'flex',
+      alignItems: 'center',
+      gap: itemGap,
+      opacity: 1,
+    }),
+  },
+  tooltip: {
+    container: (visible) => ({
+      position: 'absolute',
+      bottom: '-30px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      opacity: visible ? 1 : 0,
+      visibility: visible ? 'visible' : 'hidden',
+      transition: 'opacity 0.3s ease, visibility 0.3s ease',
+      zIndex: 200,
+      pointerEvents: 'none',
+    }),
+    content: {
+      background: COLORS.secondary,
+      color: COLORS.text,
+      padding: '4px 8px',
+      borderRadius: '4px',
+      fontSize: FONTS.tooltip,
+      fontWeight: 'normal',
+      letterSpacing: '0.05em',
+      whiteSpace: 'nowrap',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+      border: `1px solid ${COLORS.primary}`,
+    },
+    arrow: {
+      position: 'absolute',
+      top: '-4px',
+      left: '50%',
+      transform: 'translateX(-50%) rotate(45deg)',
+      width: '8px',
+      height: '8px',
+      background: COLORS.secondary,
+      border: `1px solid ${COLORS.primary}`,
+      borderBottom: 'none',
+      borderRight: 'none',
+    }
+  },
+  submenuItem: {
+    wrapper: {
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      padding: '1rem',
+      cursor: 'pointer',
+      color: COLORS.text,
+      textAlign: 'left',
+      borderRadius: 'var(--radius-small, 4px)',
+      willChange: 'transform, background-color',
+      transition: 'all 0.2s ease',
+      backgroundColor: 'transparent',
+      border: 'none',
+      borderLeft: `1px solid ${COLORS.primary}`,
+    },
+    hoverState: {
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      transform: 'scale(1.03)',
+      boxShadow: `0 0 5px ${COLORS.primary}`,
+      borderLeft: `1px solid var(--color-accent, ${COLORS.primary})`,
+    },
+    link: {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+      width: '100%',
+      fontFamily: 'var(--font-heading, inherit)',
+      fontWeight: 100,
+      fontSize: '0.875rem',
+      letterSpacing: '0.05em',
+    },
+    icon: {
+      display: 'flex',
+      alignSelf: 'center',
+      justifyContent: 'center',
+      color: COLORS.primary,
+      marginBottom: '1rem',
+      width: '170px',
+      height: '128px'
+    },
+    label: {
+      fontSize: FONTS.desktopSubmenuItem,
+      letterSpacing: '0.1em',
+      fontWeight: 300,
+      marginBottom: '-0.5rem',
+      textTransform: 'uppercase',
+      transition: 'color 0.2s ease',
+    },
+    description: {
+      fontSize: FONTS.desktopSubmenuDescription,
+      color: COLORS.text,
+      opacity: 0.7,
+      maxWidth: '200px',
+      lineHeight: 1.4,
+    }
+  },
+  desktopNavItem: {
+    wrapper: (itemStyle = {}) => ({
+      position: 'relative',
+      ...itemStyle
+    }),
+    navItem: (isItemActive, isActive) => ({
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+      fontFamily: 'var(--font-heading, inherit)',
+      fontWeight: 'normal',
+      letterSpacing: '0.2em',
+      fontSize: FONTS.desktopNavItem,
+      color: isItemActive || isActive ? COLORS.primary : COLORS.text,
+      padding: '0.5rem 0.75rem',
+      border: 'none',
+      background: 'transparent',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      outline: 'none',
+      position: 'relative'
+    }),
+    content: (isItemActive, isActive) => ({
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+      color: isItemActive || isActive ? COLORS.primary : 'inherit'
+    }),
+    icon: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+    },
+    label: (isItemActive, isActive) => ({
+      textTransform: 'uppercase',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      color: isItemActive || isActive ? `var(--color-accent, ${COLORS.primary})` : 'inherit'
+    }),
+    arrow: (isItemActive) => ({
+      display: 'flex',
+      alignItems: 'center',
+      marginTop: '2px',
+      color: isItemActive ? COLORS.primary : "currentColor"
+    }),
+  },
+  globalSubmenu: {
+    container: (submenuStyle = {}) => ({
+      position: 'fixed',
+      top: '45px',
+      left: 0,
+      width: '100%',
+      zIndex: 9,
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'flex-start',
+      pointerEvents: 'none',
+      ...submenuStyle
+    }),
+    submenuContainer: {
+      background: COLORS.secondary,
+      borderRadius: '6px',
+      boxShadow: SHADOWS.submenu,
+      overflow: 'hidden',
+      borderLeft: `3px solid ${COLORS.primary}`,
+      pointerEvents: 'auto',
+      willChange: 'transform, opacity',
+      margin: '0 auto',
+      transformOrigin: 'top center',
+    },
+    grid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+      width: '100%',
+    },
+    header: {
+      display: 'flex',
+      flexDirection: 'column',
+      padding: '1.75rem',
+    },
+    title: {
+      fontFamily: 'var(--font-heading, inherit)',
+      color: COLORS.primary,
+      fontSize: FONTS.desktopSubmenuHeader,
+      letterSpacing: '0.1em',
+      textTransform: 'uppercase',
+      marginBottom: '0.5rem',
+    },
+    description: {
+      fontSize: FONTS.desktopSubmenuDescription,
+      color: COLORS.text,
+      opacity: 0.8,
+      lineHeight: 1.4,
+    },
+  },
+  mobileNavItem: {
+    navItem: (isActive) => ({
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem',
+      fontFamily: 'var(--font-heading, inherit)',
+      fontWeight: 'normal',
+      fontSize: FONTS.mobileNavItem,
+      color: isActive ? `var(--color-accent, ${COLORS.primary})` : `var(--color-text, ${COLORS.text})`,
+      padding: '0.75rem 1rem',
+      backgroundColor: 'transparent',
+      border: 'none',
+      width: '100%',
+      textAlign: 'left',
+      justifyContent: 'space-between',
+      borderTop: `1px solid ${COLORS.tertiary}`,
+      borderBottom: `1px solid ${COLORS.tertiary}`
+    }),
+    content: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.5rem'
+    },
+    label: {
+      textTransform: 'uppercase',
+      letterSpacing: '0.1em'
+    },
+    arrow: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+    submenuContainer: {
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '0.25rem',
+      padding: '0.5rem 0 0.5rem 1.5rem',
+      background: 'rgba(0, 0, 0, 0.3)',
+      borderTop: `1px solid ${COLORS.tertiary}`,
+      borderBottom: `1px solid ${COLORS.tertiary}`,
+    },
+    submenuItem: {
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: '0.5rem 1rem',
+      cursor: 'pointer',
+      color: COLORS.text,
+      opacity: 0.9,
+      transition: 'all 0.3s ease',
+      border: 'none',
+      borderBottom: `1px solid ${COLORS.tertiary}`,
+      backgroundColor: 'transparent',
+      width: '100%',
+      textAlign: 'left',
+      fontSize: FONTS.mobileSubmenuItem,
+    },
+    submenuItemActive: {
+      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+      color: `var(--color-accent, ${COLORS.primary})`
+    },
+    submenuItemLink: {
+      display: 'flex',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: '0.5rem',
+    },
+    submenuItemIcon: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '16px',
+      height: '16px',
+      color: COLORS.primary,
+      opacity: 0.8
+    },
+    submenuItemLabel: {
+      fontSize: FONTS.mobileSubmenuItem,
+      letterSpacing: '0.05em',
+      margin: 0
+    },
+  },
+  mobileMenu: {
+    button: (isOpen, visible) => ({
+      position: 'fixed',
+      width: '45px',
+      height: '47px',
+      top: '10px',
+      left: '10px',
+      zIndex: 201,
+      display: visible ? 'flex' : 'none',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'transparent',
+      color: isOpen ? COLORS.primary : COLORS.text,
+      fontSize: '1.5rem',
+      padding: '0.5rem',
+      cursor: 'pointer',
+      transition: 'opacity 0.3s ease, transform 0.3s ease',
+      opacity: visible ? 1 : 0,
+      transform: visible ? 'translateY(0)' : 'translateY(-100%)'
+    }),
+    container: (mobileMenuStyle = {}) => ({
+      display: 'none',
+      position: 'fixed',
+      top: '0',
+      left: '0',
+      width: '100%',
+      height: '100%',
+      background: COLORS.secondary,
+      zIndex: 200,
+      overflowY: 'hidden', 
+      overflowX: 'hidden',
+      boxShadow: SHADOWS.mobile,
+      backdropFilter: 'blur(8px)',
+      WebkitBackdropFilter: 'blur(8px)',
+      flexDirection: 'column',
+      transform: 'translateY(-100%)',
+      opacity: 0,
+      ...mobileMenuStyle
+    }),
+    navItems: {
+      display: 'flex',
+      flexDirection: 'column',
+      width: '100%',
+      padding: '0.5rem 0 0 0',
+      marginTop: '0',
+      overflowY: 'auto',
+      height: 'calc(100vh - 130px)', 
+      paddingBottom: '2rem',
+    },
+    header: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'column',
+      width: '100%',
+      padding: '0.75rem',
+      marginBottom: '0',
+      position: 'sticky',
+      top: 0,
+      backgroundColor: COLORS.secondary,
+      zIndex: 1
+    },
+    logoContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: '0.75rem'
+    },
+    titleContainer: (mobileHeader) => ({
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: mobileHeader ? '0.75rem' : 0
+    }),
+    logoLink: {
+      display: 'flex',
+      alignItems: 'center',
+      color: COLORS.primary,
+      transition: 'all 0.2s ease',
+      cursor: 'pointer'
+    },
+    headerText: {
+      color: `var(--color-text, ${COLORS.text})`,
+      fontSize: '1.2rem',
+      fontWeight: 'normal',
+      textAlign: 'center',
+      margin: 0
+    },
+    titleText: {
+      color: COLORS.primary,
+      fontSize: '1.4rem',
+      fontWeight: 'bold',
+      textAlign: 'center',
+      margin: 0,
+      letterSpacing: '0.05em'
+    }
+  }
+};
+
+// Consolidated transitions and easing functions
+const TRANSITIONS = {
+  defaultEase: [0.4, 0, 0.2, 1],
+  springEase: [0.16, 1, 0.3, 1],
+  sharpEase: [0.4, 0, 1, 1],
+  standard: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
+  quick: { duration: 0.2, ease: [0.4, 0, 1, 1] },
+  veryQuick: { duration: 0.1, ease: [0.4, 0, 1, 1] },
+  spring: {
+    type: "spring",
+    stiffness: 400,
+    damping: 30,
+    mass: 0.8
+  }
+};
+
+// Animation variants
+const ANIMATIONS = {
   navItem: {
     idle: { scale: 1 },
     hover: { 
       scale: 1.05,
-      transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] }
+      transition: TRANSITIONS.standard
     }
   },
-  
   arrow: {
     closed: { rotate: 0, y: 0 },
     open: { 
       rotate: 180, 
       y: [0, 2, 0],
       transition: {
-        y: {
-          duration: 0.3,
-          repeat: 0
-        },
-        rotate: {
-          duration: 0.3
-        }
+        y: { duration: 0.3, repeat: 0 },
+        rotate: { duration: 0.3 }
       }
     }
   },
-  
   submenu: {
-    initial: { 
-      opacity: 1,
-      y: 0,
-      scale: 1
-    },
-    animate: { 
-      opacity: 1,
-      y: 0,
-      scale: 1
-    },
+    initial: { opacity: 1, y: 0, scale: 1 },
+    animate: { opacity: 1, y: 0, scale: 1 },
     exit: { 
-      opacity: 0,
-      y: -15,
-      scale: 0.97,
-      transition: {
-        duration: 0.3,
-        ease: [0.4, 0, 0.2, 1]
-      }
+      opacity: 0, y: -15, scale: 0.97,
+      transition: TRANSITIONS.standard
     }
   },
-  
   submenuContent: {
     initial: { 
-      opacity: 0,
-      x: -20,
-      transition: {
-        duration: 0.2,
-        ease: [0.4, 0, 1, 1]
-      } 
+      opacity: 0, x: -20,
+      transition: TRANSITIONS.quick
     },
     animate: { 
-      opacity: 1, 
-      x: 0,
-      transition: {
-        duration: 0.3,
-        ease: [0.16, 1, 0.3, 1]
-      }
+      opacity: 1, x: 0,
+      transition: { duration: 0.3, ease: TRANSITIONS.springEase }
     },
     exit: { 
-      opacity: 0,
-      x: 20,
-      transition: { 
-        duration: 0.2, 
-        ease: [0.4, 0, 1, 1] 
-      }
+      opacity: 0, x: 20,
+      transition: TRANSITIONS.quick
     },
     slideRight: {
       initial: {
-        opacity: 0,
-        x: 40,
-        transition: {
-          duration: 0.2,
-          ease: [0.4, 0, 1, 1]
-        }
+        opacity: 0, x: 40,
+        transition: TRANSITIONS.veryQuick
       },
       animate: {
-        opacity: 1,
-        x: 0,
-        transition: {
-          duration: 0.3,
-          ease: [0.16, 1, 0.3, 1]
-        }
+        opacity: 1, x: 0,
+        transition: { duration: 0.15, ease: TRANSITIONS.springEase }
       },
       exit: {
-        opacity: 0,
-        x: -40,
-        transition: {
-          duration: 0.2,
-          ease: [0.4, 0, 1, 1]
-        }
+        opacity: 0, x: -40,
+        transition: TRANSITIONS.veryQuick
       }
     },
     slideLeft: {
       initial: {
-        opacity: 0,
-        x: 40,
-        transition: {
-          duration: 0.2,
-          ease: [0.4, 0, 1, 1]
-        }
+        opacity: 0, x: 40,
+        transition: TRANSITIONS.veryQuick
       },
       animate: {
-        opacity: 1,
-        x: 0,
-        transition: {
-          duration: 0.3,
-          ease: [0.16, 1, 0.3, 1]
-        }
+        opacity: 1, x: 0,
+        transition: { duration: 0.15, ease: TRANSITIONS.springEase }
       },
       exit: {
-        opacity: 0,
-        x: -40,
-        transition: {
-          duration: 0.2,
-          ease: [0.4, 0, 1, 1]
-        }
+        opacity: 0, x: -40,
+        transition: TRANSITIONS.veryQuick
       }
     }
   },
-  
   submenuItem: {
     initial: { 
-      opacity: 0, 
-      y: -5,
-      scale: 0.97,
-      transition: {
-        duration: 0.1
-      } 
+      opacity: 0, y: -5, scale: 0.97,
+      transition: TRANSITIONS.veryQuick
     },
     animate: { 
-      opacity: 1, 
-      y: 0,
-      scale: 1,
-      transition: {
-        type: "spring",
-        stiffness: 400,
-        damping: 30,
-        mass: 0.8
-      }
+      opacity: 1, y: 0, scale: 1,
+      transition: TRANSITIONS.spring
     }
   },
-  
-  // Updated mobile menu animations for top dropdown
   mobileMenu: {
     closed: {
       opacity: 0,
       y: '-100%',
-      transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] }
+      transition: TRANSITIONS.standard
     },
     open: {
       opacity: 1,
       y: 0,
       transition: {
         duration: 0.4,
-        ease: [0.16, 1, 0.3, 1],
+        ease: TRANSITIONS.springEase,
         staggerChildren: 0.1,
         delayChildren: 0.1
       }
@@ -526,17 +970,52 @@ const DEFAULT_ANIMATIONS = {
   }
 };
 
-// ==========================================================
-// CONTEXT
-// ==========================================================
+// Default values
+const DEFAULT_NAV_ITEMS: NavItem[] = [
+  {
+    id: 'home',
+    label: 'Home',
+    href: '/',
+    submenu: [{ id: 'welcome', label: 'Welcome', href: '/', description: 'Back to the home page' }]
+  },
+  {
+    id: 'about',
+    label: 'About',
+    href: '/about',
+    submenu: [
+      { id: 'company', label: 'Company', href: '/about/company', description: 'Learn more about our company' },
+      { id: 'team', label: 'Team', href: '/about/team', description: 'Meet our team' }
+    ]
+  }
+];
 
-/**
- * NavContext provides state management across all navigation components.
- * It tracks:
- * - activeItemId: Which menu item is currently active/open
- * - visible: Whether the navigation bar is currently visible (for scroll behavior)
- * - focusedItemId: Which item has keyboard focus (for accessibility)
- */
+// Default icons
+const DefaultArrowIcon = memo(() => (
+  <svg width="24" height="24" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+  </svg>
+));
+DefaultArrowIcon.displayName = 'DefaultArrowIcon';
+
+const DefaultHomeIcon = memo(() => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <path d="M12 5.69L17 10.19V18H15V12H9V18H7V10.19L12 5.69ZM12 3L2 12H5V20H11V14H13V20H19V12H22L12 3Z" fill="currentColor" />
+  </svg>
+));
+DefaultHomeIcon.displayName = 'DefaultHomeIcon';
+
+const DefaultSubmenuIcon = memo(() => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+    <path d="M8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2ZM8 3C10.7614 3 13 5.23858 13 8C13 10.7614 10.7614 13 8 13C5.23858 13 3 10.7614 3 8C3 5.23858 5.23858 3 8 3ZM8 6C7.44772 6 7 6.44772 7 7V11C7 11.5523 7.44772 12 8 12C8.55228 12 9 11.5523 9 11V7C9 6.44772 8.55228 6 8 6ZM8 4C7.44772 4 7 4.44772 7 5C7 5.55228 7.44772 6 8 6C8.55228 6 9 5.55228 9 5C9 4.44772 8.55228 4 8 4Z" fill="currentColor" />
+  </svg>
+));
+DefaultSubmenuIcon.displayName = 'DefaultSubmenuIcon';
+
+const DEFAULT_ICON_MAPPING: Record<string, React.ComponentType> = {
+  'arrow': DefaultArrowIcon,
+  'home': DefaultHomeIcon,
+  'submenu': DefaultSubmenuIcon
+};
 
 // Context for navigation state
 const NavContext = React.createContext<NavContextType>({
@@ -547,18 +1026,7 @@ const NavContext = React.createContext<NavContextType>({
   setFocusedItemId: () => {}
 });
 
-// ==========================================================
-// HELPER FUNCTIONS
-// ==========================================================
-
-/**
- * Utility functions that support the component's core functionality.
- * These functions handle common operations like resolving icon components.
- */
-
-/**
- * Get icon component by name from mapping or return the provided React node
- */
+// Helper function for resolving icons
 const getIconComponent = (icon: React.ReactNode | string | undefined, iconMapping: Record<string, React.ComponentType>): React.ReactNode => {
   if (!icon) return null;
   
@@ -570,97 +1038,17 @@ const getIconComponent = (icon: React.ReactNode | string | undefined, iconMappin
   return icon;
 };
 
-// ==========================================================
-// STYLED COMPONENTS
-// ==========================================================
-
-// These will be defined using style objects to avoid styled-components dependency
-// but maintain the same organization as the original
-
-// ==========================================================
-// COMPONENTS
-// ==========================================================
-
-/**
- * The NavigationBar is composed of several sub-components:
- * - LogoTooltip: Tooltip component that appears when hovering over the logo
- * - MemoizedSubmenuItem: Individual items within a submenu
- * - DesktopNavItemComponent: Top-level navigation items in desktop view
- * - GlobalSubmenuComponent: Manages submenu display with animations
- * - MobileNavItemComponent: Navigation items in mobile view
- * - MobileMenuComponent: Container for mobile navigation
- * 
- * Each component is memoized to prevent unnecessary re-renders and
- * improve performance as the navigation state changes.
- */
-
-/**
- * Logo Tooltip Component
- * Shows a tooltip with "Home Page" text after hovering over the logo for a second
- */
-const LogoTooltip = memo(({
-  visible,
-}: {
-  visible: boolean;
-}) => {
-  const styles = {
-    tooltipContainer: {
-      position: 'absolute' as const,
-      bottom: '-30px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      opacity: visible ? 1 : 0,
-      visibility: visible ? 'visible' as const : 'hidden' as const,
-      transition: 'opacity 0.3s ease, visibility 0.3s ease',
-      zIndex: 200,
-    },
-    tooltip: {
-      background: COLORS.tooltip.background,
-      color: COLORS.tooltip.text,
-      padding: '4px 8px',
-      borderRadius: '4px',
-      fontSize: FONT_SIZES.tooltip,
-      fontWeight: 'normal',
-      letterSpacing: '0.05em',
-      whiteSpace: 'nowrap' as const,
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-      border: `1px solid ${COLORS.tooltip.border}`,
-    },
-    arrow: {
-      position: 'absolute' as const,
-      top: '-4px',
-      left: '50%',
-      transform: 'translateX(-50%) rotate(45deg)',
-      width: '8px',
-      height: '8px',
-      background: COLORS.tooltip.background,
-      border: `1px solid ${COLORS.tooltip.border}`,
-      borderBottom: 'none',
-      borderRight: 'none',
-    }
-  };
-  
+// Components
+const LogoTooltip = memo(({ visible }: { visible: boolean }) => {
   return (
-    <div 
-      style={styles.tooltipContainer}
-      role="tooltip"
-      id="logo-tooltip"
-    >
-      <div style={styles.arrow} aria-hidden="true" />
-      <div style={styles.tooltip}>
-        Home Page
-      </div>
+    <div style={STYLES.tooltip.container(visible)} role="tooltip" id="logo-tooltip">
+      <div style={STYLES.tooltip.arrow} aria-hidden="true" />
+      <div style={STYLES.tooltip.content}>Home Page</div>
     </div>
   );
 });
-
-// Display name for debugging
 LogoTooltip.displayName = 'LogoTooltip';
 
-/**
- * Memoized Submenu Item Component
- * Used to render individual submenu items efficiently
- */
 const MemoizedSubmenuItem = memo(({
   subItem,
   onClick,
@@ -674,82 +1062,17 @@ const MemoizedSubmenuItem = memo(({
   showDescription?: boolean;
   iconMapping: Record<string, React.ComponentType>;
 }) => {
-  // Generate unique ID for this submenu item for ARIA attributes
   const submenuItemId = `${parentId}-submenu-item-${subItem.id}`;
-  
-  const styles = {
-    wrapper: {
-      display: 'flex',
-      flexDirection: 'row' as const,
-      alignItems: 'flex-start',
-      padding: '1rem',
-      cursor: 'pointer',
-      color: COLORS.text.muted,
-      textAlign: 'left' as const,
-      borderRadius: 'var(--radius-small, 4px)',
-      willChange: 'transform, background-color',
-      transition: 'all 0.2s ease',
-      backgroundColor: 'transparent',
-      border: 'none',
-      borderLeft: `1px solid var(--color-accent, ${COLORS.borderAccent})`,
-    },
-    hoverState: {
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      transform: 'scale(1.03)',
-      boxShadow: '0 0 5px rgba(255, 255, 255, 0.2)',
-      borderLeft: `1px solid var(--color-accent, ${COLORS.borderAccent})`,
-    },
-    link: {
-      display: 'flex',
-      flexDirection: 'column' as const,
-      alignItems: 'flex-start',
-      width: '100%',
-      fontFamily: 'var(--font-heading, inherit)',
-      fontWeight: 100,
-      fontSize: '0.875rem',
-      letterSpacing: '0.05em',
-    },
-    icon: {
-      display: 'flex',
-      alignSelf: 'center',
-      justifyContent: 'center',
-      color: `var(--color-accent, ${COLORS.primary})`,
-      marginTop: '0rem',
-      marginLeft: '0rem',
-      marginRight: '0rem',
-      marginBottom: '1rem',
-      width: '170px',
-      height: '128px'
-    },
-    label: {
-      fontSize: FONT_SIZES.desktopSubmenuItem,
-      marginTop: '0rem',
-      marginLeft: '0rem',
-      marginRight: '0rem',
-      letterSpacing: '0.1em',
-      fontWeight: 300,
-      marginBottom: '-0.5rem',
-      textTransform: 'uppercase' as const,
-      transition: 'color 0.2s ease',
-    },
-    description: {
-      fontSize: FONT_SIZES.desktopSubmenuDescription,
-      color: COLORS.text.dimmed,
-      maxWidth: '200px',
-      lineHeight: 1.4,
-    }
-  };
-  
   const [isHovered, setIsHovered] = useState(false);
   
   return (
     <motion.div
       key={subItem.id}
       style={{
-        ...styles.wrapper,
-        ...(isHovered ? styles.hoverState : {})
+        ...STYLES.submenuItem.wrapper,
+        ...(isHovered ? STYLES.submenuItem.hoverState : {})
       }}
-      variants={DEFAULT_ANIMATIONS.submenuItem}
+      variants={ANIMATIONS.submenuItem}
       layoutId={`submenu-item-${subItem.id}`}
       onClick={onClick}
       role="menuitem"
@@ -765,28 +1088,20 @@ const MemoizedSubmenuItem = memo(({
       }}
       aria-label={subItem.description ? `${subItem.label}: ${subItem.description}` : subItem.label}
     >
-      <div style={styles.link}>
-        <div style={styles.icon}>
+      <div style={STYLES.submenuItem.link}>
+        <div style={STYLES.submenuItem.icon}>
           {getIconComponent(subItem.icon, iconMapping) || getIconComponent('submenu', iconMapping)}
         </div>
-        <span style={styles.label}>{subItem.label}</span>
+        <span style={STYLES.submenuItem.label}>{subItem.label}</span>
         {showDescription && subItem.description && (
-          <div style={styles.description}>
-            {subItem.description}
-          </div>
+          <div style={STYLES.submenuItem.description}>{subItem.description}</div>
         )}
       </div>
     </motion.div>
   );
 });
-
-// Display name for debugging
 MemoizedSubmenuItem.displayName = 'MemoizedSubmenuItem';
 
-/**
- * Desktop Navigation Item Component
- * Memoized to prevent unnecessary re-renders when other nav items change
- */
 const DesktopNavItemComponent = memo(({ 
   item, 
   isActive,
@@ -812,65 +1127,9 @@ const DesktopNavItemComponent = memo(({
   const navItemId = `nav-item-${item.id}`;
   const submenuId = `submenu-${item.id}`;
 
-  const styles = {
-    wrapper: {
-      position: 'relative' as const,
-      ...itemStyle
-    },
-    navItem: {
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.5rem',
-      fontFamily: 'var(--font-heading, inherit)',
-      fontWeight: 'normal',
-      letterSpacing: '0.2em',
-      fontSize: FONT_SIZES.desktopNavItem,
-      color: isItemActive || isActive ? `var(--color-accent, ${COLORS.primary})` : `var(--color-text, ${COLORS.tertiary})`,
-      padding: '0.5rem 0.75rem',
-      border: 'none',
-      background: 'transparent',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-    },
-    content: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.5rem',
-      color: isItemActive || isActive ? `var(--color-accent, ${COLORS.primary})` : 'inherit'
-    },
-    icon: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-    },
-    label: {
-      textTransform: 'uppercase' as const,
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      color: isItemActive || isActive ? `var(--color-accent, ${COLORS.primary})` : 'inherit'
-    },
-    arrow: {
-      display: 'flex',
-      alignItems: 'center',
-      marginTop: '2px',
-      color: isItemActive ? `var(--color-accent, ${COLORS.primary})` : 'inherit'
-    },
-    screenReaderOnly: {
-      position: 'absolute' as const,
-      width: '1px',
-      height: '1px',
-      padding: 0,
-      margin: '-1px',
-      overflow: 'hidden',
-      clip: 'rect(0, 0, 0, 0)',
-      whiteSpace: 'nowrap' as const,
-      borderWidth: 0,
-    }
-  };
-
   useEffect(() => {
     controls.start({
-      color: isItemActive || isActive ? 'var(--color-accent, #fff)' : 'var(--color-text, rgba(255, 255, 255, 0.8))',
+      color: isItemActive || isActive ? `var(--color-accent, ${COLORS.primary})` : `var(--color-text, ${COLORS.tertiary})`,
       scale: isItemActive ? 1.05 : 1,
       transition: { duration: 0.3 }
     });
@@ -878,13 +1137,7 @@ const DesktopNavItemComponent = memo(({
 
   const handleClick = useCallback(() => {
     if (submenuBehavior === 'click') {
-      if (isItemActive) {
-        // If the submenu is already open, close it
-        setActiveItemId(null);
-      } else {
-        // Otherwise, open this submenu
-        setActiveItemId(item.id);
-      }
+      setActiveItemId(isItemActive ? null : item.id);
     }
   }, [isItemActive, setActiveItemId, item.id, submenuBehavior]);
   
@@ -908,11 +1161,9 @@ const DesktopNavItemComponent = memo(({
         break;
       case 'ArrowDown':
         e.preventDefault();
-        // First open the submenu if not already open
         if (!isItemActive) {
           setActiveItemId(item.id);
         }
-        // Then focus on the first submenu item
         setTimeout(() => {
           const firstSubmenuItem = document.getElementById(`${item.id}-submenu-item-${item.submenu[0].id}`);
           if (firstSubmenuItem) {
@@ -922,7 +1173,6 @@ const DesktopNavItemComponent = memo(({
         break;
       case 'ArrowLeft':
         e.preventDefault();
-        // Find previous sibling nav item and focus it
         const prevNavItem = document.getElementById(`nav-item-${itemIndex > 0 ? itemIndex - 1 : item.submenu.length - 1}`);
         if (prevNavItem) {
           prevNavItem.focus();
@@ -930,7 +1180,6 @@ const DesktopNavItemComponent = memo(({
         break;
       case 'ArrowRight':
         e.preventDefault();
-        // Find next sibling nav item and focus it
         const nextNavItem = document.getElementById(`nav-item-${(itemIndex + 1) % item.submenu.length}`);
         if (nextNavItem) {
           nextNavItem.focus();
@@ -941,7 +1190,7 @@ const DesktopNavItemComponent = memo(({
 
   return (
     <div 
-      style={styles.wrapper}
+      style={STYLES.desktopNavItem.wrapper(itemStyle)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={onMouseLeave}
       data-nav-item={item.id}
@@ -949,8 +1198,8 @@ const DesktopNavItemComponent = memo(({
     >
       <motion.button
         id={navItemId}
-        style={styles.navItem}
-        variants={DEFAULT_ANIMATIONS.navItem}
+        style={STYLES.desktopNavItem.navItem(isItemActive, isActive)}
+        variants={ANIMATIONS.navItem}
         initial="idle"
         animate={controls}
         onClick={handleClick}
@@ -963,23 +1212,23 @@ const DesktopNavItemComponent = memo(({
         aria-current={isActive ? 'page' : undefined}
         tabIndex={0}
       >
-        <div style={styles.content}>
-          <div style={styles.icon}>
+        <div style={STYLES.desktopNavItem.content(isItemActive, isActive)}>
+          <div style={STYLES.desktopNavItem.icon}>
             {getIconComponent(item.icon, iconMapping)}
           </div>
-          <span style={styles.label}>
+          <span style={STYLES.desktopNavItem.label(isItemActive, isActive)}>
             {item.label}
           </span>
         </div>
         
         <motion.div
-          style={styles.arrow}
-          variants={DEFAULT_ANIMATIONS.arrow}
+          style={STYLES.desktopNavItem.arrow(isItemActive)}
+          variants={ANIMATIONS.arrow}
           initial="closed"
           animate={isItemActive ? "open" : "closed"}
         >
           {getIconComponent('arrow', iconMapping)}
-          <span style={styles.screenReaderOnly}>
+          <span style={STYLES.common.screenReaderOnly}>
             {isItemActive ? 'Collapse' : 'Expand'} {item.label} menu
           </span>
         </motion.div>
@@ -987,14 +1236,8 @@ const DesktopNavItemComponent = memo(({
     </div>
   );
 });
-
-// Display name for debugging
 DesktopNavItemComponent.displayName = 'DesktopNavItemComponent';
 
-/**
- * Global Submenu Component - persistent across all navigation changes
- * Memoized to prevent unnecessary re-renders
- */
 const GlobalSubmenuComponent = memo(({
   items,
   activeItemId,
@@ -1023,123 +1266,52 @@ const GlobalSubmenuComponent = memo(({
   const submenuRef = useRef<HTMLDivElement>(null);
   const submenuId = activeItem ? `submenu-${activeItem.id}` : '';
   
-  const styles = {
-    globalContainer: {
-      position: 'fixed' as const,
-      top: '45px',
-      left: 0,
-      width: '100%',
-      zIndex: 9,
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'flex-start',
-      pointerEvents: 'none' as const,
-      ...submenuStyle
-    },
-    submenuContainer: {
-      background: COLORS.background.dark,
-      backdropFilter: 'blur(50px)',
-      borderRadius: '6px',
-      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 0 12px rgba(255, 255, 255, 0.3)',
-      overflow: 'hidden',
-      border: `1px solid ${COLORS.border}`,
-      borderLeft: `3px solid var(--color-accent, ${COLORS.borderAccent})`,
-      pointerEvents: 'auto' as const,
-      willChange: 'transform, opacity',
-      margin: '0 auto',
-      transformOrigin: 'top center',
-    },
-    gridContainer: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-      width: '100%',
-    },
-    headerContainer: {
-      display: 'flex',
-      flexDirection: 'column' as const,
-      padding: '1.75rem',
-    },
-    header: {
-      fontFamily: 'var(--font-heading, inherit)',
-      color: `var(--color-accent, ${COLORS.primary})`,
-      fontSize: FONT_SIZES.desktopSubmenuHeader,
-      letterSpacing: '0.1em',
-      textTransform: 'uppercase' as const,
-      marginBottom: '0.5rem',
-    },
-    description: {
-      fontSize: FONT_SIZES.desktopSubmenuDescription,
-      color: COLORS.text.muted,
-      lineHeight: 1.4,
-    },
-    contentContainer: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-      width: '100%',
-    }
-  };
-  
-  // Reset exit state when a new item becomes active
   useEffect(() => {
     if (activeItemId) {
       setIsFinalExit(false);
     }
-  }, [activeItemId, setIsFinalExit]);
+  }, [activeItemId]);
   
-  // Update slide direction based on item index change
   useEffect(() => {
     if (activeItemId && prevItemId && activeItemId !== prevItemId) {
-      // Find indexes of previous and current items
       const itemIds = items.map(item => item.id);
       const prevIndex = itemIds.indexOf(prevItemId);
       const currentIndex = itemIds.indexOf(activeItemId);
       
-      // Determine slide direction based on index comparison
       setSlideDirection(currentIndex > prevIndex ? 'right' : 'left');
-      setIsFinalExit(false); // Reset exit state for transitions
+      setIsFinalExit(false);
     } else if (activeItemId === null && prevItemId !== null) {
-      // We're closing the menu completely
       setIsFinalExit(true);
     }
     
-    // Update previous item ID
     if (activeItemId !== prevItemId) {
       setPrevItemId(activeItemId);
     }
-  }, [activeItemId, prevItemId, items, setIsFinalExit]);
+  }, [activeItemId, prevItemId, items]);
   
-  // Edge detection system for submenu closing
   useEffect(() => {
     if (!activeItemId || !submenuRef.current) return;
     
-    // Force an immediate exit (used for direct edge exits)
-    const forceExit = () => {
-      setIsFinalExit(true);
-    };
-    
-    // Track the last position to determine exit direction
+    const forceExit = () => setIsFinalExit(true);
     let lastY = 0;
+    let isDebouncing = false;
     
     const handleGlobalMouseMove = (e: MouseEvent) => {
-      if (!activeItemId || !submenuRef.current) return;
+      if (!activeItemId || !submenuRef.current || isDebouncing) return;
+      isDebouncing = true;
+      setTimeout(() => { isDebouncing = false; }, 10);
       
-      // Store current position to track direction
       const currentX = e.clientX;
       const currentY = e.clientY;
       
-      // Get submenu and navbar elements
       const submenuEl = submenuRef.current;
       const navbarEl = document.querySelector('[role="navigation"]');
       
-      if (!submenuEl || !navbarEl) {
-        return;
-      }
+      if (!submenuEl || !navbarEl) return;
       
-      // Get precise boundary rectangles
       const submenuRect = submenuEl.getBoundingClientRect();
       const navbarRect = navbarEl.getBoundingClientRect();
       
-      // Check if mouse is outside all menu components
       const isOverSubmenu = (
         currentX >= submenuRect.left - 10 &&
         currentX <= submenuRect.right + 10 &&
@@ -1154,13 +1326,10 @@ const GlobalSubmenuComponent = memo(({
         currentY <= navbarRect.bottom
       );
       
-      // Check if mouse is over any nav item
       let isOverNavItem = false;
       let hoveredNavItemId: string | null = null;
       
-      // Check if mouse is over any nav item
-      const navItems = document.querySelectorAll('[data-nav-item]');
-      navItems.forEach((item) => {
+      document.querySelectorAll('[data-nav-item]').forEach((item) => {
         const navRect = (item as HTMLElement).getBoundingClientRect();
         if (
           currentX >= navRect.left && 
@@ -1173,15 +1342,11 @@ const GlobalSubmenuComponent = memo(({
         }
       });
       
-      // When over a different nav item, we want to transition between menus
       if (isOverNavItem && hoveredNavItemId !== activeItemId) {
         setIsFinalExit(false);
         return;
       }
       
-      // Exit cases:
-      
-      // Case 1: Check if mouse is below submenu by a significant amount
       const isBottomExit = currentY > (submenuRect.bottom + 20) && lastY <= (submenuRect.bottom + 20);
       
       if (isBottomExit) {
@@ -1189,28 +1354,19 @@ const GlobalSubmenuComponent = memo(({
         return;
       }
       
-      // Case 2: If outside both menu elements, it's an exit
       if (!isOverSubmenu && !isOverNavbar && !isOverNavItem) {
-        // Give a small delay to prevent flickering
-        setTimeout(() => {
-          setIsFinalExit(true);
-        }, 50);
+        setTimeout(() => { setIsFinalExit(true); }, 50);
       } else {
         setIsFinalExit(false);
       }
       
-      // Update last position
       lastY = currentY;
     };
     
-    // Add direct window edge exit detection
     const handleMouseLeaveWindow = () => {
-      if (activeItemId) {
-        forceExit();
-      }
+      if (activeItemId) forceExit();
     };
     
-    // Only add mouse tracking for hover behavior
     if (submenuBehavior === 'hover') {
       document.addEventListener('mousemove', handleGlobalMouseMove);
       document.documentElement.addEventListener('mouseleave', handleMouseLeaveWindow);
@@ -1222,17 +1378,14 @@ const GlobalSubmenuComponent = memo(({
         document.documentElement.removeEventListener('mouseleave', handleMouseLeaveWindow);
       }
     };
-  }, [activeItemId, setIsFinalExit, submenuBehavior]);
+  }, [activeItemId, submenuBehavior]);
 
-  // Add keyboard navigation for submenu items
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!activeItemId) return;
     
-    // Find all focusable elements in the submenu
     const focusableElements = submenuRef.current?.querySelectorAll('[role="menuitem"]');
     if (!focusableElements || focusableElements.length === 0) return;
     
-    // Get the currently focused element
     const focusedElement = document.activeElement as HTMLElement;
     const focusedIndex = Array.from(focusableElements).indexOf(focusedElement as Element);
     
@@ -1240,16 +1393,12 @@ const GlobalSubmenuComponent = memo(({
       case 'Escape':
         e.preventDefault();
         setActiveItemId(null);
-        // Return focus to the parent nav item
         const parentNavItem = document.getElementById(`nav-item-${activeItemId}`);
-        if (parentNavItem) {
-          parentNavItem.focus();
-        }
+        if (parentNavItem) parentNavItem.focus();
         break;
       case 'ArrowDown':
       case 'ArrowRight':
         e.preventDefault();
-        // Focus next item or wrap around
         if (focusedIndex >= 0 && focusedIndex < focusableElements.length - 1) {
           (focusableElements[focusedIndex + 1] as HTMLElement).focus();
         } else {
@@ -1259,7 +1408,6 @@ const GlobalSubmenuComponent = memo(({
       case 'ArrowUp':
       case 'ArrowLeft':
         e.preventDefault();
-        // Focus previous item or wrap around
         if (focusedIndex > 0) {
           (focusableElements[focusedIndex - 1] as HTMLElement).focus();
         } else {
@@ -1268,23 +1416,19 @@ const GlobalSubmenuComponent = memo(({
         break;
       case 'Home':
         e.preventDefault();
-        // Focus first item
         (focusableElements[0] as HTMLElement).focus();
         break;
       case 'End':
         e.preventDefault();
-        // Focus last item
         (focusableElements[focusableElements.length - 1] as HTMLElement).focus();
         break;
     }
   }, [activeItemId, setActiveItemId]);
   
-  // Add keyboard event listener when submenu is active
   useEffect(() => {
     if (activeItemId) {
       document.addEventListener('keydown', handleKeyDown);
     }
-    
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
@@ -1295,23 +1439,21 @@ const GlobalSubmenuComponent = memo(({
       setIsFinalExit(true);
     }
     onMouseLeave();
-  }, [onMouseLeave, setIsFinalExit, submenuBehavior]);
+  }, [onMouseLeave, submenuBehavior]);
   
-  // Choose the appropriate animation variant based on context
   const getAnimationVariant = useCallback(() => {
-    // IMPORTANT: Always prioritize the final exit animation
-    // This ensures the fade-out animation plays properly regardless of direction
     if (isFinalExit) {
-      return DEFAULT_ANIMATIONS.submenu;
+      return ANIMATIONS.submenu;
     } 
-    
-    // Only use slide animations for transitions between menu items
     return slideDirection === 'right' 
-      ? DEFAULT_ANIMATIONS.submenuContent.slideRight 
-      : DEFAULT_ANIMATIONS.submenuContent.slideLeft;
+      ? ANIMATIONS.submenuContent.slideRight 
+      : ANIMATIONS.submenuContent.slideLeft;
+  }, [isFinalExit, slideDirection]);
+  
+  const getExitAnimationVariant = useCallback(() => {
+    return isFinalExit ? "exit" : (slideDirection === 'right' ? "exit" : "exit");
   }, [isFinalExit, slideDirection]);
 
-  // Memoized handler for submenu item clicks
   const handleSubmenuItemClick = useCallback((href: string) => {
     setActiveItemId(null);
     router.push(href);
@@ -1319,23 +1461,22 @@ const GlobalSubmenuComponent = memo(({
   
   return (
     <div 
-      style={styles.globalContainer}
+      style={STYLES.globalSubmenu.container(submenuStyle)}
       onMouseEnter={onMouseEnter}
       onMouseLeave={handleMouseLeave}
       ref={submenuRef}
-      role="presentation" // This is just a container
+      role="presentation"
     >
       <AnimatePresence mode="wait">
         {activeItemId && (
           <motion.div
             style={{
-              ...styles.submenuContainer,
-              // Calculate dynamic width based on number of items
+              ...STYLES.globalSubmenu.submenuContainer,
               width: `min(90%, ${200 + (activeItem ? activeItem.submenu.length * 220 : 0)}px)`,
               maxWidth: '1200px'
             }}
             custom={isFinalExit}
-            variants={DEFAULT_ANIMATIONS.submenu}
+            variants={ANIMATIONS.submenu}
             initial="initial"
             animate="animate"
             exit={isFinalExit ? "exit" : undefined}
@@ -1346,24 +1487,24 @@ const GlobalSubmenuComponent = memo(({
             aria-labelledby={`nav-item-${activeItemId}`}
             data-exiting={isFinalExit ? "true" : "false"}
           >
-            <div style={styles.gridContainer} role="presentation">
+            <div style={STYLES.globalSubmenu.grid} role="presentation">
               {activeItem && (
                 <motion.div
-                  style={styles.contentContainer}
+                  style={STYLES.globalSubmenu.grid}
                   variants={getAnimationVariant()}
                   initial="initial"
                   animate="animate"
-                  exit={isFinalExit ? "exit" : undefined}
+                  exit={getExitAnimationVariant()}
                   key={`submenu-content-${activeItem.id}`}
                   layoutId={`submenu-content-${activeItem.id}`}
                   role="presentation"
                 >
-                  <div style={styles.headerContainer} role="presentation">
-                    <div style={styles.header} id={`submenu-header-${activeItem.id}`}>
+                  <div style={STYLES.globalSubmenu.header} role="presentation">
+                    <div style={STYLES.globalSubmenu.title} id={`submenu-header-${activeItem.id}`}>
                       {activeItem.label}
                     </div>
                     {activeItem.submenu[0]?.description && (
-                      <div style={styles.description} id={`submenu-description-${activeItem.id}`}>
+                      <div style={STYLES.globalSubmenu.description} id={`submenu-description-${activeItem.id}`}>
                         {activeItem.submenu[0].description}
                       </div>
                     )}
@@ -1388,21 +1529,15 @@ const GlobalSubmenuComponent = memo(({
     </div>
   );
 });
-
-// Display name for debugging
 GlobalSubmenuComponent.displayName = 'GlobalSubmenuComponent';
 
-/**
- * Mobile Navigation Item Component
- * Memoized to prevent unnecessary re-renders
- */
 const MobileNavItemComponent = memo(({ 
   item, 
   isActive,
   iconMapping,
   toggleMenu,
 }: { 
-  item: NavItem; 
+  item: NavItem;
   isActive: boolean;
   iconMapping: Record<string, React.ComponentType>;
   toggleMenu: () => void;
@@ -1412,112 +1547,16 @@ const MobileNavItemComponent = memo(({
   const mobileNavItemId = `mobile-nav-item-${item.id}`;
   const mobileSubmenuId = `mobile-submenu-${item.id}`;
 
-  const styles = {
-    navItem: {
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.5rem',
-      fontFamily: 'var(--font-heading, inherit)',
-      fontWeight: 'normal',
-      fontSize: FONT_SIZES.mobileNavItem,
-      color: isActive ? 'var(--color-accent, #fff)' : 'var(--color-text, rgba(255, 255, 255, 0.8))',
-      padding: '0.75rem 1rem',
-      backgroundColor: 'transparent',
-      border: 'none',
-      width: '100%',
-      textAlign: 'left' as const,
-      justifyContent: 'space-between',
-      borderTop: '1px solid rgba(255, 255, 255, 0.15)',
-      borderBottom: '1px solid rgba(255, 255, 255, 0.15)'
-    },
-    content: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.5rem'
-    },
-    label: {
-      textTransform: 'uppercase' as const,
-      letterSpacing: '0.1em'
-    },
-    arrow: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    },
-    submenuContainer: {
-      width: '100%',
-      display: 'flex',
-      flexDirection: 'column' as const,
-      gap: '0.25rem',
-      padding: '0.5rem 0 0.5rem 1.5rem',
-      background: 'rgba(0, 0, 0, 0.3)',
-      borderTop: '1px solid rgba(255, 255, 255, 0.15)',
-      borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
-    },
-    submenuItem: {
-      display: 'flex',
-      flexDirection: 'row' as const,
-      alignItems: 'center',
-      padding: '0.5rem 1rem',
-      cursor: 'pointer',
-      color: 'rgba(224, 224, 224, 0.7)',
-      transition: 'all 0.3s ease',
-      border: 'none',
-      borderBottom: '1px solid rgba(255, 255, 255, 0.15)',
-      backgroundColor: 'transparent',
-      width: '100%',
-      textAlign: 'left' as const,
-      fontSize: FONT_SIZES.mobileSubmenuItem,
-    },
-    submenuItemActive: {
-      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-      color: 'var(--color-accent, #fff)'
-    },
-    submenuItemLink: {
-      display: 'flex',
-      flexDirection: 'row' as const,
-      alignItems: 'center',
-      gap: '0.5rem',
-    },
-    submenuItemIcon: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '16px',
-      height: '16px',
-      color: 'var(--color-accent, #fff)',
-      opacity: 0.8
-    },
-    submenuItemLabel: {
-      fontSize: FONT_SIZES.mobileSubmenuItem,
-      letterSpacing: '0.05em',
-      margin: 0
-    },
-    screenReaderOnly: {
-      position: 'absolute' as const,
-      width: '1px',
-      height: '1px',
-      padding: 0,
-      margin: '-1px',
-      overflow: 'hidden',
-      clip: 'rect(0, 0, 0, 0)',
-      whiteSpace: 'nowrap' as const,
-      borderWidth: 0,
-    }
-  };
-
   const toggleSubmenu = useCallback(() => {
     setIsSubmenuOpen(prev => !prev);
   }, []);
 
   const handleNavigation = useCallback((href: string) => {
     router.push(href);
-    toggleMenu(); // Close the mobile menu when navigating
+    toggleMenu();
   }, [router, toggleMenu]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    // Find all main menu items for navigation purposes
     const menuItems = document.querySelectorAll('[id^="mobile-nav-item-"]');
     const menuItemsArray = Array.from(menuItems) as HTMLElement[];
     const currentIndex = menuItemsArray.findIndex(el => el.id === mobileNavItemId);
@@ -1537,17 +1576,14 @@ const MobileNavItemComponent = memo(({
       case 'ArrowDown':
         e.preventDefault();
         if (isSubmenuOpen) {
-          // Focus first submenu item
           const firstSubmenuItem = document.getElementById(`mobile-submenu-item-${item.id}-${item.submenu[0].id}`);
           if (firstSubmenuItem) {
             firstSubmenuItem.focus();
           }
         } else {
-          // If submenu is closed but there is a next main menu item, focus it
           if (currentIndex < menuItemsArray.length - 1) {
             menuItemsArray[currentIndex + 1].focus();
           } else {
-            // If at the last main menu item, open its submenu if possible
             setIsSubmenuOpen(true);
             setTimeout(() => {
               const firstSubmenuItem = document.getElementById(`mobile-submenu-item-${item.id}-${item.submenu[0].id}`);
@@ -1560,24 +1596,19 @@ const MobileNavItemComponent = memo(({
         break;
       case 'ArrowUp':
         e.preventDefault();
-        
-        // If at the top of the menu, focus the hamburger button
         if (currentIndex <= 0) {
           const hamburgerButton = document.querySelector('[aria-controls="mobile-menu"]') as HTMLElement;
           if (hamburgerButton) {
             hamburgerButton.focus();
           }
         } else {
-          // Otherwise, focus the previous menu item
           menuItemsArray[currentIndex - 1].focus();
         }
         break;
     }
   }, [isSubmenuOpen, toggleSubmenu, mobileNavItemId, item.id, item.submenu]);
 
-  // Handle keyboard navigation for submenu items
   const handleSubmenuKeyDown = useCallback((e: React.KeyboardEvent, subItemId: string, href: string) => {
-    // Find the current item's index
     const currentItemIndex = item.submenu.findIndex(si => si.id === subItemId);
     
     switch (e.key) {
@@ -1589,7 +1620,6 @@ const MobileNavItemComponent = memo(({
       case 'Escape':
         e.preventDefault();
         setIsSubmenuOpen(false);
-        // Return focus to parent menu item
         const parentMenuItem = document.getElementById(mobileNavItemId);
         if (parentMenuItem) {
           parentMenuItem.focus();
@@ -1598,13 +1628,11 @@ const MobileNavItemComponent = memo(({
       case 'ArrowUp':
         e.preventDefault();
         if (currentItemIndex <= 0) {
-          // If at first item, focus parent menu item
           const parentMenuItem = document.getElementById(mobileNavItemId);
           if (parentMenuItem) {
             parentMenuItem.focus();
           }
         } else {
-          // Focus previous submenu item
           const prevItem = document.getElementById(`mobile-submenu-item-${item.id}-${item.submenu[currentItemIndex - 1].id}`);
           if (prevItem) {
             prevItem.focus();
@@ -1614,13 +1642,11 @@ const MobileNavItemComponent = memo(({
       case 'ArrowDown':
         e.preventDefault();
         if (currentItemIndex < item.submenu.length - 1) {
-          // Focus next submenu item
           const nextItem = document.getElementById(`mobile-submenu-item-${item.id}-${item.submenu[currentItemIndex + 1].id}`);
           if (nextItem) {
             nextItem.focus();
           }
         } else {
-          // Find the next main menu item
           const allMainItems = document.querySelectorAll('[id^="mobile-nav-item-"]');
           const mainItemsArray = Array.from(allMainItems) as HTMLElement[];
           const currentMainIndex = mainItemsArray.findIndex(el => el.id === mobileNavItemId);
@@ -1634,10 +1660,10 @@ const MobileNavItemComponent = memo(({
   }, [mobileNavItemId, handleNavigation, item.id, item.submenu]);
 
   return (
-    <motion.div variants={DEFAULT_ANIMATIONS.submenuItem} role="presentation">
+    <motion.div variants={ANIMATIONS.submenuItem} role="presentation">
       <button
         id={mobileNavItemId}
-        style={styles.navItem}
+        style={STYLES.mobileNavItem.navItem(isActive)}
         onClick={toggleSubmenu}
         role="menuitem"
         aria-haspopup="true"
@@ -1646,20 +1672,18 @@ const MobileNavItemComponent = memo(({
         tabIndex={0}
         onKeyDown={handleKeyDown}
       >
-        <div style={styles.content}>
-          <span style={styles.label}>
-            {item.label}
-          </span>
+        <div style={STYLES.mobileNavItem.content}>
+          <span style={STYLES.mobileNavItem.label}>{item.label}</span>
         </div>
         
         <motion.div
-          style={styles.arrow}
-          variants={DEFAULT_ANIMATIONS.arrow}
+          style={STYLES.mobileNavItem.arrow}
+          variants={ANIMATIONS.arrow}
           initial="closed"
           animate={isSubmenuOpen ? "open" : "closed"}
         >
           {getIconComponent('arrow', iconMapping)}
-          <span style={styles.screenReaderOnly}>
+          <span style={STYLES.common.screenReaderOnly}>
             {isSubmenuOpen ? 'Collapse' : 'Expand'} {item.label} menu
           </span>
         </motion.div>
@@ -1669,8 +1693,8 @@ const MobileNavItemComponent = memo(({
         {isSubmenuOpen && (
           <motion.div
             id={mobileSubmenuId}
-            style={styles.submenuContainer}
-            variants={DEFAULT_ANIMATIONS.submenu}
+            style={STYLES.mobileNavItem.submenuContainer}
+            variants={ANIMATIONS.submenu}
             initial="initial"
             animate="animate"
             exit="exit"
@@ -1682,8 +1706,8 @@ const MobileNavItemComponent = memo(({
                 key={subItem.id}
                 id={`mobile-submenu-item-${item.id}-${subItem.id}`}
                 style={{
-                  ...styles.submenuItem,
-                  ...(isActive && subItem.href === window.location.pathname ? styles.submenuItemActive : {})
+                  ...STYLES.mobileNavItem.submenuItem,
+                  ...(isActive && subItem.href === window.location.pathname ? STYLES.mobileNavItem.submenuItemActive : {})
                 }}
                 onClick={() => handleNavigation(subItem.href)}
                 role="menuitem"
@@ -1691,10 +1715,8 @@ const MobileNavItemComponent = memo(({
                 onKeyDown={(e: React.KeyboardEvent) => handleSubmenuKeyDown(e, subItem.id, subItem.href)}
                 aria-label={subItem.description ? `${subItem.label}: ${subItem.description}` : subItem.label}
               >
-                <div style={styles.submenuItemLink}>
-                  <span style={styles.submenuItemLabel}>
-                    {subItem.label}
-                  </span>
+                <div style={STYLES.mobileNavItem.submenuItemLink}>
+                  <span style={STYLES.mobileNavItem.submenuItemLabel}>{subItem.label}</span>
                 </div>
               </button>
             ))}
@@ -1704,15 +1726,8 @@ const MobileNavItemComponent = memo(({
     </motion.div>
   );
 });
-
-// Display name for debugging
 MobileNavItemComponent.displayName = 'MobileNavItemComponent';
 
-/**
- * Mobile Menu Component
- * Memoized to prevent unnecessary re-renders
- * MODIFIED: Changed from left sidebar to top dropdown
- */
 const MobileMenuComponent = memo(({
   isOpen,
   toggleMenu,
@@ -1739,112 +1754,10 @@ const MobileMenuComponent = memo(({
   mobileTitle?: string;
   mobileMenuIcon?: React.ReactNode;
 }) => {
-  const styles = {
-    menuButton: {
-      position: 'fixed' as const,
-      top: '10px',
-      left: '10px',
-      zIndex: 201, // Higher than menu
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'transparent',
-      border: 'none',
-      color: 'var(--color-text, rgba(255, 255, 255, 0.8))',
-      fontSize: '1.5rem',
-      padding: '8px 12px',
-      borderRadius: '4px',
-      transition: 'all 0.3s ease',
-      cursor: 'pointer',
-      '&:hover': {
-        backgroundColor: 'rgba(20, 20, 20, 0.95)',
-        color: 'var(--color-accent, #fff)'
-      }
-    },
-    mobileMenu: {
-      display: 'none', // Will be overridden inline based on state
-      position: 'fixed' as const,
-      top: '0',
-      left: '0',
-      width: '100%',
-      height: '100%',
-      background: COLORS.background.dark,
-      zIndex: 200,
-      overflowY: 'hidden', // Changed from 'auto' to 'hidden' to disable main container scroll
-      overflowX: 'hidden' as const,
-      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.3)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-      flexDirection: 'column' as const,
-      transform: 'translateY(-100%)',
-      opacity: 0,
-      ...mobileMenuStyle
-    },
-    navItems: {
-      display: 'flex',
-      flexDirection: 'column' as const,
-      width: '100%',
-      padding: '0.5rem 0 0 0',
-      marginTop: '0',
-      overflowY: 'auto' as const,
-      height: 'calc(100vh - 130px)', // Adjusted to account for header height
-      paddingBottom: '2rem', // Extra padding at bottom for better scrolling
-    },
-    header: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexDirection: 'column' as const,
-      width: '100%',
-      padding: '0.75rem',
-      marginBottom: '0',
-      position: 'sticky' as const,
-      top: 0,
-      backgroundColor: 'rgba(8, 8, 8, 0.98)',
-      zIndex: 1
-    },
-    logoContainer: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: '0.75rem'
-    },
-    titleContainer: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: mobileHeader ? '0.75rem' : 0
-    },
-    logoLink: {
-      display: 'flex',
-      alignItems: 'center',
-      color: `var(--color-accent, ${COLORS.primary})`,
-      transition: 'all 0.2s ease',
-      cursor: 'pointer'
-    },
-    headerText: {
-      color: `var(--color-text, ${COLORS.tertiary})`,
-      fontSize: '1.2rem',
-      fontWeight: 'normal',
-      textAlign: 'center' as const,
-      margin: 0
-    },
-    titleText: {
-      color: `var(--color-accent, ${COLORS.primary})`,
-      fontSize: '1.4rem',
-      fontWeight: 'bold',
-      textAlign: 'center' as const,
-      margin: 0,
-      letterSpacing: '0.05em'
-    }
-  };
-
-  // Set up keyboard navigation for the mobile menu
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Handle Escape key to close the menu
       if (e.key === 'Escape') {
         e.preventDefault();
         toggleMenu();
@@ -1859,56 +1772,30 @@ const MobileMenuComponent = memo(({
   
   return (
     <>
-      <button 
-        onClick={toggleMenu}
-        aria-expanded={isOpen}
-        aria-controls="mobile-menu"
-        aria-label={`${isOpen ? 'Close' : 'Open'} navigation menu`}
-        onKeyDown={(e: React.KeyboardEvent) => {
-          if (e.key === 'ArrowDown' && isOpen) {
-            e.preventDefault();
-            // Focus the first menu item when pressing down from hamburger button
-            const firstMenuItem = document.getElementById(`mobile-nav-item-${items[0].id}`);
-            if (firstMenuItem) {
-              firstMenuItem.focus();
-            }
-          }
-        }}
-        style={{
-          ...styles.menuButton,
-          display: isMobileView ? 'flex' : 'none',
-          backgroundColor: isOpen ? 'var(--color-accent, rgba(255, 215, 0, 0.7))' : 'rgba(8, 8, 8, 0.9)',
-          color: isOpen ? '#000' : 'var(--color-text, rgba(255, 255, 255, 0.8))',
-        }}
-      >
-        {isOpen ? '✕' : '☰'}
-      </button>
-
       <AnimatePresence>
         {isOpen && (
           <motion.div
             id="mobile-menu"
             style={{
-              ...styles.mobileMenu,
+              ...STYLES.mobileMenu.container(mobileMenuStyle),
               display: isMobileView ? 'flex' : 'none'
             }}
-            variants={DEFAULT_ANIMATIONS.mobileMenu}
+            variants={ANIMATIONS.mobileMenu}
             initial="closed"
             animate="open"
             exit="closed"
             role="navigation"
             aria-label="Mobile Navigation"
           >
-            {/* Logo, Title and Header section */}
-            <div style={styles.header}>
+            <div style={STYLES.mobileMenu.header}>
               {logo && (
-                <div style={styles.logoContainer}>
+                <div style={STYLES.mobileMenu.logoContainer}>
                   <Link href={homeHref || '/'} passHref>
                     <div 
-                      style={styles.logoLink} 
+                      style={STYLES.mobileMenu.logoLink} 
                       tabIndex={0}
                       aria-label="Home"
-                      onClick={toggleMenu} // Close menu when clicking logo
+                      onClick={toggleMenu}
                     >
                       {logo}
                     </div>
@@ -1916,23 +1803,18 @@ const MobileMenuComponent = memo(({
                 </div>
               )}
               
-              <div style={styles.titleContainer}>
-                <div style={styles.titleText}>
-                  {mobileTitle || 'Crescent'}
-                </div>
+              <div style={STYLES.mobileMenu.titleContainer(mobileHeader)}>
+                <div style={STYLES.mobileMenu.titleText}>{mobileTitle || 'Crescent'}</div>
               </div>
               
               {mobileHeader && (
-                <div style={styles.headerText}>
-                  {mobileHeader}
-                </div>
+                <div style={STYLES.mobileMenu.headerText}>{mobileHeader}</div>
               )}
             </div>
             
-            {/* Navigation Items - Scrollable container */}
             <div 
               style={{
-                ...styles.navItems,
+                ...STYLES.mobileMenu.navItems,
                 paddingTop: '0.5rem',
               }}
               role="menubar" 
@@ -1955,25 +1837,8 @@ const MobileMenuComponent = memo(({
     </>
   );
 });
-
-// Display name for debugging
 MobileMenuComponent.displayName = 'MobileMenuComponent';
 
-// ==========================================================
-// MAIN NAVIGATION BAR COMPONENT
-// ==========================================================
-
-/**
- * NavigationBar Component
- * 
- * A responsive, accessible navigation bar with desktop and mobile views.
- * Features include:
- * - Responsive design that adapts to different screen sizes
- * - Submenu support with hover or click activation
- * - Keyboard navigation and screen reader support
- * - Animated transitions for smooth user experience
- * - Mobile view with top dropdown menu that overlays content
- */
 const NavigationBar: React.FC<NavigationBarProps> = ({
   // Content customization
   items = DEFAULT_NAV_ITEMS,
@@ -1999,10 +1864,9 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   scrollThreshold = 2,
   
   // Visual customization
-  backgroundColor = 'rgba(8, 8, 8, 0.65)',
   backdropFilter = 'blur(12px)',
-  borderStyle = '1px solid rgba(255, 255, 255, 0.1)',
-  boxShadow = '0 8px 16px -2px rgba(0, 0, 0, 0.15)',
+  borderStyle = `1px solid ${COLORS.secondary}`,
+  boxShadow = SHADOWS.standard,
   
   // Responsive behavior
   mobileBreakpoint = 768,
@@ -2016,173 +1880,115 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
 }) => {
   // Combine default icons with custom ones
   const mergedIconMapping = { ...DEFAULT_ICON_MAPPING, ...iconMapping };
-  
-  // State management
-  const [isClient, setIsClient] = useState(false);
-  const [prevScrollPos, setPrevScrollPos] = useState(0);
-  const [visible, setVisible] = useState(true);
   const pathname = usePathname();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const scrollPositionRef = useRef(0); // Add this line to define scrollPositionRef
-  const [activeItemId, setActiveItemId] = useState<string | null>(null);
-  const [focusedItemId, setFocusedItemId] = useState<string | null>(null);
-  const [isMobileView, setIsMobileView] = useState(false);
-  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastFocusedElementRef = useRef<HTMLElement | null>(null);
   
-  const [isLogoHovered, setIsLogoHovered] = useState(false);
-  const [showLogoTooltip, setShowLogoTooltip] = useState(false);
-  const logoTooltipTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Use custom hooks for managing submenu state and responsive navigation
+  const {
+    activeItemId,
+    setActiveItemId,
+    focusedItemId,
+    setFocusedItemId,
+    handleNavItemMouseEnter,
+    handleNavItemMouseLeave,
+    cancelSubmenuClosing,
+  } = useSubmenuManager(submenuBehavior, submenuCloseDelay);
   
-  // Handle logo hover events
-  const handleLogoMouseEnter = useCallback(() => {
-    setIsLogoHovered(true);
-    
-    // Clear any existing timeout
-    if (logoTooltipTimeoutRef.current) {
-      clearTimeout(logoTooltipTimeoutRef.current);
+  const {
+    isClient,
+    isMobileView,
+    isMobileMenuOpen,
+    visible,
+    toggleMobileMenu,
+  } = useResponsiveNavigation(mobileBreakpoint, hideOnScroll, scrollThreshold);
+  
+  // Logo hover effect style
+  const logoHoverStyle = `
+    .nav-logo-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: ${COLORS.primary};
+      cursor: pointer;
+      position: relative;
+      padding: 8px;
+      border-radius: 50%;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    
-    // Set a timeout to show the tooltip after 1 second
-    logoTooltipTimeoutRef.current = setTimeout(() => {
-      setShowLogoTooltip(true);
-    }, 1000);
-  }, []);
-  
-  const handleLogoMouseLeave = useCallback(() => {
-    setIsLogoHovered(false);
-    setShowLogoTooltip(false);
-    
-    // Clear any existing timeout
-    if (logoTooltipTimeoutRef.current) {
-      clearTimeout(logoTooltipTimeoutRef.current);
-      logoTooltipTimeoutRef.current = null;
+    .nav-logo-link:hover, .nav-logo-link:focus {
+      background: ${COLORS.glow};
+      box-shadow: 0 0 18px 8px ${COLORS.glow};
+      transform: scale(1.1);
     }
-  }, []);
+    .nav-logo-link:active {
+      background: transparent;
+      box-shadow: none;
+      transform: scale(1);
+      transition: all 0.1s ease;
+    }
+    .nav-logo-link:hover .nav-logo-tooltip,
+    .nav-logo-link:focus .nav-logo-tooltip {
+      opacity: 1;
+      visibility: visible;
+    }
+    .nav-logo-link:active .nav-logo-tooltip {
+      opacity: 0;
+      visibility: hidden;
+    }
+    .nav-logo-tooltip {
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+      transition-delay: 0.2s;
+      z-index: 200;
+      pointer-events: none;
+      background: ${COLORS.secondary};
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      color: ${COLORS.text};
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: ${FONTS.tooltip};
+      font-weight: normal;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+      border: none;
+    }
+  `;
   
-  // Clean up the tooltip timeout when the component unmounts
+  // Inject CSS for logo hover effect
   useEffect(() => {
+    if (!isClient) return;
+    
+    const styleElement = document.createElement('style');
+    styleElement.textContent = logoHoverStyle;
+    document.head.appendChild(styleElement);
+    
     return () => {
-      if (logoTooltipTimeoutRef.current) {
-        clearTimeout(logoTooltipTimeoutRef.current);
-      }
+      document.head.removeChild(styleElement);
     };
-  }, []);
+  }, [isClient, logoHoverStyle]);
 
-  // Styling based on props
-  const styles = {
-    navContainer: {
-      position: 'fixed' as const,
-      top: 0,
-      left: 0,
-      width,
-      zIndex,
-      backdropFilter,
-      WebkitBackdropFilter: backdropFilter,
-      background: backgroundColor || COLORS.secondary,
-      padding: `${verticalPadding} ${horizontalPadding}`,
-      height,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      transition: 'transform 0.3s ease, background-color 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease',
-      transform: visible ? 'translateY(0)' : 'translateY(-100%)',
-      opacity: visible ? 1 : 0,
-      boxShadow: visible ? boxShadow : 'none',
-      borderBottom: borderStyle || `1px solid ${COLORS.border}`,
-    },
-    navContent: {
-      display: 'flex',
-      alignItems: 'center',
-      width: '100%',
-      maxWidth,
-      margin: '0 auto',
-      justifyContent: 'center'
-    },
-    logoContainer: {
-      display: 'flex',
-      alignItems: 'center',
-      position: 'absolute' as const,
-      left: '3rem',
-      opacity: 1,
-    },
-    logoLink: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: `var(--color-accent, ${COLORS.primary})`,
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      cursor: 'pointer',
-      position: 'relative' as const,
-      padding: '8px',
-      borderRadius: '50%',
-      background: isLogoHovered ? `${COLORS.glow}` : 'transparent',
-      boxShadow: isLogoHovered ? `0 0 18px 8px ${COLORS.glow}` : 'none',
-      transform: isLogoHovered ? 'scale(1.1)' : 'scale(1)',
-    },
-    navItemsContainer: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: itemGap,
-      opacity: 1,
-    },
-    screenReaderOnly: {
-      position: 'absolute' as const,
-      width: '1px',
-      height: '1px',
-      padding: 0,
-      margin: '-1px',
-      overflow: 'hidden',
-      clip: 'rect(0, 0, 0, 0)',
-      whiteSpace: 'nowrap' as const,
-      borderWidth: 0,
-    }
-  };
-  
-  // Store the last focused element before opening a submenu
-  useEffect(() => {
-    if (activeItemId) {
-      // Save the currently focused element
-      lastFocusedElementRef.current = document.activeElement as HTMLElement;
-    } else if (lastFocusedElementRef.current) {
-      // When closing the submenu, restore focus
-      lastFocusedElementRef.current.focus();
-      lastFocusedElementRef.current = null;
-    }
-  }, [activeItemId]);
-  
-  // Clear any existing timeout when component unmounts
-  useEffect(() => {
-    return () => {
-      if (closeTimeoutRef.current) {
-        clearTimeout(closeTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Handle closing submenus when clicking outside
+  // Handle outside clicks for submenus
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Skip if no submenu is open or not using click behavior
       if (!activeItemId || submenuBehavior !== 'click') return;
       
       const target = event.target as HTMLElement;
-      
-      // Check if click is inside a submenu
       const submenuContainer = document.getElementById(`submenu-${activeItemId}`);
       const isInsideSubmenu = submenuContainer?.contains(target);
-      
-      // Check if click is on a navigation item
       const navItemAttr = target.closest('[data-nav-item]')?.getAttribute('data-nav-item');
       const isNavItemClick = navItemAttr !== undefined;
       
-      // If click is outside both submenu and the active nav item, close the submenu
       if (!isInsideSubmenu && (!isNavItemClick || navItemAttr !== activeItemId)) {
         setActiveItemId(null);
       }
     };
     
-    // Only add listener for click behavior
     if (submenuBehavior === 'click') {
       document.addEventListener('mousedown', handleClickOutside);
     }
@@ -2192,235 +1998,13 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
         document.removeEventListener('mousedown', handleClickOutside);
       }
     };
-  }, [activeItemId, submenuBehavior]);
+  }, [activeItemId, submenuBehavior, setActiveItemId]);
   
-  // Check if route matches the current path
+  // Check active route
   const isActiveRoute = useCallback((href: string) => {
     if (!pathname) return false;
     return pathname === href || pathname.startsWith(`${href}/`);
   }, [pathname]);
-  
-  // Handle delayed submenu closing
-  const closeSubmenuWithDelay = useCallback(() => {
-    // Only use delay for hover behavior
-    if (submenuBehavior !== 'hover') return;
-    
-    // Clear any existing timeout
-    if (closeTimeoutRef.current) {
-      clearTimeout(closeTimeoutRef.current);
-    }
-    
-    // Set a new timeout to close the submenu
-    closeTimeoutRef.current = setTimeout(() => {
-      setActiveItemId(null);
-    }, submenuCloseDelay); // Use configurable delay
-  }, [submenuBehavior, submenuCloseDelay]);
-  
-  // Cancel submenu closing if mouse reenters submenu
-  const cancelSubmenuClosing = useCallback(() => {
-    if (closeTimeoutRef.current) {
-      clearTimeout(closeTimeoutRef.current);
-      closeTimeoutRef.current = null;
-    }
-  }, []);
-  
-  // Handle hovering over navigation items
-  const handleNavItemMouseEnter = useCallback((itemId: string) => {
-    if (submenuBehavior === 'hover') {
-      cancelSubmenuClosing();
-      setActiveItemId(itemId);
-    }
-  }, [cancelSubmenuClosing, submenuBehavior]);
-  
-  // Handle mouse leaving navigation items
-  const handleNavItemMouseLeave = useCallback(() => {
-    if (submenuBehavior === 'hover') {
-      closeSubmenuWithDelay();
-    }
-  }, [closeSubmenuWithDelay, submenuBehavior]);
-  
-  // Toggle mobile menu open/closed
-  const toggleMobileMenu = useCallback(() => {
-    if (isMobileView) {
-      setIsMobileMenuOpen(prev => !prev);
-    }
-  }, [isMobileView]);
-
-  // Handle scroll behavior
-  useEffect(() => {
-    if (!isClient || !hideOnScroll) return;
-    
-    const handleScroll = () => {
-      const currentScrollPos = window.scrollY;
-      
-      // Determine if navbar should be visible
-      const scrollingUp = prevScrollPos > currentScrollPos;
-      const atTop = currentScrollPos < 10;
-      const significantChange = Math.abs(currentScrollPos - prevScrollPos) > scrollThreshold;
-      
-      // Update visibility based on conditions
-      if (atTop || (scrollingUp && significantChange)) {
-        setVisible(true);
-      } else if (!scrollingUp && significantChange && !isMobileMenuOpen) {
-        setVisible(false);
-      }
-      
-      setPrevScrollPos(currentScrollPos);
-    };
-    
-    window.addEventListener('scroll', handleScroll);
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [isClient, prevScrollPos, isMobileMenuOpen, hideOnScroll, scrollThreshold]);
-
-  // Client-side initialization and responsive handling
-  useEffect(() => {
-    setIsClient(true);
-    setPrevScrollPos(window.scrollY);
-    
-    // Check if in mobile view based on window width compared to breakpoint
-    // This enables responsive behavior switching between desktop and mobile layouts
-    const checkMobileView = () => {
-      setIsMobileView(window.innerWidth <= mobileBreakpoint);
-    };
-    
-    // Initial check on component mount
-    checkMobileView();
-    
-    // Re-check on window resize to handle orientation changes or browser resizing
-    window.addEventListener('resize', checkMobileView);
-    
-    // Add a skip link for keyboard users to bypass navigation
-    const addSkipLink = () => {
-      if (!document.getElementById('skip-to-content')) {
-        const skipLink = document.createElement('a');
-        skipLink.id = 'skip-to-content';
-        skipLink.href = '#main-content';
-        skipLink.textContent = 'Skip to main content';
-        skipLink.style.position = 'absolute';
-        skipLink.style.top = '-40px';
-        skipLink.style.left = '0';
-        skipLink.style.background = 'var(--color-accent, #fff)';
-        skipLink.style.color = '#000';
-        skipLink.style.padding = '8px';
-        skipLink.style.zIndex = '1001';
-        skipLink.style.transition = 'top 0.3s';
-        
-        // Show the skip link when it receives focus
-        skipLink.addEventListener('focus', () => {
-          skipLink.style.top = '0';
-        });
-        
-        skipLink.addEventListener('blur', () => {
-          skipLink.style.top = '-40px';
-        });
-        
-        document.body.insertBefore(skipLink, document.body.firstChild);
-      }
-    };
-    
-    addSkipLink();
-    
-    // Clean up
-    return () => {
-      window.removeEventListener('resize', checkMobileView);
-      if (isMobileMenuOpen) {
-        document.body.style.overflow = '';
-      }
-    };
-  }, [mobileBreakpoint, isMobileMenuOpen]);
-  
-  // Reset logo hover state when pathname changes (page navigation)
-  useEffect(() => {
-    setIsLogoHovered(false);
-    setShowLogoTooltip(false);
-    
-    if (logoTooltipTimeoutRef.current) {
-      clearTimeout(logoTooltipTimeoutRef.current);
-      logoTooltipTimeoutRef.current = null;
-    }
-  }, [pathname]);
-  
-  // Reset logo hover state when tab visibility changes (switching between tabs)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        setIsLogoHovered(false);
-        setShowLogoTooltip(false);
-        
-        if (logoTooltipTimeoutRef.current) {
-          clearTimeout(logoTooltipTimeoutRef.current);
-          logoTooltipTimeoutRef.current = null;
-        }
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Clean up the event listener when component unmounts
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
-  
-  // Effect to handle body overflow when mobile menu is open/closed
-  useEffect(() => {
-    if (!isClient) return;
-    
-    // Use a stable reference for scroll position
-    const scrollRef = scrollPositionRef;
-    
-    if (isMobileMenuOpen && isMobileView) {
-      // Store current scroll position
-      const currentScrollPos = window.pageYOffset || document.documentElement.scrollTop;
-      scrollRef.current = currentScrollPos;
-      
-      // Calculate scrollbar width to prevent content shift
-      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-      
-      // Apply styles to html and body
-      document.documentElement.style.overflow = 'hidden';
-      document.documentElement.style.paddingRight = `${scrollbarWidth}px`;
-      document.body.style.overflow = 'hidden';
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
-      document.body.style.touchAction = 'none'; // Disable touch scrolling
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-      document.body.style.top = `-${currentScrollPos}px`;
-    } else if (isClient) {
-      // Remove scroll lock styles
-      document.documentElement.style.overflow = '';
-      document.documentElement.style.paddingRight = '';
-      document.body.style.overflow = '';
-      document.body.style.paddingRight = '';
-      document.body.style.touchAction = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
-      document.body.style.top = '';
-      
-      // Restore scroll position
-      window.scrollTo(0, scrollRef.current);
-    }
-    
-    return () => {
-      // Clean up when component unmounts
-      if (isClient) {
-        document.documentElement.style.overflow = '';
-        document.documentElement.style.paddingRight = '';
-        document.body.style.overflow = '';
-        document.body.style.paddingRight = '';
-        document.body.style.touchAction = '';
-        document.body.style.position = '';
-        document.body.style.width = '';
-        document.body.style.top = '';
-        
-        // Restore scroll position
-        window.scrollTo(0, scrollRef.current);
-      }
-    };
-  }, [isMobileMenuOpen, isMobileView, isClient]);
 
   if (!isClient) return null;
 
@@ -2432,49 +2016,40 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
       focusedItemId,
       setFocusedItemId
     }}>
-      {/* Desktop Navigation Bar - hidden on mobile */}
+      {/* Desktop Navigation Bar */}
       {!isMobileView && (
         <nav 
-          style={{
-            ...styles.navContainer,
-            transform: visible ? 'translateY(0)' : 'translateY(-100%)',
-            opacity: visible ? 1 : 0,
-            boxShadow: visible ? boxShadow : 'none',
-          }}
+          style={STYLES.navBar.container(visible, height, width, zIndex, backdropFilter, boxShadow, borderStyle)}
           role="navigation" 
           aria-label={ariaLabel}
         >
-          <div style={styles.navContent}>
-            {/* Logo with hover effects and tooltip */}
+          <div style={STYLES.navBar.content(maxWidth, horizontalPadding, verticalPadding)}>
+            {/* Logo */}
             {logo && (
-              <div 
-                style={styles.logoContainer}
-                onMouseEnter={handleLogoMouseEnter}
-                onMouseLeave={handleLogoMouseLeave}
-                onFocus={handleLogoMouseEnter}
-                onBlur={handleLogoMouseLeave}
-              >
+              <div style={STYLES.logo.container}>
                 <Link href={homeHref} passHref>
                   <div 
-                    style={styles.logoLink} 
+                    className="nav-logo-link"
                     tabIndex={0} 
                     aria-label="Navigate to Home Page"
-                    aria-describedby={showLogoTooltip ? "logo-tooltip" : undefined}
                     role="link"
+                    onClick={() => {
+                      setTimeout(() => {
+                        if (document.activeElement instanceof HTMLElement) {
+                          document.activeElement.blur();
+                        }
+                      }, 100);
+                    }}
                   >
                     {logo}
-                    <LogoTooltip visible={showLogoTooltip} />
+                    <div className="nav-logo-tooltip" role="tooltip">Home Page</div>
                   </div>
                 </Link>
               </div>
             )}
 
             {/* Desktop Navigation */}
-            <div 
-              style={styles.navItemsContainer}
-              role="menubar" 
-              aria-label="Main Menu"
-            >
+            <div style={STYLES.navBar.itemsContainer(itemGap)} role="menubar" aria-label="Main Menu">
               {items.map((item, index) => (
                 <DesktopNavItemComponent
                   key={item.id}
@@ -2492,7 +2067,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
         </nav>
       )}
       
-      {/* Persistent global submenu with dynamic content - desktop only */}
+      {/* Submenu - desktop only */}
       {!isMobileView && (
         <GlobalSubmenuComponent 
           items={items} 
@@ -2505,37 +2080,29 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
         />
       )}
       
-      {/* Mobile Menu Button - Fixed position for mobile only */}
+      {/* Mobile Menu Button */}
       {isMobileView && (
         <button 
           onClick={toggleMobileMenu}
           aria-expanded={isMobileMenuOpen}
           aria-controls="mobile-menu"
           aria-label={`${isMobileMenuOpen ? 'Close' : 'Open'} navigation menu`}
-          style={{
-            position: 'fixed',
-            top: '10px',
-            left: '10px',
-            zIndex: 201,
-            display: visible ? 'flex' : 'none', // Hide when scrolling down
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'transparent',
-            border: 'none',
-            color: isMobileMenuOpen ? 'var(--color-accent, #fff)' : 'var(--color-text, rgba(255, 255, 255, 0.8))',
-            fontSize: '1.5rem',
-            padding: '0.5rem',
-            cursor: 'pointer',
-            transition: 'opacity 0.3s ease, transform 0.3s ease',
-            opacity: visible ? 1 : 0,
-            transform: visible ? 'translateY(0)' : 'translateY(-100%)'
+          style={STYLES.mobileMenu.button(isMobileMenuOpen, visible)}
+          onKeyDown={(e: React.KeyboardEvent) => {
+            if (e.key === 'ArrowDown' && isMobileMenuOpen) {
+              e.preventDefault();
+              const firstMenuItem = document.getElementById(`mobile-nav-item-${items[0].id}`);
+              if (firstMenuItem) {
+                firstMenuItem.focus();
+              }
+            }
           }}
         >
           {isMobileMenuOpen ? '✕' : mobileMenuIcon || '☰'}
         </button>
       )}
       
-      {/* Mobile Menu Dropdown */}
+      {/* Mobile Menu */}
       <MobileMenuComponent 
         isOpen={isMobileMenuOpen}
         toggleMenu={toggleMobileMenu}

@@ -53,12 +53,14 @@ const HomePage: NextPage = () => {
   return (
     <div className="relative">
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-12">
+      <div className="">
         <ElementCard
           data={data}
           navigationItems={navigationItems}
           statsPosition="bottom"
           topOffset={0}
+          mobileContentMargin={0}
+
         />
       </div>
       
