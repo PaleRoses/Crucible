@@ -1,5 +1,5 @@
 // app/api/[...route]/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import {NextResponse } from 'next/server';
 
 // Your data can come from anywhere: database, CMS, file system, etc.
 // This can be replaced with actual data fetching logic
@@ -19,7 +19,7 @@ const dataStore = {
   // Include other data objects
 };
 
-export async function GET(request: NextRequest, { params }: { params: { route: string[] } }) {
+export async function GET(request: Request, { params }: { params: { route: string[] } }) {
   // Validate params to prevent errors
   if (!params || !params.route || !Array.isArray(params.route)) {
     return NextResponse.json(
