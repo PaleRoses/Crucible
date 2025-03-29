@@ -484,10 +484,3 @@
     margin: 1rem 0;
   }
 }
-
-/**
- * ANIMATIONS
- * Custom animation keyframes
- * Note: Some of these are already defined in the Tailwind config
- * but are included here for backwards compatibility
- */

@@ -409,6 +409,89 @@ const SHADOWS: Shadows = {
   mobile: '0 2px 10px rgba(0, 0, 0, 0.3)'
 };
 
+  // Common reusable style patterns for composition
+const COMMON_STYLES = {
+  // Layout patterns
+  flexRow: {
+    display: 'flex',
+    flexDirection: 'row' as React.CSSProperties["flexDirection"],
+    alignItems: 'center',
+  },
+  flexColumn: {
+    display: 'flex',
+    flexDirection: 'column' as React.CSSProperties["flexDirection"],
+  },
+  flexCenter: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  
+  // Typography bases
+  heading: {
+    fontFamily: 'var(--font-heading, inherit)',
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase' as React.CSSProperties["textTransform"],
+  },
+  text: {
+    color: COLORS.text,
+    lineHeight: 1.4,
+  },
+  
+  // Interactive elements
+  interactive: {
+    cursor: 'pointer',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  },
+  hoverEffect: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    transform: 'scale(1.03)',
+  },
+  focusVisible: {
+    outline: `2px solid ${COLORS.primary}`,
+    outlineOffset: '2px',
+  },
+  
+  // Containers
+  card: {
+    background: COLORS.secondary,
+    borderRadius: '6px',
+    overflow: 'hidden',
+  },
+  
+  // Border styles
+  border: {
+    borderTop: `1px solid ${COLORS.tertiary}`,
+    borderRight: `1px solid ${COLORS.tertiary}`,
+    borderBottom: `1px solid ${COLORS.tertiary}`,
+    borderLeft: `1px solid ${COLORS.tertiary}`,
+  },
+  borderAccent: {
+    borderTop: `1px solid ${COLORS.primary}`,
+    borderRight: `1px solid ${COLORS.primary}`,
+    borderBottom: `1px solid ${COLORS.primary}`,
+    borderLeft: `1px solid ${COLORS.primary}`,
+  },
+  
+  // Position utilities
+  fixed: {
+    position: 'fixed' as React.CSSProperties["position"],
+    top: 0,
+    left: 0,
+    width: '100%',
+  },
+  absolute: {
+    position: 'absolute' as React.CSSProperties["position"],
+  },
+  relative: {
+    position: 'relative' as React.CSSProperties["position"],
+  },
+  sticky: {
+    position: 'sticky' as React.CSSProperties["position"],
+    top: 0,
+  },
+};
+
 // Centralized style system
 const STYLES: StylesType = {
   colors: COLORS,
@@ -429,37 +512,30 @@ const STYLES: StylesType = {
   },
   logo: {
     container: {
-      display: 'flex',
-      alignItems: 'center',
-      position: 'absolute',
+      ...COMMON_STYLES.flexRow,
+      ...COMMON_STYLES.absolute,
       left: '3rem',
       opacity: 1,
     },
     link: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+      ...COMMON_STYLES.flexCenter,
+      ...COMMON_STYLES.interactive,
+      ...COMMON_STYLES.relative,
       color: COLORS.primary,
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      cursor: 'pointer',
-      position: 'relative',
       padding: '8px',
       borderRadius: '50%',
     },
   },
   navBar: {
     container: (visible, height, width, zIndex, backdropFilter, boxShadow, borderStyle) => ({
-      position: 'fixed',
-      top: 0,
-      left: 0,
+      ...COMMON_STYLES.fixed,
+      ...COMMON_STYLES.flexRow,
       width,
       zIndex,
       backdropFilter,
       WebkitBackdropFilter: backdropFilter,
       background: COLORS.secondary,
       height,
-      display: 'flex',
-      alignItems: 'center',
       justifyContent: 'space-between',
       transition: 'transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease',
       transform: visible ? 'translateY(0)' : 'translateY(-100%)',
@@ -468,8 +544,7 @@ const STYLES: StylesType = {
       borderBottom: borderStyle || `1px solid ${COLORS.primary}`,
     }),
     content: (maxWidth, horizontalPadding, verticalPadding) => ({
-      display: 'flex',
-      alignItems: 'center',
+      ...COMMON_STYLES.flexRow,
       width: '100%',
       maxWidth,
       margin: '0 auto',
@@ -477,8 +552,7 @@ const STYLES: StylesType = {
       padding: `${verticalPadding} ${horizontalPadding}`,
     }),
     itemsContainer: (itemGap) => ({
-      display: 'flex',
-      alignItems: 'center',
+      ...COMMON_STYLES.flexRow,
       gap: itemGap,
       opacity: 1,
     }),
@@ -522,29 +596,27 @@ const STYLES: StylesType = {
   },
   submenuItem: {
     wrapper: {
-      display: 'flex',
-      flexDirection: 'row',
+      ...COMMON_STYLES.flexRow,
+      ...COMMON_STYLES.interactive,
       alignItems: 'flex-start',
       padding: '1rem',
-      cursor: 'pointer',
       color: COLORS.text,
       textAlign: 'left',
       borderRadius: 'var(--radius-small, 4px)',
       willChange: 'transform, background-color',
-      transition: 'all 0.2s ease',
       backgroundColor: 'transparent',
-      border: 'none',
+      borderTop: 'none',
+      borderRight: 'none',
+      borderBottom: 'none',
       borderLeft: `1px solid ${COLORS.primary}`,
     },
     hoverState: {
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      transform: 'scale(1.03)',
+      ...COMMON_STYLES.hoverEffect,
       boxShadow: `0 0 5px ${COLORS.primary}`,
       borderLeft: `1px solid var(--color-accent, ${COLORS.primary})`,
     },
     link: {
-      display: 'flex',
-      flexDirection: 'column',
+      ...COMMON_STYLES.flexColumn,
       alignItems: 'flex-start',
       width: '100%',
       fontFamily: 'var(--font-heading, inherit)',
@@ -553,62 +625,53 @@ const STYLES: StylesType = {
       letterSpacing: '0.05em',
     },
     icon: {
-      display: 'flex',
+      ...COMMON_STYLES.flexCenter,
       alignSelf: 'center',
-      justifyContent: 'center',
       color: COLORS.primary,
       marginBottom: '1rem',
       width: '170px',
       height: '128px'
     },
     label: {
+      ...COMMON_STYLES.heading,
       fontSize: FONTS.desktopSubmenuItem,
-      letterSpacing: '0.1em',
       fontWeight: 300,
       marginBottom: '-0.5rem',
-      textTransform: 'uppercase',
       transition: 'color 0.2s ease',
     },
     description: {
+      ...COMMON_STYLES.text,
       fontSize: FONTS.desktopSubmenuDescription,
-      color: COLORS.text,
       opacity: 0.7,
       maxWidth: '200px',
-      lineHeight: 1.4,
     }
   },
   desktopNavItem: {
     wrapper: (itemStyle = {}) => ({
-      position: 'relative',
+      ...COMMON_STYLES.relative,
       ...itemStyle
     }),
     navItem: (isItemActive, isActive) => ({
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
+      ...COMMON_STYLES.flexRow,
+      ...COMMON_STYLES.interactive,
+      ...COMMON_STYLES.relative,
+      ...COMMON_STYLES.heading,
       gap: '0.5rem',
-      fontFamily: 'var(--font-heading, inherit)',
       fontWeight: 'normal',
-      letterSpacing: '0.2em',
       fontSize: FONTS.desktopNavItem,
       color: isItemActive || isActive ? COLORS.primary : COLORS.text,
       padding: '0.5rem 0.75rem',
       border: 'none',
       background: 'transparent',
-      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       outline: 'none',
-      position: 'relative'
     }),
     content: (isItemActive, isActive) => ({
-      display: 'flex',
-      alignItems: 'center',
+      ...COMMON_STYLES.flexRow,
       gap: '0.5rem',
       color: isItemActive || isActive ? COLORS.primary : 'inherit'
     }),
     icon: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+      ...COMMON_STYLES.flexCenter,
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
     },
     label: (isItemActive, isActive) => ({
@@ -617,8 +680,7 @@ const STYLES: StylesType = {
       color: isItemActive || isActive ? `var(--color-accent, ${COLORS.primary})` : 'inherit'
     }),
     arrow: (isItemActive) => ({
-      display: 'flex',
-      alignItems: 'center',
+      ...COMMON_STYLES.flexRow,
       marginTop: '2px',
       color: isItemActive ? COLORS.primary : "currentColor"
     }),
@@ -674,11 +736,10 @@ const STYLES: StylesType = {
   },
   mobileNavItem: {
     navItem: (isActive) => ({
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
+      ...COMMON_STYLES.flexRow,
+      ...COMMON_STYLES.interactive,
+      ...COMMON_STYLES.heading,
       gap: '0.5rem',
-      fontFamily: 'var(--font-heading, inherit)',
       fontWeight: 'normal',
       fontSize: FONTS.mobileNavItem,
       color: isActive ? `var(--color-accent, ${COLORS.primary})` : `var(--color-text, ${COLORS.text})`,
@@ -692,8 +753,7 @@ const STYLES: StylesType = {
       borderBottom: `1px solid ${COLORS.tertiary}`
     }),
     content: {
-      display: 'flex',
-      alignItems: 'center',
+      ...COMMON_STYLES.flexRow,
       gap: '0.5rem'
     },
     label: {
@@ -701,14 +761,12 @@ const STYLES: StylesType = {
       letterSpacing: '0.1em'
     },
     arrow: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
+      ...COMMON_STYLES.flexCenter
     },
     submenuContainer: {
+      ...COMMON_STYLES.flexColumn,
+      ...COMMON_STYLES.border,
       width: '100%',
-      display: 'flex',
-      flexDirection: 'column',
       gap: '0.25rem',
       padding: '0.5rem 0 0.5rem 1.5rem',
       background: 'rgba(0, 0, 0, 0.3)',
@@ -716,14 +774,12 @@ const STYLES: StylesType = {
       borderBottom: `1px solid ${COLORS.tertiary}`,
     },
     submenuItem: {
-      display: 'flex',
-      flexDirection: 'row',
-      alignItems: 'center',
+      ...COMMON_STYLES.flexRow,
+      ...COMMON_STYLES.interactive,
+      ...COMMON_STYLES.border,
       padding: '0.5rem 1rem',
-      cursor: 'pointer',
       color: COLORS.text,
       opacity: 0.9,
-      transition: 'all 0.3s ease',
       border: 'none',
       borderBottom: `1px solid ${COLORS.tertiary}`,
       backgroundColor: 'transparent',
@@ -736,15 +792,11 @@ const STYLES: StylesType = {
       color: `var(--color-accent, ${COLORS.primary})`
     },
     submenuItemLink: {
-      display: 'flex',
-      flexDirection: 'row',
-      alignItems: 'center',
+      ...COMMON_STYLES.flexRow,
       gap: '0.5rem',
     },
     submenuItemIcon: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+      ...COMMON_STYLES.flexCenter,
       width: '16px',
       height: '16px',
       color: COLORS.primary,
@@ -758,29 +810,25 @@ const STYLES: StylesType = {
   },
   mobileMenu: {
     button: (isOpen, visible) => ({
-      position: 'fixed',
+      ...COMMON_STYLES.fixed,
+      ...COMMON_STYLES.flexCenter,
+      ...COMMON_STYLES.interactive,
       width: '45px',
       height: '47px',
       top: '10px',
       left: '10px',
       zIndex: 201,
       display: visible ? 'flex' : 'none',
-      alignItems: 'center',
-      justifyContent: 'center',
       background: 'transparent',
       color: isOpen ? COLORS.primary : COLORS.text,
       fontSize: '1.5rem',
       padding: '0.5rem',
-      cursor: 'pointer',
-      transition: 'opacity 0.3s ease, transform 0.3s ease',
       opacity: visible ? 1 : 0,
       transform: visible ? 'translateY(0)' : 'translateY(-100%)'
     }),
     container: (mobileMenuStyle = {}) => ({
+      ...COMMON_STYLES.fixed,
       display: 'none',
-      position: 'fixed',
-      top: '0',
-      left: '0',
       width: '100%',
       height: '100%',
       background: COLORS.secondary,
@@ -796,8 +844,7 @@ const STYLES: StylesType = {
       ...mobileMenuStyle
     }),
     navItems: {
-      display: 'flex',
-      flexDirection: 'column',
+      ...COMMON_STYLES.flexColumn,
       width: '100%',
       padding: '0.5rem 0 0 0',
       marginTop: '0',
@@ -806,51 +853,43 @@ const STYLES: StylesType = {
       paddingBottom: '2rem',
     },
     header: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+      ...COMMON_STYLES.flexCenter,
+      ...COMMON_STYLES.sticky,
       flexDirection: 'column',
       width: '100%',
       padding: '0.75rem',
       marginBottom: '0',
-      position: 'sticky',
       top: 0,
       backgroundColor: COLORS.secondary,
       zIndex: 1
     },
     logoContainer: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+      ...COMMON_STYLES.flexCenter,
       marginBottom: '0.75rem'
     },
     titleContainer: (mobileHeader) => ({
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+      ...COMMON_STYLES.flexCenter,
       marginBottom: mobileHeader ? '0.75rem' : 0
     }),
     logoLink: {
-      display: 'flex',
-      alignItems: 'center',
+      ...COMMON_STYLES.flexRow,
+      ...COMMON_STYLES.interactive,
       color: COLORS.primary,
-      transition: 'all 0.2s ease',
-      cursor: 'pointer'
     },
     headerText: {
-      color: `var(--color-text, ${COLORS.text})`,
+      ...COMMON_STYLES.text,
       fontSize: '1.2rem',
       fontWeight: 'normal',
       textAlign: 'center',
       margin: 0
     },
     titleText: {
+      ...COMMON_STYLES.heading,
       color: COLORS.primary,
       fontSize: '1.4rem',
       fontWeight: 'bold',
       textAlign: 'center',
       margin: 0,
-      letterSpacing: '0.05em'
     }
   }
 };
@@ -861,13 +900,13 @@ const TRANSITIONS = {
   springEase: [0.16, 1, 0.3, 1],
   sharpEase: [0.4, 0, 1, 1],
   standard: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
-  quick: { duration: 0.2, ease: [0.4, 0, 1, 1] },
-  veryQuick: { duration: 0.1, ease: [0.4, 0, 1, 1] },
+  quick: { duration: 0.15, ease: [0.4, 0, 1, 1] },
+  veryQuick: { duration: 0.08, ease: [0.4, 0, 1, 1] },
   spring: {
     type: "spring",
-    stiffness: 400,
-    damping: 30,
-    mass: 0.8
+    stiffness: 500,
+    damping: 25,
+    mass: 0.7
   }
 };
 
@@ -902,15 +941,15 @@ const ANIMATIONS = {
   submenuContent: {
     initial: { 
       opacity: 0, x: -20,
-      transition: TRANSITIONS.quick
+      transition: TRANSITIONS.veryQuick
     },
     animate: { 
       opacity: 1, x: 0,
-      transition: { duration: 0.3, ease: TRANSITIONS.springEase }
+      transition: { duration: 0.2, ease: TRANSITIONS.springEase }
     },
     exit: { 
       opacity: 0, x: 20,
-      transition: TRANSITIONS.quick
+      transition: TRANSITIONS.veryQuick
     },
     slideRight: {
       initial: {
@@ -919,7 +958,7 @@ const ANIMATIONS = {
       },
       animate: {
         opacity: 1, x: 0,
-        transition: { duration: 0.15, ease: TRANSITIONS.springEase }
+        transition: { duration: 0.12, ease: TRANSITIONS.springEase }
       },
       exit: {
         opacity: 0, x: -40,
@@ -933,7 +972,7 @@ const ANIMATIONS = {
       },
       animate: {
         opacity: 1, x: 0,
-        transition: { duration: 0.15, ease: TRANSITIONS.springEase }
+        transition: { duration: 0.12, ease: TRANSITIONS.springEase }
       },
       exit: {
         opacity: 0, x: -40,
@@ -955,16 +994,16 @@ const ANIMATIONS = {
     closed: {
       opacity: 0,
       y: '-100%',
-      transition: TRANSITIONS.standard
+      transition: TRANSITIONS.veryQuick
     },
     open: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.4,
+        duration: 0.25,
         ease: TRANSITIONS.springEase,
-        staggerChildren: 0.1,
-        delayChildren: 0.1
+        staggerChildren: 0.05,
+        delayChildren: 0.05
       }
     }
   }

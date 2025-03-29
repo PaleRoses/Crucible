@@ -43,6 +43,9 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@stylexjs/babel-plugin": "^0.11.1",
+    "@stylexjs/nextjs-plugin": "^0.11.1",
+    "@stylexjs/webpack-plugin": "^0.11.1",
     "@tailwindcss/postcss": "^4",
     "@tanstack/react-query-devtools": "^5.67.3",
     "@types/lodash": "^4.17.16",
