@@ -1,11 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import '../../styled-system/css';  // Base styles from Panda
 import './styles/global.css';
 import { StyledComponentsRegistry } from '../lib/registry';
 import Background from '../components/layout/Layout';
-import NavLayout from '../components/layout/ NavLayout'; // New import for the navigation component
+import NavLayout from '../components/layout/NavLayout';
 import Script from 'next/script';
+import { ThemeProvider, ThemeScript } from './styles/themes/ThemeContext';
+import { ThemeSelector } from '../components/ui/ThemeSelector';
 
 //=============================================================================
 // ROOT LAYOUT COMPONENT
@@ -19,10 +22,49 @@ interface RootLayoutProps {
   children: React.ReactNode;
 }
 
+// Client-side only ThemeSelector wrapper
+function ClientOnlyThemeSelector() {
+  // Track if component is mounted (client-side only)
+  const [isMounted, setIsMounted] = useState(false);
+  
+  // Only run after hydration is complete
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+  
+  // Don't render anything during SSR or initial hydration
+  if (!isMounted) {
+    return null;
+  }
+  
+  // Only render on client after hydration
+  return (
+    <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 transition-opacity duration-300">
+      <ThemeSelector />
+    </div>
+  );
+}
+
 export default function RootLayout({ children }: RootLayoutProps) {
+  // Handle Adobe fonts loading
+  const handleFontsLoad = () => {
+    try {
+      // Use a proper type declaration for the global Typekit object
+      const Typekit = window.Typekit;
+      if (Typekit) {
+        Typekit.load({ async: false });
+      }
+    } catch (e) {
+      console.error('Error loading Adobe fonts:', e);
+    }
+  };
+
   return (
     <html lang="en">
       <head>
+        {/* Theme script for FOUC prevention - runs before React hydration */}
+        <ThemeScript />
+        
         {/* Preload Adobe Fonts with high priority */}
         <link
           rel="preload"
@@ -47,15 +89,11 @@ export default function RootLayout({ children }: RootLayoutProps) {
           id="adobe-fonts"
           strategy="beforeInteractive"
           src="https://use.typekit.net/hcw7ssx.js"
-          onLoad={() => {
-            try {
-              // @ts-expect-error - Typekit is added to window by the script but not typed
-              Typekit.load({ async: false });
-            } catch (e) {
-              console.error('Error loading Adobe fonts:', e);
-            }
-          }}
+          onLoad={handleFontsLoad}
         />
+        
+        {/* Preconnect to Adobe Fonts for better performance */}
+        <link rel="preconnect" href="https://use.typekit.net" crossOrigin="anonymous" />
         
         {/* Critical CSS to prevent layout shift during font loading */}
         <style dangerouslySetInnerHTML={{ __html: `
@@ -127,10 +165,8 @@ export default function RootLayout({ children }: RootLayoutProps) {
           /* Custom colors from original theme */
           :root {
             --gold: #BFAD7F;
-            --gold-light: #D6C69F;
             --color-text: rgba(224, 224, 224, 0.8);
             --color-accent: var(--gold);
-            --radius-small: 6px;
             --font-heading: 'haboro-soft-condensed', 'Avenir Next', sans-serif;
           }
           
@@ -148,21 +184,27 @@ export default function RootLayout({ children }: RootLayoutProps) {
       </head>
       <body>
         <StyledComponentsRegistry>
-          <div className="relative min-h-screen">
-            <Background />
-            
-            {/* Navigation component extracted to separate file */}
-            <NavLayout />
-            
-            {/* 
-              Main content area
-              - Added padding-top to account for the fixed navigation
-              - Transition effects for smooth page changes
-            */}
-            <main className="transition-opacity duration-300 ease-in-out pt-[100px]">
-              {children}
-            </main>
-          </div>
+          {/* Theme provider manages theme state */}
+          <ThemeProvider>
+            <div className="relative min-h-screen">
+              <Background />
+              
+              {/* Navigation component */}
+              <NavLayout />
+              
+              {/* Client-side only ThemeSelector */}
+              <ThemeSelector />
+              
+              {/*
+                Main content area
+                - Added padding-top to account for the fixed navigation
+                - Using transition for smooth appearance
+              */}
+              <main className="pt-[100px] animate-fadeIn">
+                {children}
+              </main>
+            </div>
+          </ThemeProvider>
         </StyledComponentsRegistry>
       </body>
     </html>

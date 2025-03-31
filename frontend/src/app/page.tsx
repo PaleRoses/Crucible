@@ -53,12 +53,14 @@ const HomePage: NextPage = () => {
   return (
     <div className="relative">
       {/* Main Content */}
+      <div style={{ height: '50vh' }}></div>
       <div className="">
         <ElementCard
           data={data}
           navigationItems={navigationItems}
           statsPosition="bottom"
           topOffset={0}
+          highlightColor='var(--color-primary)'
           mobileContentMargin={0}
 
         />

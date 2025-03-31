@@ -441,11 +441,9 @@ const COMMON_STYLES = {
   // Interactive elements
   interactive: {
     cursor: 'pointer',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   },
   hoverEffect: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    transform: 'scale(1.03)',
   },
   focusVisible: {
     outline: `2px solid ${COLORS.primary}`,
@@ -572,7 +570,6 @@ const STYLES: StylesType = {
     content: {
       background: COLORS.secondary,
       color: COLORS.text,
-      padding: '4px 8px',
       borderRadius: '4px',
       fontSize: FONTS.tooltip,
       fontWeight: 'normal',
@@ -887,7 +884,8 @@ const STYLES: StylesType = {
       ...COMMON_STYLES.heading,
       color: COLORS.primary,
       fontSize: '1.4rem',
-      fontWeight: 'bold',
+      paddingBottom: '0.5rem',
+      fontWeight: '300',
       textAlign: 'center',
       margin: 0,
     }
@@ -931,10 +929,8 @@ const ANIMATIONS = {
     }
   },
   submenu: {
-    initial: { opacity: 1, y: 0, scale: 1 },
-    animate: { opacity: 1, y: 0, scale: 1 },
     exit: { 
-      opacity: 0, y: -15, scale: 0.97,
+      opacity: 0, y: -15, scale: 1,
       transition: TRANSITIONS.standard
     }
   },
@@ -1031,21 +1027,18 @@ const DEFAULT_NAV_ITEMS: NavItem[] = [
 // Default icons
 const DefaultArrowIcon = memo(() => (
   <svg width="24" height="24" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-    <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
   </svg>
 ));
 DefaultArrowIcon.displayName = 'DefaultArrowIcon';
 
 const DefaultHomeIcon = memo(() => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-    <path d="M12 5.69L17 10.19V18H15V12H9V18H7V10.19L12 5.69ZM12 3L2 12H5V20H11V14H13V20H19V12H22L12 3Z" fill="currentColor" />
   </svg>
 ));
 DefaultHomeIcon.displayName = 'DefaultHomeIcon';
 
 const DefaultSubmenuIcon = memo(() => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
-    <path d="M8 2C4.68629 2 2 4.68629 2 8C2 11.3137 4.68629 14 8 14C11.3137 14 14 11.3137 14 8C14 4.68629 11.3137 2 8 2ZM8 3C10.7614 3 13 5.23858 13 8C13 10.7614 10.7614 13 8 13C5.23858 13 3 10.7614 3 8C3 5.23858 5.23858 3 8 3ZM8 6C7.44772 6 7 6.44772 7 7V11C7 11.5523 7.44772 12 8 12C8.55228 12 9 11.5523 9 11V7C9 6.44772 8.55228 6 8 6ZM8 4C7.44772 4 7 4.44772 7 5C7 5.55228 7.44772 6 8 6C8.55228 6 9 5.55228 9 5C9 4.44772 8.55228 4 8 4Z" fill="currentColor" />
   </svg>
 ));
 DefaultSubmenuIcon.displayName = 'DefaultSubmenuIcon';
@@ -1169,7 +1162,7 @@ const DesktopNavItemComponent = memo(({
   useEffect(() => {
     controls.start({
       color: isItemActive || isActive ? `var(--color-accent, ${COLORS.primary})` : `var(--color-text, ${COLORS.tertiary})`,
-      scale: isItemActive ? 1.05 : 1,
+      scale: isItemActive ? 1 : 1,
       transition: { duration: 0.3 }
     });
   }, [controls, isItemActive, isActive]);
@@ -1944,8 +1937,6 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   const logoHoverStyle = `
     .nav-logo-link {
       display: flex;
-      align-items: center;
-      justify-content: center;
       color: ${COLORS.primary};
       cursor: pointer;
       position: relative;

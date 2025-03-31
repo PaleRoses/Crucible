@@ -11,6 +11,15 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    // Add Panda CSS plugin configuration
+    plugins: ['@pandacss'],
+    rules: {
+      // You can enable specific rules here, for example:
+      // '@pandacss/valid-token': 'error',
+      // '@pandacss/no-unknown-token': 'warn'
+    }
+  }
 ];
 
 export default eslintConfig;

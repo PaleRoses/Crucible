@@ -134,10 +134,7 @@ interface AnimationConfig {
   duration?: number;
 }
 
-/**
- * Main component props with extended parameterization options
- * Each parameter is documented with its purpose and default value
- */
+/** Main component props with essential parameterization options */
 interface ElementCardProps {
   /** Core data object containing information */
   data: InfoData;
@@ -160,73 +157,28 @@ interface ElementCardProps {
   /** Main color for regular text content */
   textColor?: string;
   
-  /** Minimum width for navigation indicator lines (px) */
   minLineWidth?: number;
-  
-  /** Maximum width for navigation indicator lines when active (px) */
   maxLineWidth?: number;
-  
-  /** Font family for text content */
   fontFamily?: string;
-  
-  /** Navigation sections to display - determines content structure */
   navigationItems?: NavigationItem[];
-  
-  /** Content compression factor (0-10) affecting column widths and spacing */
   contentCompression?: number;
-  
-  /** Maximum number of sections to support (default: 8) */
   maxSections?: number;
-  
-  /** Column spacing between sidebar and content (in rem, default: 2) */
   columnSpacing?: number;
-  
-  /** Space between tagline and navigation (in rem, default: 3) */
   taglineNavSpacing?: number;
-  
-  /** Whether to use virtualization for long lists */
   useVirtualization?: boolean;
-  
-  /** Height for virtualized list items (px) */
   virtualItemHeight?: number;
-  
-  /** Minimum items to use virtualization */
   virtualListThreshold?: number;
-  
-  /** Position for global stats: 'top', 'bottom', or 'none' */
   statsPosition?: 'top' | 'bottom' | 'none';
-  
-  /** Whether to show the overview/about section (default: true) */
   showOverview?: boolean;
-  
-  /** Left and right margin for mobile content (rem, default: 2) */
   mobileContentMargin?: number;
-  
-  /** Whether to use sticky navigation in mobile view (default: false) */
   useStickyMobileNav?: boolean;
-  
-  /** Breakpoint for mobile view (px, default: 768) */
   mobileBreakpoint?: number;
-  
-  /** Enable enhanced accessibility features (default: true) */
   enhancedAccessibility?: boolean;
-  
-  /** Mobile content text alignment ('center', 'left', 'right', default: 'center') */
   mobileSectionTextAlign?: 'center' | 'left' | 'right';
-  
-  /** Maximum width for mobile content as percentage (default: 95) */
   mobileContentMaxWidth?: number;
-  
-  /** Padding for section content in mobile mode (rem, default: 0.5) */
   mobileSectionContentPadding?: number;
-  
-  /** Mobile fade-in animation duration override (seconds, default: inherits from animationConfig) */
   mobileFadeDuration?: number;
-  
-  /** Whether to handle overflow in mobile mode (default: true) */
   handleMobileOverflow?: boolean;
-  
-  /** Mobile font size adjustment factor (0.8-1.2, default: 1) */
   mobileFontSizeFactor?: number;
 }
 
@@ -277,6 +229,7 @@ interface LineProps {
   $inactiveColor: string;
   $minWidth: number;
   $maxWidth: number;
+  $useCssVariables?: boolean; // Flag to indicate if using CSS variables
 }
 
 interface NavButtonProps extends ActiveStateProps {
@@ -320,26 +273,18 @@ interface StatValueProps extends ResponsiveProps, ColoredTextProps {}
 // =============================================================================
 
 /**
- * Throttle function to limit the rate at which a function can fire
- * @param fn - The function to throttle
- * @param wait - The rate limit in milliseconds
+ * Utility functions for performance optimization
  */
 const throttle = <T extends (...args: unknown[]) => unknown>(fn: T, wait: number): ((...args: Parameters<T>) => void) => {
-  let lastCalled = 0;
-  let timeout: number | null = null;
-  let lastArgs: Parameters<T> | null = null;
+  let lastCalled = 0, timeout: number | null = null, lastArgs: Parameters<T> | null = null;
   
   return (...args: Parameters<T>) => {
     const now = Date.now();
     const remaining = wait - (now - lastCalled);
-    
     lastArgs = args;
     
     if (remaining <= 0 || remaining > wait) {
-      if (timeout !== null) {
-        window.clearTimeout(timeout);
-        timeout = null;
-      }
+      if (timeout !== null) { window.clearTimeout(timeout); timeout = null; }
       lastCalled = now;
       fn(...args);
     } else if (timeout === null) {
@@ -352,32 +297,18 @@ const throttle = <T extends (...args: unknown[]) => unknown>(fn: T, wait: number
   };
 };
 
-/**
- * Debounce function to delay invoking a function until after a specific time
- * @param fn - The function to debounce
- * @param wait - The delay in milliseconds
- */
 const debounce = <T extends (...args: unknown[]) => unknown>(fn: T, wait: number): ((...args: Parameters<T>) => void) => {
   let timeout: number | null = null;
-  
   return (...args: Parameters<T>) => {
-    if (timeout !== null) {
-      window.clearTimeout(timeout);
-    }
-    
-    timeout = window.setTimeout(() => {
-      fn(...args);
-    }, wait);
+    if (timeout !== null) window.clearTimeout(timeout);
+    timeout = window.setTimeout(() => fn(...args), wait);
   };
 };
 
 
-
 /**
- * =====================================================================
  * STYLED COMPONENTS
  * CSS-in-JS implementation with TypeScript props typing
- * =====================================================================
  */
 
 // Container mixins
@@ -593,7 +524,15 @@ const NavLine = styled.div<LineProps & ExpandedStateProps>`
   height: 0.75px;
   width: ${props => props.$expanded ? `${props.$maxWidth}px` : `${props.$minWidth}px`};
   background-color: ${props => props.$expanded ? props.$activeColor : props.$inactiveColor};
-  transition: width 0.3s ease, background-color 0.3s ease;
+  /* Apply opacity directly when using CSS variables to avoid invalid concatenation */
+  opacity: ${props => {
+    // If CSS variables are being used and not expanded, use reduced opacity
+    if (props.$useCssVariables && !props.$expanded) {
+      return 0.5;
+    }
+    return 1;
+  }};
+  transition: width 0.3s ease, background-color 0.3s ease, opacity 0.3s ease;
 `;
 
 interface NavButtonProps extends ActiveStateProps {
@@ -689,7 +628,14 @@ const MobileNavLine = styled.div<LineProps & ActiveStateProps>`
   width: ${props => props.$active ? `${props.$maxWidth}px` : `${props.$minWidth}px`};
   height: 2px;
   background-color: ${props => props.$active ? props.$activeColor : props.$inactiveColor};
-  transition: width 0.3s ease, background-color 0.3s ease;
+  /* Apply opacity directly when using CSS variables */
+  opacity: ${props => {
+    if (props.$useCssVariables && !props.$active) {
+      return 0.5;
+    }
+    return 1;
+  }};
+  transition: width 0.3s ease, background-color 0.3s ease, opacity 0.3s ease;
   margin-bottom: 0.5rem;
 `;
 
@@ -826,20 +772,8 @@ const VirtualListContainer = styled.div`
 /**
  * ElementCard Component - Information Display with Advanced Scroll Behavior
  * 
- * Creates a display with a three-phase scroll behavior:
- * 1. Normal Flow: Initially scrolls with the page
- * 2. Fixed Position: Sticks to viewport when scrolling through content
- * 3. Release: Returns to normal flow after scrolling past component
- * 
- * Features:
- * - Responsive design with mobile navigation
- * - Optimized scroll and rendering performance
- * - Memory-efficient component lifecycle
- * - Smooth animations and interactions
- * - Highly parameterizable for customization
- * - Advanced memoization for better performance
- * - Virtualization for long content lists
- * - Optimized scroll and resize handling with proper batching
+ * Features responsive design, three-phase scroll behavior (normal, fixed, end position),
+ * optimized performance with memoization, and virtualization for long content lists.
  */
 
 // Base component props
@@ -907,81 +841,48 @@ interface VirtualizedListProps {
 }
 
 /**
- * =====================================================================
  * CHILD COMPONENTS
  * Memoized sub-components for performance optimization
- * =====================================================================
  */
 
-/**
- * InfoHeader Component
- * Renders the top section of the sidebar with title, subheader and tagline
- */
-const InfoHeader = React.memo(({ 
-  data, 
-  isMobile, 
-  highlightColor, 
-  textColor, 
-  fontFamily,
-  taglineNavSpacing 
-}: InfoHeaderProps) => {
-  return (
-    <InfoContainer $isMobile={isMobile}>
-      <Title 
-        $isMobile={isMobile} 
-        $highlightColor={highlightColor}
-      >
-        {data.title}
-      </Title>
-      
-      <Subheader 
-        $isMobile={isMobile} 
-        $color={`${highlightColor}B3`} 
-        $fontFamily={fontFamily}
-      >
-        {data.subheader}
-      </Subheader>
-      
-      {data.tagline && (
-        <Tagline 
-          $isMobile={isMobile} 
-          $color={textColor} 
-          $fontFamily={fontFamily}
-          $spacing={taglineNavSpacing}
-        >
-          {data.tagline}
-        </Tagline>
-      )}
-    </InfoContainer>
-  );
-});
+/** Component for header section with title, subheader and tagline */
+const InfoHeader = React.memo(({ data, isMobile, highlightColor, textColor, fontFamily, taglineNavSpacing }: InfoHeaderProps) => (
+  <InfoContainer $isMobile={isMobile}>
+    <Title $isMobile={isMobile} $highlightColor={highlightColor}>{data.title}</Title>
+    <Subheader $isMobile={isMobile} $color={`${highlightColor}B3`} $fontFamily={fontFamily}>{data.subheader}</Subheader>
+    {data.tagline && (
+      <Tagline $isMobile={isMobile} $color={textColor} $fontFamily={fontFamily} $spacing={taglineNavSpacing}>
+        {data.tagline}
+      </Tagline>
+    )}
+  </InfoContainer>
+));
 
 InfoHeader.displayName = 'InfoHeader';
 
-/**
- * MobileNavItemComponent
- * Renders a navigation item in the mobile top navigation bar
- */
-const MobileNavItemComponent = React.memo(({ 
-  navItem, 
-  activeSection, 
-  highlightColor, 
-  textColor,
-  minLineWidth,
-  maxLineWidth 
-}: MobileNavItemComponentProps) => {
+/** Mobile navigation item */
+const MobileNavItemComponent = React.memo(({ navItem, activeSection, highlightColor, textColor, minLineWidth, maxLineWidth }: MobileNavItemComponentProps) => {
+  const isActive = activeSection === navItem.id;
+  const isCssVariable = highlightColor.startsWith('var(');
+  
+  // Determine inactive color based on whether CSS variables are used
+  const inactiveColor = isCssVariable
+    ? highlightColor  // For CSS variables, we'll use opacity instead
+    : `${highlightColor}80`;
+  
   return (
     <MobileNavItem>
       <MobileNavButton data-section-id={navItem.id}>
         <MobileNavLine 
-          $active={activeSection === navItem.id}
+          $active={isActive}
           $activeColor={highlightColor}
-          $inactiveColor={`${highlightColor}80`}
+          $inactiveColor={inactiveColor}
+          $useCssVariables={isCssVariable}
           $minWidth={minLineWidth}
           $maxWidth={maxLineWidth}
         />
         <MobileNavLabel 
-          $active={activeSection === navItem.id}
+          $active={isActive}
           $activeColor={highlightColor}
           $inactiveColor={textColor}
         >
@@ -994,23 +895,23 @@ const MobileNavItemComponent = React.memo(({
 
 MobileNavItemComponent.displayName = 'MobileNavItemComponent';
 
-/**
- * NavLinkComponent
- * Renders a navigation item in the desktop sidebar
- */
+/** Desktop navigation link */
 const NavLinkComponent = React.memo(({ 
-  navItem, 
-  activeSection, 
-  expandedNavItem,
-  onMouseEnter,
-  onMouseLeave, 
-  highlightColor, 
-  textColor,
-  minLineWidth,
-  maxLineWidth 
+  navItem, activeSection, expandedNavItem, onMouseEnter, onMouseLeave, 
+  highlightColor, textColor, minLineWidth, maxLineWidth 
 }: NavLinkComponentProps) => {
   const isActive = activeSection === navItem.id || expandedNavItem === navItem.id;
+  const isCssVariable = highlightColor.startsWith('var(');
   
+  // Determine active and inactive colors based on whether CSS variables are used
+  const activeColor = isCssVariable 
+    ? highlightColor 
+    : `${highlightColor}E6`;
+    
+  const inactiveColor = isCssVariable
+    ? highlightColor  // For CSS variables, we'll use opacity instead
+    : `${highlightColor}80`;
+    
   return (
     <NavLinkContainer 
       data-section-id={navItem.id}
@@ -1019,8 +920,9 @@ const NavLinkComponent = React.memo(({
     >
       <NavLine 
         $expanded={isActive}
-        $activeColor={`${highlightColor}E6`}
-        $inactiveColor={`${highlightColor}80`}
+        $activeColor={activeColor}
+        $inactiveColor={inactiveColor}
+        $useCssVariables={isCssVariable}
         $minWidth={minLineWidth}
         $maxWidth={maxLineWidth}
       />
@@ -1223,65 +1125,48 @@ VirtualizedList.displayName = 'VirtualizedList';
  * =====================================================================
  */
 /**
- * Default props for the ElementCard component
- * Centralizing all defaults in one object improves maintainability
+ * The ElementCard component supports both direct color values and CSS variables
+ * For direct color values (like '#bfad7f'), the component will add opacity modifiers
+ * For CSS variables (like 'var(--color-primary)'), the component will use opacity directly
+ * 
+ * To use CSS variables effectively:
+ * 1. Define your variables in your CSS, e.g.:
+ *    :root {
+ *      --color-primary: #bfad7f;
+ *      --color-text: rgba(224, 224, 224, 0.7);
+ *    }
+ * 2. Pass them to the ElementCard: highlightColor="var(--color-primary)"
  */
+ 
+/** Default props for the ElementCard component */
 const defaultElementCardProps: Partial<ElementCardProps> = {
-  // Animation configuration
-  animationConfig: {
-    threshold: 0.5,
-    once: true,
-    initialY: 30,
-    duration: 0.8
-  },
-  
-  // Content configuration
+  animationConfig: { threshold: 0.5, once: true, initialY: 30, duration: 0.8 },
   additionalSections: [],
   onSectionChange: null,
-  
-  // Positioning configuration
   topOffset: 100,
-  
-  // Color and styling
-  highlightColor: '#bfad7f',
-  textColor: 'rgba(224, 224, 224, 0.7)',
+  highlightColor: '#bfad7f', // Can also use 'var(--color-primary)'
+  textColor: 'rgba(224, 224, 224, 0.7)', // Can also use 'var(--color-text)'
   fontFamily: '"Garamond", "Adobe Caslon Pro", serif',
-  
-  // Navigation styling
   minLineWidth: 10,
   maxLineWidth: 40,
-  
-  // Content structure
   navigationItems: [
     { id: 'overview', label: 'OVERVIEW', content: null },
     { id: 'details', label: 'DETAILS', content: null },
     { id: 'examples', label: 'EXAMPLES', content: null }
   ],
-  
-  // Layout parameters
   contentCompression: 0,
   maxSections: 8,
   columnSpacing: 2,
   taglineNavSpacing: 3,
-  
-  // Virtualization options
   useVirtualization: true,
   virtualItemHeight: 140,
   virtualListThreshold: 10,
-  
-  // Stats options
   statsPosition: 'bottom',
-  
-  // Show overview section
   showOverview: true,
-  
-  // Enhanced mobile experience
   mobileContentMargin: 2,
   useStickyMobileNav: false,
   mobileBreakpoint: 768,
   enhancedAccessibility: true,
-  
-  // Mobile styling parameters
   mobileSectionTextAlign: 'center',
   mobileContentMaxWidth: 95,
   mobileSectionContentPadding: 0.5,
@@ -1289,12 +1174,7 @@ const defaultElementCardProps: Partial<ElementCardProps> = {
   mobileFontSizeFactor: 1
 };
 
-/**
- * ElementCard Component - Main implementation
- * 
- * The component accepts a variety of parameters to customize its behavior and appearance.
- * All parameters have sensible defaults provided by the defaultProps object.
- */
+/** Main ElementCard component implementation */
 const ElementCard = (props: ElementCardProps) => {
   // Merge default props with provided props
   const {
@@ -1332,12 +1212,7 @@ const ElementCard = (props: ElementCardProps) => {
     mobileFontSizeFactor
   } = { ...defaultElementCardProps, ...props } as Required<ElementCardProps>;
   
-  /**
-   * =====================================================================
-   * STATE MANAGEMENT
-   * Component state definitions
-   * =====================================================================
-   */
+  /** STATE MANAGEMENT */
   // Set the initial active section, accounting for showOverview option
   const [activeSection, setActiveSection] = useState<string>(() => {
     // If overview should be hidden and it's the first item, use the next available section
@@ -1353,12 +1228,7 @@ const ElementCard = (props: ElementCardProps) => {
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
-  /**
-   * =====================================================================
-   * REFS
-   * DOM references for components
-   * =====================================================================
-   */
+  /** REFS - DOM references */
   const containerRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -1373,20 +1243,10 @@ const ElementCard = (props: ElementCardProps) => {
     return Array.from({ length: maxSections }, () => React.createRef() as RefObject<HTMLDivElement>);
   }, [maxSections]);
   
-  /**
-   * =====================================================================
-   * ANIMATION CONTROLS
-   * Framer Motion animation setup
-   * =====================================================================
-   */
+  /** ANIMATION CONTROLS */
   const controls = useAnimation();
   
-  /**
-   * =====================================================================
-   * PARAMETERIZED SECTION HANDLING
-   * Dynamic section creation based on maxSections parameter
-   * =====================================================================
-   */
+  /** PARAMETERIZED SECTION HANDLING */
   
   // Memoize the section refs map to avoid recreating on every render
   const sectionRefsMap = useMemo<Record<string, RefObject<HTMLDivElement>>>(() => {
@@ -1408,12 +1268,7 @@ const ElementCard = (props: ElementCardProps) => {
     return refsMap;
   }, [navigationItems, sectionRefs, maxSections, showOverview]);
   
-  /**
-   * =====================================================================
-   * LAYOUT CALCULATIONS
-   * Dynamic layout values based on contentCompression and columnSpacing
-   * =====================================================================
-   */
+  /** LAYOUT CALCULATIONS */
   
   // Memoize calculation of compression-based layout values
   const layoutValues = useMemo<LayoutValues>(() => {
@@ -1428,24 +1283,14 @@ const ElementCard = (props: ElementCardProps) => {
     };
   }, [contentCompression, columnSpacing]);
 
-  /**
-   * =====================================================================
-   * IN-VIEW DETECTION
-   * For animation triggers based on visibility
-   * =====================================================================
-   */
+  /** IN-VIEW DETECTION */
   const isInView = useInView(containerRef, {
     amount: isMobile ? 0.1 : (animationConfig?.threshold ?? 0.2), // Lower threshold for mobile
     once: animationConfig?.once ?? true,
     margin: isMobile ? "-5px 0px" : "0px" // Additional margin for mobile detection
   });
 
-  /**
-   * =====================================================================
-   * UTILITY FUNCTIONS
-   * Memoized handlers and utility functions
-   * =====================================================================
-   */
+  /** UTILITY FUNCTIONS */
   
   // Check if we're on mobile with enhanced handling for mode changes
   const checkMobile = useCallback((): void => {
@@ -1536,89 +1381,76 @@ const ElementCard = (props: ElementCardProps) => {
     }
   }, [isMobile]);
 
-  /**
-   * Optimized scroll handler with Animation Frame Batching
-   * Separates DOM reads and writes to prevent layout thrashing
-   */
-  const handleScroll = useCallback(() => {
-    if (!containerRef.current || !sidebarRef.current || !sidebarWrapperRef.current) {
-      return;
+  /** Optimized scroll handler with improved phase transition logic */
+const handleScroll = useCallback(() => {
+  if (!containerRef.current || !sidebarRef.current || !sidebarWrapperRef.current) {
+    return;
+  }
+  
+  // Single requestAnimationFrame for better performance
+  requestAnimationFrame(() => {
+    const container = containerRef.current;
+    const sidebar = sidebarRef.current;
+    const sidebarWrapper = sidebarWrapperRef.current;
+    
+    if (!container || !sidebar || !sidebarWrapper) return;
+    
+    const containerRect = container.getBoundingClientRect();
+    const wrapperRect = sidebarWrapper.getBoundingClientRect();
+    const sidebarHeight = sidebar.offsetHeight;
+    const viewportHeight = window.innerHeight;
+    
+    // Enhanced phase transition points with additional checks
+    const startFixPoint = containerRect.top <= topOffset;
+    const endFixPoint = 
+      containerRect.bottom <= (sidebarHeight + topOffset) || 
+      (containerRect.bottom - topOffset <= viewportHeight && 
+       containerRect.height - sidebarHeight <= containerRect.top);
+    
+    // Determine the current scroll phase
+    let newMode: 'normal' | 'fixed' | 'end';
+    if (!startFixPoint) {
+      newMode = 'normal';
+    } else if (startFixPoint && !endFixPoint) {
+      newMode = 'fixed';
+    } else {
+      newMode = 'end';
     }
     
-    // Use requestAnimationFrame to batch our DOM reads
-    requestAnimationFrame(() => {
-      // All DOM reads are performed together
-      const container = containerRef.current;
-      const sidebar = sidebarRef.current;
-      const sidebarWrapper = sidebarWrapperRef.current;
+    // Only update DOM if the mode changes
+    if (sidebarMode !== newMode) {
+      setSidebarMode(newMode);
       
-      if (!container) return;
-      const containerRect = container.getBoundingClientRect();
-      const wrapperRect = sidebarWrapper ? sidebarWrapper.getBoundingClientRect() : null;
-      if (!wrapperRect) return;
-      const sidebarHeight = sidebar ? sidebar.offsetHeight : 0;
-      
-      // Calculate phase transition points
-      const startFixPoint = containerRect.top <= topOffset;
-      const endFixPoint = containerRect.bottom <= (sidebarHeight + topOffset);
-      
-      // Determine the current scroll phase
-      let newMode: 'normal' | 'fixed' | 'end';
-      if (!startFixPoint) {
-        newMode = 'normal';
-      } else if (startFixPoint && !endFixPoint) {
-        newMode = 'fixed';
-      } else {
-        newMode = 'end';
+      // Apply styles immediately for more responsive transitions
+      if (newMode === 'normal') {
+        sidebar.style.position = 'relative';
+        sidebar.style.top = '0';
+        sidebar.style.left = '0';
+        sidebar.style.width = '';
+        sidebar.style.bottom = '';
+      } 
+      else if (newMode === 'fixed') {
+        sidebar.style.position = 'fixed';
+        sidebar.style.top = `${topOffset}px`;
+        sidebar.style.width = `${wrapperRect.width}px`;
+        sidebar.style.left = `${wrapperRect.left}px`;
+        sidebar.style.bottom = '';
+      } 
+      else if (newMode === 'end') {
+        sidebar.style.position = 'absolute';
+        sidebar.style.top = 'auto'; 
+        sidebar.style.bottom = '0'; 
+        sidebar.style.left = '0';
+        sidebar.style.width = '';
       }
-      
-      // Only update DOM if the mode changes
-      if (sidebarMode !== newMode) {
-        // Use a nested requestAnimationFrame to batch DOM writes
-        requestAnimationFrame(() => {
-          // Update state
-          setSidebarMode(newMode);
-          
-          // All DOM writes are performed together
-          if (newMode === 'normal') {
-            // Phase 1: Normal flow
-            if (sidebar) {
-              sidebar.style.position = 'relative';
-              sidebar.style.top = '0';
-              sidebar.style.left = '0';
-              sidebar.style.width = '';
-              sidebar.style.bottom = '';
-            }
-          } 
-          else if (newMode === 'fixed') {
-            // Phase 2: Fixed position
-            if (sidebar) {
-              sidebar.style.position = 'fixed';
-              sidebar.style.top = `${topOffset}px`;
-              sidebar.style.width = `${wrapperRect.width}px`;
-              sidebar.style.left = `${wrapperRect.left}px`;
-              sidebar.style.bottom = '';
-            }
-          } 
-          else if (newMode === 'end') {
-            // Phase 3: End position
-            if (sidebar) {
-              sidebar.style.position = 'absolute';
-              sidebar.style.top = 'auto'; 
-              sidebar.style.bottom = '0'; 
-              sidebar.style.left = '0';
-              sidebar.style.width = '';
-            }
-          }
-        });
-      }
-    });
-  }, [sidebarMode, topOffset]);
-  
-  // Throttled scroll handler
-  const throttledScrollHandler = useMemo(() => 
-    throttle(handleScroll, 16), // ~60fps
-  [handleScroll]);
+    }
+  });
+}, [sidebarMode, topOffset]);
+
+// More responsive throttling to handle fast scrolling
+const throttledScrollHandler = useMemo(() => 
+  throttle(handleScroll, 8), // ~120fps for smoother transitions
+[handleScroll]);
   
   /**
    * Optimized resize handler with Animation Frame Batching
@@ -1643,12 +1475,7 @@ const ElementCard = (props: ElementCardProps) => {
   
   // Mobile nav functionality uses simplified approach without sticky behavior
 
-  /**
-   * =====================================================================
-   * RESIZE OBSERVER IMPLEMENTATION
-   * Memoized ResizeObserver with inline debounced callback
-   * =====================================================================
-   */
+  /** RESIZE OBSERVER IMPLEMENTATION */
   const resizeObserver = useMemo(() => new ResizeObserver(
     debounce(() => {
       if (containerRef.current) {
@@ -1659,12 +1486,7 @@ const ElementCard = (props: ElementCardProps) => {
     }, 100)
   ), [debouncedResizeHandler]);
 
-  /**
-   * =====================================================================
-   * EFFECT HOOKS
-   * Side effects for component lifecycle and interactions
-   * =====================================================================
-   */
+  /** EFFECT HOOKS */
   
   // Check mobile on mount and window resize
   useEffect(() => {
@@ -1822,12 +1644,7 @@ const ElementCard = (props: ElementCardProps) => {
 
   // Mobile navigation uses simple positioning without scroll behavior
 
-  /**
-   * =====================================================================
-   * MEMOIZED CONTENT RENDERING
-   * Optimized section content rendering
-   * =====================================================================
-   */
+  /** MEMOIZED CONTENT RENDERING */
   
   /**
    * Function to determine if virtualization should be used
@@ -1965,12 +1782,7 @@ const ElementCard = (props: ElementCardProps) => {
     virtualItemHeight
   ]);
 
-  /**
-   * =====================================================================
-   * COMPONENT RENDER
-   * Main JSX structure for the component
-   * =====================================================================
-   */
+  /** COMPONENT RENDER */
   return (
     <MobileContext.Provider value={isMobile}>
       <ElementCardContext.Provider value={{
@@ -2141,103 +1953,44 @@ const ElementCard = (props: ElementCardProps) => {
 ElementCard.displayName = 'ElementCard';
 
 /**
- * Theme presets for ElementCard component variants
- */
-const ElementCardThemes = {
-  golden: {
-    highlightColor: '#bfad7f',
-    textColor: 'rgba(224, 224, 224, 0.7)',
-    fontFamily: '"Garamond", "Adobe Caslon Pro", serif',
-  },
-  
-  night: {
-    highlightColor: '#6f8cba',
-    textColor: 'rgba(200, 210, 230, 0.8)',
-    fontFamily: '"Helvetica Neue", "Arial", sans-serif',
-  },
-  
-  elegant: {
-    highlightColor: '#8a2731', // Burgundy red
-    textColor: 'rgba(235, 225, 215, 0.8)', // Warm light color
-    fontFamily: '"Baskerville", "Times New Roman", serif',
-    minLineWidth: 8,
-    maxLineWidth: 35,
-  }
-};
-
-/**
  * GoldenElementCard Component
  * A preset version of ElementCard with a golden/amber color scheme.
+ * 
+ * This can be used either with direct color values (as shown by default)
+ * or with CSS variables by passing appropriate props:
+ * 
+ * Example with CSS variables:
+ * <GoldenElementCard
+ *   highlightColor="var(--color-gold)"
+ *   textColor="var(--color-light)"
+ *   {...otherProps}
+ * />
  */
 export const GoldenElementCard: React.FC<ElementCardProps> = (props) => {
-  return <ElementCard {...ElementCardThemes.golden} {...props} />;
+  return <ElementCard 
+    highlightColor='#bfad7f'
+    textColor='rgba(224, 224, 224, 0.7)'
+    fontFamily='"Garamond", "Adobe Caslon Pro", serif'
+    {...props} 
+  />;
 };
 
-/**
- * NightElementCard Component
- * A preset version of ElementCard with a blue-tinted dark color scheme.
- */
-export const NightElementCard: React.FC<ElementCardProps> = (props) => {
-  return <ElementCard {...ElementCardThemes.night} {...props} />;
-};
-
-/**
- * ElegantElementCard Component
- * A preset version of ElementCard with an elegant maroon/burgundy color scheme.
- */
-export const ElegantElementCard: React.FC<ElementCardProps> = (props) => {
-  return <ElementCard {...ElementCardThemes.elegant} {...props} />;
-};
-
-/**
- * Usage example with fantasy world data
- * 
- * const mythicRealmsData = {
- *   title: "Mythic Realms",
- *   subheader: "Fantasy World Encyclopedia",
- *   tagline: "A vast fantasy world comprising diverse regions, each with unique environments, creatures, and magic systems.",
- *   stats: [
- *     { label: "Regions", value: "6" },
- *     { label: "Creatures", value: "1000+" },
- *     { label: "Magic Systems", value: "12" }
- *   ]
- * };
- * 
- * const mythicRealmsNavItems = [
- *   { 
- *     id: "overview", 
- *     label: "OVERVIEW", 
- *     content: "Mythic Realms is a vast fantasy world where magic and mundane coexist in a delicate balance..." 
- *   },
- *   { 
- *     id: "regions", 
- *     label: "REGIONS", 
- *     sectionTitle: "Geographical Regions",  // Optional section title that appears above content
- *     content: "There are six main regions in Mythic Realms: The Enchanted Forest, The Mystic Mountains, The Shadowed Vale, The Crystal Caves, The Eternal Desert, and The Floating Isles.",
- *     stats: [
- *       { label: "Area", value: "1.2M sq km" },
- *       { label: "Kingdoms", value: "24" },
- *       { label: "Languages", value: "18" }
- *     ]
- *   },
- *   { 
- *     id: "magic", 
- *     label: "MAGIC SYSTEMS", 
- *     sectionTitle: "Arcane Systems",  // Optional section title
- *     content: "The world features twelve distinct magic systems, each with its own rules, limitations, and cultural impacts...",
- *     stats: [
- *       { label: "Elements", value: "8" },
- *       { label: "Schools", value: "12" },
- *       { label: "Artifacts", value: "137" }
- *     ]
- *   }
- * ];
+/** 
+ * Usage example:
  * 
  * <ElementCard 
- *   data={mythicRealmsData}
- *   navigationItems={mythicRealmsNavItems}
+ *   data={{
+ *     title: "Mythic Realms",
+ *     subheader: "Fantasy World Encyclopedia",
+ *     tagline: "A vast fantasy world with diverse regions",
+ *     stats: [{ label: "Regions", value: "6" }, ...]
+ *   }}
+ *   navigationItems={[
+ *     { id: "overview", label: "OVERVIEW", content: "..." },
+ *     { id: "regions", label: "REGIONS", sectionTitle: "Geographical Regions", ... },
+ *   ]}
  *   statsPosition="top"
- *   showOverview={true} // Set to false to hide the overview section
+ *   showOverview={true}
  * />
  */
 

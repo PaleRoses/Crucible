@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useRef, useEffect, useCallback, useMemo, useState } from 'react';
 import { useScroll, useSpring } from 'framer-motion';
 
 // Define types for our configuration
@@ -185,6 +185,7 @@ interface ColorCache {
 // Define component props
 interface CosmicStarsProps {
   config?: Partial<StarConfig>;
+  starColors?: string[]; // Can be CSS variables like 'var(--color-primary)' or direct color values
 }
 
 /**
@@ -193,7 +194,7 @@ interface CosmicStarsProps {
  * Renders an immersive, performance-optimized starry background
  * with parallax scrolling, gentle random drifting, and state persistence.
  */
-const CosmicStars: React.FC<CosmicStarsProps> = ({ config = {} }) => {
+const CosmicStars: React.FC<CosmicStarsProps> = ({ config = {}, starColors }) => {
   // Refs for DOM elements and animation state
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const starsRef = useRef<Star[]>([]);
@@ -300,33 +301,119 @@ const CosmicStars: React.FC<CosmicStarsProps> = ({ config = {} }) => {
     ...config
   }), [config]);
   
-  // Warm, golden color palette - wrapped in useMemo
-  const COLORS = useMemo<ColorConfig>(() => ({
-    // Star colors
-    stars: [
+  // Store resolved colors from CSS variables
+  const [resolvedColors, setResolvedColors] = useState<string[]>([]);
+  
+  // Function to resolve CSS variables to actual color values
+  const resolveCssVariables = useCallback((colorVars: string[]) => {
+    if (!colorVars?.length) return [];
+    
+    return colorVars.map(color => {
+      // If it's not a CSS variable, return as is
+      if (!color.startsWith('var(')) return color;
+      
+      try {
+        // Extract variable name without 'var(' and ')'
+        const varName = color.match(/var\((.*?)\)/)?.[1];
+        if (!varName) return color;
+        
+        // Get the computed style
+        const computedColor = getComputedStyle(document.documentElement)
+          .getPropertyValue(varName)
+          .trim();
+          
+        // Return the computed color or fallback to a default if not found
+        return computedColor || 'rgba(255, 255, 255, 1)';
+      } catch (error) {
+        console.warn('Error resolving CSS variable:', color, error);
+        return 'rgba(255, 255, 255, 1)'; // Default to white
+      }
+    });
+  }, []);
+  
+  // Resolve CSS variables when component mounts or starColors change
+  useEffect(() => {
+    if (starColors?.length) {
+      const resolved = resolveCssVariables(starColors);
+      setResolvedColors(resolved);
+    }
+  }, [starColors, resolveCssVariables]);
+  
+  // Prepare colors for use with our alpha replacement system
+  const prepareColorsForAlpha = useCallback((colors: string[]): string[] => {
+    if (!colors?.length) return [];
+    
+    return colors.map(color => {
+      // If already in our format with 'alpha', keep as is
+      if (color.includes('alpha')) return color;
+      
+      // If rgba format, replace the alpha part with our placeholder
+      if (color.startsWith('rgba(')) {
+        return color.replace(/rgba\(([^,]+,[^,]+,[^,]+),\s*[^)]+\)/, 'rgba($1, alpha)');
+      }
+      
+      // If rgb format, convert to rgba with our placeholder
+      if (color.startsWith('rgb(')) {
+        return color.replace(/rgb\(([^)]+)\)/, 'rgba($1, alpha)');
+      }
+      
+      // For hex or named colors, create a temporary element to convert to RGB
+      try {
+        const tempEl = document.createElement('div');
+        tempEl.style.color = color;
+        document.body.appendChild(tempEl);
+        const computedColor = window.getComputedStyle(tempEl).color;
+        document.body.removeChild(tempEl);
+        
+        // Convert rgb to rgba with our placeholder
+        return computedColor.replace(/rgb\(([^)]+)\)/, 'rgba($1, alpha)');
+      } catch (error) {
+        console.warn('Error converting color to rgba:', color, error);
+        return 'rgba(255, 255, 255, alpha)'; // Default
+      }
+    });
+  }, []);
+  
+  // Colors palette - wrapped in useMemo, now using resolved colors
+  const COLORS = useMemo<ColorConfig>(() => {
+    // Default star colors
+    const defaultStars = [
       'rgba(255, 243, 200, alpha)', // Warm yellow
       'rgba(255, 231, 164, alpha)', // Golden
       'rgba(252, 249, 231, alpha)'  // Off-white gold
-    ],
+    ];
     
-    // Background gradient colors
-    background: {
-      topColor: 'rgb(8, 8, 12)',
-      bottomColor: 'rgb(15, 15, 20)'
-    },
+    // Use resolved colors if available, otherwise use defaults
+    const processedColors = resolvedColors.length 
+      ? prepareColorsForAlpha(resolvedColors)
+      : defaultStars;
     
-    // Override with user config if provided
-    ...(config.colors || {})
-  }), [config.colors]);
+    return {
+      // Star colors
+      stars: processedColors,
+      
+      // Background gradient colors
+      background: {
+        topColor: 'rgb(8, 8, 12)',
+        bottomColor: 'rgb(15, 15, 20)'
+      },
+      
+      // Override with user config if provided
+      ...(config.colors || {})
+    };
+  }, [config.colors, resolvedColors, prepareColorsForAlpha]);
   
   // Pre-generated color values to avoid string replacements during animation
   const colorCache = useMemo<ColorCache>(() => {
     const cache: ColorCache = {};
     COLORS.stars.forEach(baseColor => {
-      cache[baseColor] = {};
-      for (let opacity = 0; opacity <= 10; opacity++) {
-        const value = opacity / 10;
-        cache[baseColor][value] = baseColor.replace(/alpha\)$/, `${value})`);
+      // Only pre-cache for our default format with 'alpha' placeholder
+      if (baseColor.includes('alpha')) {
+        cache[baseColor] = {};
+        for (let opacity = 0; opacity <= 10; opacity++) {
+          const value = opacity / 10;
+          cache[baseColor][value] = baseColor.replace(/alpha\)$/, `${value})`);
+        }
       }
     });
     return cache;
@@ -334,9 +421,15 @@ const CosmicStars: React.FC<CosmicStarsProps> = ({ config = {} }) => {
   
   // Get color with opacity from cache (faster than string replacement)
   const getColor = useCallback((baseColor: string, opacity: number): string => {
+    // Handle undefined or null baseColor
+    if (!baseColor) {
+      return `rgba(255, 255, 255, ${opacity || 0})`; // Default to white with given opacity
+    }
+    
     const safeOpacity = Math.max(0, Math.min(1, opacity || 0));
     // Round to nearest 0.1 to use cached values
     const roundedOpacity = Math.round(safeOpacity * 10) / 10;
+    
     return colorCache[baseColor]?.[roundedOpacity] || baseColor.replace(/alpha\)$/, `${safeOpacity})`);
   }, [colorCache]);
   
@@ -1232,6 +1325,31 @@ const CosmicStars: React.FC<CosmicStarsProps> = ({ config = {} }) => {
     // Schedule next frame
     animationFrameRef.current = requestAnimationFrame(animationLoop);
   }, [CONFIG.maxFPS, updateAnimation, renderStars]);
+  
+  // Optionally listen for theme changes (if your app has a dark/light mode toggle)
+  // This helps ensure colors stay in sync with theme changes
+  useEffect(() => {
+    // Check if the MutationObserver is available (browser environment)
+    if (typeof window !== 'undefined' && typeof MutationObserver !== 'undefined') {
+      // Create an observer to watch for changes to document.documentElement's style/class
+      const observer = new MutationObserver(() => {
+        // Re-resolve colors when document styles change
+        if (starColors?.length) {
+          const newResolved = resolveCssVariables(starColors);
+          setResolvedColors(newResolved);
+        }
+      });
+      
+      // Start observing
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['style', 'class']
+      });
+      
+      // Clean up
+      return () => observer.disconnect();
+    }
+  }, [starColors, resolveCssVariables]);
   
   // Initialize the stars when component mounts or dimensions change
   useEffect(() => {

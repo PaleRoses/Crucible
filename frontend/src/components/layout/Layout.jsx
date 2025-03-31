@@ -60,7 +60,16 @@ const Background = ({ config = {} }) => {
         aria-hidden="true"
       >
         {/* Cosmic Stars - fully self-contained component */}
-        <CosmicStars config={config.stars} />
+        <CosmicStars
+        config={config.stars}
+        starColors={[
+          'var(--color-cosmic1)',
+          'var(--color-secondary)',
+          'var(--color-accent)'
+        ]}
+      />
+
+
         
         {/* Add additional cosmic effects here, each handling their own canvas and state */}
         {/* Example:
