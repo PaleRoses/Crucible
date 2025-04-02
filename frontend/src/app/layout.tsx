@@ -140,7 +140,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
           
           /* Basic styling to avoid additional layout shifts */
           body {
-            color: #e0e0e0;
             margin: 0;
             padding: 0;
             font-family: 'adobe-caslon-pro-fallback', 'adobe-caslon-pro', Georgia, serif;
@@ -153,7 +152,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
             left: 0;
             width: 100%;
             z-index: 100;
-            background: rgba(8, 8, 8, 0.7);
             height: 60px;
             display: flex;
             align-items: center;
@@ -164,9 +162,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
           
           /* Custom colors from original theme */
           :root {
-            --gold: #BFAD7F;
-            --color-text: rgba(224, 224, 224, 0.8);
-            --color-accent: var(--gold);
             --font-heading: 'haboro-soft-condensed', 'Avenir Next', sans-serif;
           }
           

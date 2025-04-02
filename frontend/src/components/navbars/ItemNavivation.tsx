@@ -22,6 +22,30 @@ export interface NavigationItem {
 }
 
 /**
+ * Color theme interface
+ */
+export interface Colors {
+  primary: string;    // Main accent color
+  secondary: string;  // Background color
+  tertiary: string;   // Border color
+  text: string;       // Text color
+  textSecondary: string; // Secondary text color (for descriptions)
+  glow: string;       // Glow effect color
+}
+
+/**
+ * Default color scheme
+ */
+const DEFAULT_COLORS: Colors = {
+  primary: 'var(--color-primary)',
+  secondary: 'var(--color-secondary)',
+  tertiary: 'var(--color-primary)',
+  text: 'var(--color-text)',
+  textSecondary: 'var(--color-text)',
+  glow: 'var(--color-glow)',
+};
+
+/**
  * Props for the ItemNavigation component
  * 
  * @property {NavigationItem[]} items - Array of navigation items to display
@@ -211,14 +235,14 @@ const Title = styled.h2`
   font-size: min(2.5rem, 5vw);
   font-weight: 200;
   letter-spacing: 0.2em;
-  color: var(--gold, rgba(191, 173, 127, 1));
+  color: ${DEFAULT_COLORS.primary};
   text-transform: uppercase;
   margin-bottom: 0.5rem;
 `;
 
 const Subtitle = styled.p`
   font-size: min(1.125rem, 2.5vw);
-  color: rgba(255, 255, 255, 0.7);
+  color: ${DEFAULT_COLORS.textSecondary};
   max-width: 700px;
   margin: 0 auto;
   line-height: 1.6;
@@ -249,7 +273,7 @@ const Card = styled(motion.div)<CardProps>`
   position: relative;
   background: ${props => props.$transparent 
     ? 'transparent' 
-    : 'rgba(20, 20, 30, 0.85)'};
+    : DEFAULT_COLORS.secondary};
   backdrop-filter: ${props => props.$transparent ? 'none' : 'blur(8px)'};
   border-radius: 8px;
   padding: 0.85rem 1rem;
@@ -266,12 +290,10 @@ const Card = styled(motion.div)<CardProps>`
   box-shadow: ${props => props.$transparent 
     ? 'rgba(0, 0, 0, 0.05) 0px 1px 3px 0px, rgba(27, 31, 35, 0.15) 0px 0px 0px 1px'
     : '0 4px 20px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.05)'};
-  border: 1px solid ${props => 
-    props.$isHovered 
+  border: ${props => props.$isHovered ? '0.3px' : '0.1px'} solid ${props => 
+    props.$color 
       ? props.$color 
-        ? `${props.$color}80` 
-        : 'rgba(191, 173, 127, 0.5)' 
-      : props.$transparent ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.1)'};
+      : DEFAULT_COLORS.tertiary};
   
   /* Add glow effect */
   &::after {
@@ -284,7 +306,7 @@ const Card = styled(motion.div)<CardProps>`
     background: ${props => 
       props.$color 
         ? `${props.$color}` 
-        : 'rgba(191, 173, 127, 0.5)'};
+        : DEFAULT_COLORS.primary};
     filter: blur(30px);
     z-index: -1;
     opacity: ${props => props.$isHovered ? 0.15 : 0};
@@ -322,11 +344,11 @@ const Card = styled(motion.div)<CardProps>`
     box-shadow: 0 0 0 2px ${props => 
       props.$color 
         ? `${props.$color}` 
-        : 'var(--gold, rgba(191, 173, 127, 1))'};
+        : DEFAULT_COLORS.primary};
     border-color: ${props => 
       props.$color 
         ? `${props.$color}` 
-        : 'var(--gold, rgba(191, 173, 127, 1))'};
+        : DEFAULT_COLORS.primary};
   }
   
   @media (min-width: 1400px) {
@@ -340,14 +362,14 @@ const Card = styled(motion.div)<CardProps>`
   }
 `;
 
-const IconContainer = styled(motion.div)`
+const IconContainer = styled(motion.div)<{ $color?: string }>`
   display: flex;
   align-items: center;
   justify-content: center;
   width: 26px;
   height: 26px;
   margin-right: 0.8rem;
-  color: var(--gold, rgba(191, 173, 127, 1));
+  color: ${props => props.$color || DEFAULT_COLORS.primary};
   
   svg {
     width: 100%;
@@ -362,13 +384,13 @@ const IconContainer = styled(motion.div)`
 
 const GoldenTab = styled.div<{ $color?: string }>`
   position: absolute;
-  left: 0;
+  left: 10px;
   top: 40%;
-  width: 1px;
+  width: 3px;
   height: 20%;
-  background: ${props => props.$color || 'var(--gold, rgba(191, 173, 127, 1)'};
-  border-top-right-radius: 1px;
-  border-bottom-right-radius: 1px;
+  background: ${props => props.$color || DEFAULT_COLORS.primary};
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
   transition: height 0.3s ease, top 0.3s ease;
   opacity: 1;
   
@@ -385,35 +407,35 @@ const TextContainer = styled.div`
   justify-content: center;
 `;
 
-const GlowEffect = styled(motion.div)`
+const GlowEffect = styled(motion.div)<{ $color?: string }>`
   position: absolute;
   top: 50%;
   left: 15%;
   transform: translate(-50%, -50%);
   width: 35px;
   height: 35px;
-  background: var(--gold, rgba(191, 173, 127, 0.8));
+  background: ${props => props.$color || DEFAULT_COLORS.glow};
   border-radius: 50%;
   filter: blur(20px);
   z-index: -1;
 `;
 
-const Label = styled(motion.div)`
+const Label = styled(motion.div)<{ $color?: string }>`
   font-family: var(--font-heading, 'system-ui');
   font-size: 0.85rem;
   font-weight: 300;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.9);
+  color: ${props => props.$color || DEFAULT_COLORS.text};
   
   @media (min-width: 1400px) {
     font-size: 0.9rem;
   }
 `;
 
-const Description = styled(motion.div)`
+const Description = styled(motion.div)<{ $color?: string }>`
   font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: ${props => props.$color ? `${props.$color}99` : DEFAULT_COLORS.textSecondary};
   margin-top: 0.25rem;
   line-height: 1.4;
   max-width: 90%;
@@ -518,20 +540,21 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
           <>
         <IconContainer 
           variants={ANIMATIONS.icon}
+          $color={item.color}
         >
           {item.icon}
         </IconContainer>
-        {isHovered && <GlowEffect variants={ANIMATIONS.glow} />}
+        {isHovered && <GlowEffect variants={ANIMATIONS.glow} $color={item.color} />}
           </>
         )}
         
         <TextContainer>
-          <Label variants={ANIMATIONS.label}>
+          <Label variants={ANIMATIONS.label} $color={item.color}>
         {item.label}
           </Label>
           
           {item.description && (
-        <Description>
+        <Description $color={item.color}>
           {item.description}
         </Description>
           )}

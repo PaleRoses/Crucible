@@ -1,95 +1,128 @@
 import React, { useEffect, useState } from 'react';
-import CosmicStars from '../effects/cosmic/CosmicStars';
+import CosmicStars from '../effects/cosmic/CosmicStars'; // Adjust import path if needed
+// Assuming StarConfig is exported from CosmicStars or a types file
+// import type { StarConfig } from '../effects/cosmic/CosmicStars';
+
+/**
+ * @typedef {object} BackgroundProps
+ * @property {Partial<import('../effects/cosmic/CosmicStars').StarConfig>} [config] - Configuration object.
+ * Settings like `colorResolutionOptions`, `starCount`, etc., will be passed down,
+ * but `colors.stars` and `colors.background` will be overridden by this component
+ * to use specific CSS variables.
+ */
 
 /**
  * Background Component
- * 
- * Container for cosmic background effects.
- * Acts as a coordinator for multiple cosmic effects,
- * each handling their own state and rendering.
- * 
- * Fixes iOS viewport height issues by using a combination of approaches.
+ *
+ * Container for the CosmicStars effect.
+ * Handles iOS viewport height adjustments. It explicitly sets the star colors
+ * (--color-cosmic1, etc.) AND background colors (--color-background, --color-background-alt)
+ * for CosmicStars using CSS variables, while passing down other configurations.
+ *
+ * @param {BackgroundProps} props
  */
 const Background = ({ config = {} }) => {
-  // Colors configuration with defaults
-  const backgroundColors = {
-    topColor: config.colors?.background?.topColor || 'rgb(8, 8, 12)',
-    bottomColor: config.colors?.background?.bottomColor || 'rgb(15, 15, 20)'
-  };
+  // Use the specific CSS variable for the extension div background
+  const bottomBackgroundColor = 'var(--color-background-alt)';
 
-  // State to store the real viewport height
-  const [viewportHeight, setViewportHeight] = useState('100vh');
+  // State to store the real viewport height for iOS fix
+  const [viewportHeight, setViewportHeight] = useState('100vh'); // Default to CSS value
 
-  // Effect to handle viewport height on iOS
+  // Effect to handle viewport height changes
   useEffect(() => {
-    // Function to update the viewport height
+    let resizeTimeout;
     const updateHeight = () => {
-      // Set viewport height to window inner height
-      setViewportHeight(`${window.innerHeight}px`);
+      const height = window.innerHeight;
+      setViewportHeight(`${height}px`);
     };
-
-    // Set initial height
-    updateHeight();
-
-    // Update height on resize and orientation change
-    window.addEventListener('resize', updateHeight);
-    window.addEventListener('orientationchange', updateHeight);
-
-    return () => {
-      // Clean up event listeners
-      window.removeEventListener('resize', updateHeight);
-      window.removeEventListener('orientationchange', updateHeight);
+    const debouncedUpdateHeight = () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(updateHeight, 150);
+    };
+    updateHeight(); // Initial height
+    window.addEventListener('resize', debouncedUpdateHeight);
+    window.addEventListener('orientationchange', debouncedUpdateHeight);
+    return () => { // Cleanup
+      clearTimeout(resizeTimeout);
+      window.removeEventListener('resize', debouncedUpdateHeight);
+      window.removeEventListener('orientationchange', debouncedUpdateHeight);
     };
   }, []);
 
+  // --- Prepare Config for CosmicStars ---
+  // Start with the config passed to Background...
+  const cosmicStarsConfig = {
+    ...config, // Pass down all non-color settings from the parent config initially
+    // ...then explicitly define the colors object...
+    colors: {
+      // ...specifically set the star colors...
+      stars: [
+        'var(--color-cosmic1)',
+        'var(--color-cosmic2)',
+        'var(--color-cosmic3)',
+      ],
+      // ...and specifically set the background colors using CSS variables.
+      background: {
+        topColor: 'var(--color-background)',
+        bottomColor: 'var(--color-background-alt)',
+      }
+    },
+    // ...and ensure colorResolutionOptions are passed through or defaulted.
+    colorResolutionOptions: {
+        fallback: '#FFFFFF', // Default fallback within Background
+        debug: false,
+        ...(config?.colorResolutionOptions || {}) // Merge options from parent config
+    }
+  };
+
+  // Remove potential undefined keys if config was empty - ensure clean object
+  // No longer need to delete background colors as they are explicitly set now.
+   if (!config?.colorResolutionOptions) {
+      delete cosmicStarsConfig.colorResolutionOptions; // Allow CosmicStars default if not in parent
+   }
+
+
   return (
     <>
-      {/* Main background with gradient */}
+      {/* Main container for the background effect */}
       <div
         style={{
           position: 'fixed',
           top: 0,
           left: 0,
           width: '100%',
-          height: viewportHeight,
+          height: viewportHeight, // Use dynamic height state
           overflow: 'hidden',
-          zIndex: -1,
+          zIndex: -100,
           pointerEvents: 'none',
-          background: `linear-gradient(to bottom, ${backgroundColors.topColor}, ${backgroundColors.bottomColor})`
         }}
         aria-hidden="true"
+        className="background-container"
       >
-        {/* Cosmic Stars - fully self-contained component */}
-        <CosmicStars
-        config={config.stars}
-        starColors={[
-          'var(--color-cosmic1)',
-          'var(--color-secondary)',
-          'var(--color-accent)'
-        ]}
-      />
+        {/*
+         * Render Cosmic Stars effect.
+         * Pass the specifically constructed config object down.
+         */}
+        <CosmicStars config={cosmicStarsConfig} />
 
-
-        
-        {/* Add additional cosmic effects here, each handling their own canvas and state */}
-        {/* Example:
-        <CosmicNebula config={config.nebula} />
-        <CosmicDust config={config.dust} />
-        */}
+        {/* Placeholder for potential future background effects */}
       </div>
-      
-      {/* Additional element to ensure background extends past viewport */}
+
+      {/* Background Extension Div */}
       <div
         style={{
           position: 'fixed',
           left: 0,
           top: '100vh',
           width: '100%',
-          height: '100vh', // Extra height beyond viewport
-          zIndex: -2,
-          backgroundColor: backgroundColors.bottomColor,
+          height: '100vh',
+          zIndex: -101,
+          // Use the specific variable for consistency
+          backgroundColor: bottomBackgroundColor,
+          pointerEvents: 'none',
         }}
         aria-hidden="true"
+        className="background-extension"
       />
     </>
   );

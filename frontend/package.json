@@ -24,6 +24,7 @@
     "jss": "^10.10.0",
     "jss-preset-default": "^10.10.0",
     "lodash": "^4.17.21",
+    "lucide-react": "^0.487.0",
     "next": "^15.2.2",
     "p5": "^1.11.3",
     "postprocessing": "^6.37.1",

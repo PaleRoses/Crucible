@@ -52,7 +52,7 @@ const ruleItems = [
     href: '/codex/rules/motivations',
     icon: <CoreIcon />,
     description: 'Lunar and Solar motivations, the motivation track',
-    color: '#a08e61'
+    color: 'var(--color-primary)'
   },
   {
     id: 'actions',
@@ -60,7 +60,7 @@ const ruleItems = [
     href: '/codex/rules/actions',
     icon: <CoreIcon />,
     description: 'Action ratings, outcomes, impact, difficulty',
-    color: '#a08e61'
+    color: 'var(--color-primary)'
   },
   {
     id: 'harm',
@@ -68,7 +68,7 @@ const ruleItems = [
     href: '/codex/rules/harm',
     icon: <CoreIcon />,
     description: 'Physical, emotional, and spiritual harm mechanics',
-    color: '#a08e61'
+    color: 'var(--color-primary)'
   },
   {
     id: 'equipment',
@@ -76,7 +76,7 @@ const ruleItems = [
     href: '/codex/rules/equipment',
     icon: <CoreIcon />,
     description: 'Items, special abilities, augmetics',
-    color: '#a08e61'
+    color: 'var(--color-primary)'
   },
   {
     id: 'moves',
@@ -84,7 +84,7 @@ const ruleItems = [
     href: '/codex/rules/moves',
     icon: <CoreIcon />,
     description: 'Reckon, Connect, Investigate, confronts',
-    color: '#a08e61'
+    color: 'var(--color-primary)'
   },
   {
     id: 'experience',
@@ -92,7 +92,7 @@ const ruleItems = [
     href: '/codex/rules/experience',
     icon: <CoreIcon />,
     description: 'Experience gain, aspect upgrades, advancement',
-    color: '#a08e61'
+    color: 'var(--color-primary)'
   },
   
   // World & Character section
@@ -102,7 +102,7 @@ const ruleItems = [
     href: '/codex/rules/creation',
     icon: <WorldIcon />,
     description: 'Character creation, cycle generation, regions',
-    color: '#ccd6e1'
+    color: 'var(--color-accent1)'
   },
   {
     id: 'sites',
@@ -110,7 +110,7 @@ const ruleItems = [
     href: '/codex/rules/sites',
     icon: <WorldIcon />,
     description: 'Caverns, dungeons, habitats, passes',
-    color: '#ccd6e1'
+    color: 'var(--color-accent1)'
   },
   {
     id: 'environments',
@@ -118,7 +118,7 @@ const ruleItems = [
     href: '/codex/rules/environments',
     icon: <WorldIcon />,
     description: 'Forest, jungle, freeze, drown, swamp, etc.',
-    color: '#ccd6e1'
+    color: 'var(--color-accent1)'
   },
   {
     id: 'godrealms',
@@ -126,7 +126,7 @@ const ruleItems = [
     href: '/codex/rules/godrealms',
     icon: <WorldIcon />,
     description: 'Cityscape, nightmare, eschaton layers',
-    color: '#ccd6e1'
+    color: 'var(--color-accent1)'
   },
   
   // Advanced Mechanics section
@@ -136,7 +136,7 @@ const ruleItems = [
     href: '/codex/rules/gauntlets',
     icon: <AdvancedIcon />,
     description: 'Journeys, delves, scenes, progress',
-    color: '#9879E9'
+    color: 'var(--color-accent2)'
   },
   {
     id: 'interludes',
@@ -144,7 +144,7 @@ const ruleItems = [
     href: '/codex/rules/interludes',
     icon: <AdvancedIcon />,
     description: 'Activities, fallout, blowback, movements',
-    color: '#9879E9'
+    color: 'var(--color-accent2)'
   },
   {
     id: 'archetypes',
@@ -152,7 +152,7 @@ const ruleItems = [
     href: '/codex/rules/archetypes',
     icon: <AdvancedIcon />,
     description: 'Cultists, mercenaries, paragons, exiles',
-    color: '#9879E9'
+    color: 'var(--color-accent2)'
   },
   {
     id: 'stars',
@@ -160,7 +160,7 @@ const ruleItems = [
     href: '/codex/rules/stars',
     icon: <AdvancedIcon />,
     description: 'Multi-part challenges, eclipse counters',
-    color: '#9879E9'
+    color: 'var(--color-accent2)'
   },
   
   // Reference section
@@ -170,7 +170,7 @@ const ruleItems = [
     href: '/codex/rules/oracles',
     icon: <ReferenceIcon />,
     description: 'Tables for generating content',
-    color: '#7BE17B'
+    color: 'var(--color-accent3)'
   },
   {
     id: 'glossary',
@@ -178,7 +178,7 @@ const ruleItems = [
     href: '/codex/rules/glossary',
     icon: <ReferenceIcon />,
     description: 'Terms and definitions',
-    color: '#7BE17B'
+    color: 'var(--color-accent3)'
   },
   {
     id: 'quickstart',
@@ -186,7 +186,7 @@ const ruleItems = [
     href: '/codex/rules/quickstart',
     icon: <ReferenceIcon />,
     description: 'Getting started for new players',
-    color: '#7BE17B'
+    color: 'var(--color-accent3)'
   }
 ]
 

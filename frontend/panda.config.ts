@@ -1,5 +1,6 @@
 // improved-panda.config.ts
 import { defineConfig } from "@pandacss/dev";
+import { textStyles } from './panda.config/text-styles';
 
 export default defineConfig({
   // Basic setup
@@ -86,7 +87,8 @@ export default defineConfig({
       
       // Other design token variables
       "--transition-default": "0.3s ease",
-      "--transition-fast": "0.15s ease",
+      "--transition-fast": "0.2s ease",
+      "--transition-medium": "0.3s ease",
       "--transition-slow": "0.5s ease",
       "--shadow-glow": "0 0 10px var(--color-glow)",
       "--shadow-medium": "0 4px 6px rgba(0, 0, 0, 0.1)",
@@ -248,7 +250,7 @@ export default defineConfig({
     // UI Elements
     "button, .button": {
       fontFamily: "var(--font-heading)",
-      backgroundColor: "rgba(191, 173, 127, 0.15)",
+      backgroundColor: "color-mix(in srgb, var(--color-primary) 15%, transparent)",
       color: "var(--color-primary)",
       border: "1px solid var(--color-border)",
       borderRadius: "var(--radius-medium)",
@@ -258,7 +260,7 @@ export default defineConfig({
       padding: "0.5rem 1rem",
       transition: "all var(--transition-default)",
       "&:hover": {
-        backgroundColor: "rgba(191, 173, 127, 0.25)",
+        backgroundColor: "color-mix(in srgb, var(--color-primary) 25%, transparent)",
         boxShadow: "var(--shadow-glow)",
       },
     },
@@ -357,9 +359,9 @@ export default defineConfig({
             border: { value: 'rgba(158, 123, 47, 0.3)' },
             hover: { value: 'rgba(158, 123, 47, 0.1)' },
             active: { value: 'rgba(158, 123, 47, 0.2)' },
-            cosmic1: { value: 'rgba(214, 210, 196, 0.8)' },
-            cosmic2: { value: 'rgba(233, 222, 187, 0.7)' },
-            cosmic3: { value: 'rgba(167, 186, 211, 0.6)' },
+            cosmic1: { value: 'rgba(25, 35, 50, 0.95)' }, // Very Dark Blue-Grey (almost opaque)
+            cosmic2: { value: 'rgba(20, 40, 50, 0.9)' },  // Dark Brackish Teal/Blue (high opacity)
+            cosmic3: { value: 'rgba(15, 25, 40, 0.88)' }, // Deepest Dark Blue (still high opacity)
             cosmicCore: { value: 'rgba(255, 255, 255, 0.9)' },
           },
           
@@ -378,9 +380,9 @@ export default defineConfig({
             border: { value: 'rgba(125, 46, 46, 0.3)' },
             hover: { value: 'rgba(125, 46, 46, 0.1)' },
             active: { value: 'rgba(125, 46, 46, 0.2)' },
-            cosmic1: { value: 'rgba(240, 230, 208, 0.8)' },
-            cosmic2: { value: 'rgba(226, 204, 158, 0.7)' },
-            cosmic3: { value: 'rgba(194, 178, 151, 0.6)' },
+            cosmic1: { value: 'rgba(110, 20, 40, 0.95)' }, // Deep Burgundy/Wine Red
+            cosmic2: { value: 'rgba(100, 15, 50, 0.9)' },  // Dark Red-Purple/Plum
+            cosmic3: { value: 'rgba(90, 10, 30, 0.88)' },  // Very Dark Maroon/Oxblood
             cosmicCore: { value: 'rgba(252, 235, 202, 0.9)' },
           },
           
@@ -399,9 +401,9 @@ export default defineConfig({
             border: { value: 'rgba(162, 196, 232, 0.2)' },
             hover: { value: 'rgba(162, 196, 232, 0.1)' },
             active: { value: 'rgba(162, 196, 232, 0.3)' },
-            cosmic1: { value: 'rgba(226, 232, 240, 0.9)' },
-            cosmic2: { value: 'rgba(214, 226, 255, 0.7)' },
-            cosmic3: { value: 'rgba(191, 203, 232, 0.6)' },
+            cosmic1: { value: 'rgba(226, 232, 240, 0.9)' }, // Slate 200 at 90% opacity
+            cosmic2: { value: 'rgba(214, 226, 255, 0.7)' }, // Blue 100 at 70% opacity
+            cosmic3: { value: 'rgba(191, 203, 232, 0.6)' }, // Slate 300 at 60% opacity
             cosmicCore: { value: 'rgba(240, 246, 255, 0.95)' },
           },
           
@@ -443,12 +445,22 @@ export default defineConfig({
           },
         },
         
+        
+
+        fontWeights: {
+          thin: { value: '200' },
+          normal: { value: '400' },
+          medium: { value: '500' },
+          semibold: { value: '600' },
+          bold: { value: '700' },
+        },
+        
         // Essential spacing tokens
         spacing: {
           xs: { value: '0.25rem' },
-          sm: { value: '0.5rem' },
-          md: { value: '1rem' },
-          lg: { value: '2rem' },
+          sm: { value: '1rem' },
+          md: { value: '2rem' },
+          lg: { value: '3rem' },
           xl: { value: '4rem' },
           xxl: { value: '6rem' },
         },
@@ -461,9 +473,10 @@ export default defineConfig({
           full: { value: '9999px' },
         },
       },
+      textStyles: textStyles,
     },
     
-    // Semantic tokens mapping
+    // Semantic tokens mapping - FIXED: Now uses theme-agnostic references
     semanticTokens: {
       colors: {
         // Core colors mapping
@@ -477,7 +490,7 @@ export default defineConfig({
         accent2: { value: '{colors.midnight.accent2}' },
         accent3: { value: '{colors.midnight.accent3}' },
 
-        // Cosmic colors mapping
+        // Cosmic colors mapping - Updated to match other semantic tokens format
         cosmic1: { value: '{colors.midnight.cosmic1}' },
         cosmic2: { value: '{colors.midnight.cosmic2}' },
         cosmic3: { value: '{colors.midnight.cosmic3}' },
@@ -496,13 +509,13 @@ export default defineConfig({
         surface: {
           dark: { value: '{colors.background}' },
           mid: { value: '{colors.backgroundAlt}' },
-          light: { value: 'rgba(255, 255, 255, 0.05)' },
+          light: { value: 'color-mix(in srgb, {colors.text} 5%, transparent)' },
         },
       },
     }
   },
   
-  // Theme definitions
+  // Theme definitions - FIXED: Added cosmic colors to each theme
   themes: {
     midnight: {
       tokens: {
@@ -520,6 +533,11 @@ export default defineConfig({
           border: { value: '{colors.midnight.border}' },
           hover: { value: '{colors.midnight.hover}' },
           active: { value: '{colors.midnight.active}' },
+          // ADDED: Cosmic colors for midnight theme
+          cosmic1: { value: '{colors.midnight.cosmic1}' },
+          cosmic2: { value: '{colors.midnight.cosmic2}' },
+          cosmic3: { value: '{colors.midnight.cosmic3}' },
+          cosmicCore: { value: '{colors.midnight.cosmicCore}' },
         }
       }
     },
@@ -539,6 +557,11 @@ export default defineConfig({
           border: { value: '{colors.starlight.border}' },
           hover: { value: '{colors.starlight.hover}' },
           active: { value: '{colors.starlight.active}' },
+          // ADDED: Cosmic colors for starlight theme
+          cosmic1: { value: '{colors.starlight.cosmic1}' },
+          cosmic2: { value: '{colors.starlight.cosmic2}' },
+          cosmic3: { value: '{colors.starlight.cosmic3}' },
+          cosmicCore: { value: '{colors.starlight.cosmicCore}' },
         }
       }
     },
@@ -558,6 +581,11 @@ export default defineConfig({
           border: { value: '{colors.eclipse.border}' },
           hover: { value: '{colors.eclipse.hover}' },
           active: { value: '{colors.eclipse.active}' },
+          // ADDED: Cosmic colors for eclipse theme
+          cosmic1: { value: '{colors.eclipse.cosmic1}' },
+          cosmic2: { value: '{colors.eclipse.cosmic2}' },
+          cosmic3: { value: '{colors.eclipse.cosmic3}' },
+          cosmicCore: { value: '{colors.eclipse.cosmicCore}' },
         }
       }
     },
@@ -577,6 +605,11 @@ export default defineConfig({
           border: { value: '{colors.moonlight.border}' },
           hover: { value: '{colors.moonlight.hover}' },
           active: { value: '{colors.moonlight.active}' },
+          // ADDED: Cosmic colors for moonlight theme
+          cosmic1: { value: '{colors.moonlight.cosmic1}' },
+          cosmic2: { value: '{colors.moonlight.cosmic2}' },
+          cosmic3: { value: '{colors.moonlight.cosmic3}' },
+          cosmicCore: { value: '{colors.moonlight.cosmicCore}' },
         }
       }
     },
@@ -596,6 +629,11 @@ export default defineConfig({
           border: { value: '{colors.flux.border}' },
           hover: { value: '{colors.flux.hover}' },
           active: { value: '{colors.flux.active}' },
+          // ADDED: Cosmic colors for flux theme
+          cosmic1: { value: '{colors.flux.cosmic1}' },
+          cosmic2: { value: '{colors.flux.cosmic2}' },
+          cosmic3: { value: '{colors.flux.cosmic3}' },
+          cosmicCore: { value: '{colors.flux.cosmicCore}' },
         }
       }
     }

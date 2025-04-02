@@ -119,9 +119,9 @@ const CosmicStars = ({ config = {} }) => {
   const COLORS = useMemo(() => ({
     // Star colors
     stars: [
-      'rgba(255, 243, 200, alpha)', // Warm yellow
-      'rgba(255, 231, 164, alpha)', // Golden
-      'rgba(252, 249, 231, alpha)'  // Off-white gold
+      'var(--color-cosmic1)', // Warm yellow
+      'var(--color-cosmic2)', // Golden
+      'var(--color-cosmic3)'  // Off-white gold
     ],
     
     // Background gradient colors

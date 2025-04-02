@@ -8,7 +8,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 
 /**
  * LeftDocSideBar Component
- * 
+ * a
  * A fixed-position documentation sidebar that displays navigation links and pushes
  * content to the right.
  * 
