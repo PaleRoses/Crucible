@@ -192,9 +192,9 @@ interface CosmicStarsProps {
 // Default configuration values
 const DEFAULT_RAW_COLORS: ColorConfig = {
   stars: [
-    'var(--color-cosmic1)', // Warm yellow
-    'var(--color-cosmic2)', // Golden
-    'var(--color-cosmic3)'  // Off-white gold
+    'red', 
+    'red', 
+    'red'  
   ],
   background: {
     topColor: 'rgb(8, 8, 12)',

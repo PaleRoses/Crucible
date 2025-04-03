@@ -368,7 +368,7 @@ export interface NavigationBarProps {
 const DEFAULT_COLORS: Colors = {
   primary: 'var(--color-primary)',          // Default to CSS variable or Gold
   secondary: 'var(--color-background)',           // Default to Dark background
-  tertiary: 'var(--color-primary)',    // Default to Light border
+  tertiary: 'var(--color-glow)',    // Default to Light border
   text: 'var(--color-text)',         // Default to Light text
   glow: 'var(--color-glow)'           // Default to Gold glow
 };

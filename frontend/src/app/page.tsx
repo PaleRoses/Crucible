@@ -3,93 +3,31 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { NextPage } from 'next';
 
-const ElementCard = dynamic(
-  () => import('../components/navbars/ElementCard'),
-  { ssr: false }
+const Background = dynamic(
+  () => import('../components/effects/3dcosmic/Background'), // Path to your component
+  { ssr: false } // This is the crucial part!
 );
-import MeteorShower from '../components/effects/cosmic/MeteorShower';
+
+// Removed MeteorShower import
 
 const HomePage: NextPage = () => {
-  // Define the data object for the new ElementCard component
-  const data = {
-    title: "Mythic Realms",
-    subheader: "Fantasy Environments",
-    tagline: "Explore the uncharted territories of imagination",
-    description: ["Mythic Realms is a vast fantasy world comprising diverse regions, each with unique environments, creatures, and magic systems. From enchanted forests to floating isles, every corner offers new adventures and discoveries."],
+  
 
-  };
-  
-  // Navigation items with section-specific content and subsection headers
-  const navigationItems = [
-    { id: "overview", label: "ABOUT", content: null }, // Will use data.description
-    {
-      id: "regions",
-      label: "REGIONS",
-      sectionTitle: "Geographical Landscapes", // Added subsection header
-      content: "There are six main regions in Mythic Realms: The Enchanted Forest, The Mystic Mountains, The Shadowed Vale, The Crystal Caves, The Eternal Desert, and The Floating Isles.",
-      stats: [
-        { label: "Area", value: "1.2M sq km" },
-        { label: "Kingdoms", value: "24" }
-      ]
-    },
-    {
-      id: "creatures",
-      label: "CREATURES",
-      sectionTitle: "Mythical Inhabitants", // Added subsection header
-      content: "Over a thousand creatures inhabit Mythic Realms, ranging from benevolent fairies to fearsome dragons, each adapted to their specific environments."
-    },
-    {
-      id: "magic",
-      label: "MAGIC",
-      sectionTitle: "Arcane Systems", // Added subsection header
-      content: "Twelve distinct magic systems govern the use of mystical energies in Mythic Realms, including elemental magic, necromancy, and rune crafting.",
-      stats: [
-        { label: "Elements", value: "8" },
-        { label: "Schools", value: "12" }
-      ]
-    }
-  ];
-  
   return (
-    <div className="relative">
-      {/* Main Content */}
-      <div className="">
-        <ElementCard
-          data={data}
-          navigationItems={navigationItems}
-          statsPosition="bottom"
-          topOffset={0}
-          mobileContentMargin={0}
+    // Use a main container div
+    <div className="relative"> {/* Ensure parent has positioning context if needed */}
 
-        />
-      </div>
-      
-      {/* Large space after the card */}
-      <div style={{ height: '100vh' }}></div>
-      
-      {/* Background Effect */}
-      <MeteorShower
-        height="400vh"
-        zIndex={-1}
-        trailColor="rgba(191, 173, 127, 0.8)"
-        glowColor="rgba(207, 185, 130, 0.6)"
-        coreColor="rgba(255, 248, 220, 1)"
-        meteorDensity={8}
-        meteorMinSize={0.8}
-        meteorMaxSize={2.0}
-        meteorSpeed={0.04}
-        trailLength={400}
-        trailSegments={200}
-        enableParallax={true}
-        parallaxIntensity={0.10}
-        mode="linear"
-        direction="top"
-        baseAngle={30}
-        angleVariation={15}
-        burstParticleSize={2}
-        burstParticleCount={8}
-        burstProbability={0.55}
-      />
+      {/* Background Effect - RENDERED FIRST */}
+      {/* The Background component handles its own fixed positioning and z-index */}
+      <Background />
+
+      {/* Main Content Area */}
+      {/* This div will be layered on top of the Background due to default stacking order */}
+      {/* or explicit z-index if needed */}
+  
+        {/* Large space after the card - for demonstration */}
+        <div style={{ height: '200vh' }}></div>
+
     </div>
   );
 };

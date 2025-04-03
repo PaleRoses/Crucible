@@ -116,7 +116,7 @@ export function ThemeSelector() {
         background-color: var(--colors-background, #f0e6d0) !important;
         color: var(--colors-text, #3a2a1b) !important;
       }
-      [data-panda-theme="flux"] {
+      [data-panda-theme="nebula"] {
         background-color: var(--colors-background, #0A0B18) !important;
         color: var(--colors-text, #E2F3FF) !important;
       }

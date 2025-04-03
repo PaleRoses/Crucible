@@ -126,10 +126,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
           @font-face {
             font-family: 'haboro-soft-condensed-fallback';
             src: local('Avenir'), local('Helvetica Neue'), local('Helvetica'), local('Arial');
-            size-adjust: 100%;
-            ascent-override: 90%;
-            descent-override: 25%;
-            line-gap-override: 0%;
           }
           
           /* Set font loading visibility */
@@ -140,22 +136,11 @@ export default function RootLayout({ children }: RootLayoutProps) {
           
           /* Basic styling to avoid additional layout shifts */
           body {
-            margin: 0;
-            padding: 0;
             font-family: 'adobe-caslon-pro-fallback', 'adobe-caslon-pro', Georgia, serif;
           }
           
           /* Navbar critical styling to ensure consistent rendering */
           nav {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            z-index: 100;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
             backdrop-filter: blur(8px);
             padding: 0 1.5rem;
           }
@@ -165,16 +150,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
             --font-heading: 'haboro-soft-condensed', 'Avenir Next', sans-serif;
           }
           
-          /* Mobile menu styling */
-          @media (max-width: 768px) {
-            button[aria-controls="mobile-menu"] {
-              display: flex !important;
-            }
-            
-            div[id="mobile-menu"] {
-              display: block !important;
-            }
-          }
         `}} />
       </head>
       <body>

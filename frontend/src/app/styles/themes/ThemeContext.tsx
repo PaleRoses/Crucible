@@ -78,7 +78,7 @@ export function ThemeScript() {
                 // Ignore storage access errors
               }
               
-              var validThemes = ['midnight', 'starlight', 'moonlight', 'eclipse', 'flux'];
+              var validThemes = ['midnight', 'starlight', 'moonlight', 'eclipse', 'nebula'];
               var prefersDark = false;
               
               try {
