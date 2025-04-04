@@ -1,9 +1,43 @@
-// src/styled-system/recipes/cosmicInput.ts
+// panda.config/recipes/cosmicInput.ts
 
-import { cva } from '../../styled-system/css';
+import { defineRecipe } from '@pandacss/dev';
 
 /**
- * Cosmic Input - A sophisticated form input component with animated states
+ * ====================================================================================
+ * COSMIC INPUT - A sophisticated form input component with animated states
+ * ====================================================================================
+ * 
+ * IMPORT INTO YOUR PANDA CONFIG:
+ * 
+ * import { 
+ *   cosmicInputWrapper, 
+ *   cosmicInputField,
+ *   cosmicInputLabel,
+ *   cosmicInputAdornment,
+ *   cosmicInputUnderline,
+ *   cosmicInput
+ * } from './panda.config/recipes/cosmicInput';
+ * 
+ * Then add to your config:
+ * 
+ * export default defineConfig({
+ *   // ...other config
+ *   theme: {
+ *     extend: {
+ *       recipes: {
+ *         // Method 1: Add individual components
+ *         InputWrapper: cosmicInputWrapper,
+ *         InputField: cosmicInputField,
+ *         InputLabel: cosmicInputLabel,
+ *         InputAdornment: cosmicInputAdornment,
+ *         InputUnderline: cosmicInputUnderline,
+ *         
+ *         // Method 2: Or use the combined object
+ *         ...cosmicInput
+ *       }
+ *     }
+ *   }
+ * })
  * 
  * Features:
  * - Floating label animation on focus/filled states
@@ -15,7 +49,9 @@ import { cva } from '../../styled-system/css';
  */
 
 // Input container wrapper styling
-export const cosmicInputWrapper = cva({
+export const cosmicInputWrapper = defineRecipe({
+  className: 'cosmicInputWrapper',
+  description: 'A wrapper for the cosmic input component with floating label and validation states',
   base: {
     position: 'relative',
     width: '100%',
@@ -364,7 +400,9 @@ export const cosmicInputWrapper = cva({
 });
 
 // Input field styling
-export const cosmicInputField = cva({
+export const cosmicInputField = defineRecipe({
+  className: 'cosmicInputField',
+  description: 'The input field of the cosmic input component',
   base: {
     position: 'relative',
     display: 'block',
@@ -399,7 +437,9 @@ export const cosmicInputField = cva({
 });
 
 // Label styling
-export const cosmicInputLabel = cva({
+export const cosmicInputLabel = defineRecipe({
+  className: 'cosmicInputLabel',
+  description: 'The floating label for the cosmic input component',
   base: {
     position: 'absolute',
     color: 'textMuted',
@@ -411,7 +451,9 @@ export const cosmicInputLabel = cva({
 });
 
 // For prefix and suffix elements (icons, buttons, etc.)
-export const cosmicInputAdornment = cva({
+export const cosmicInputAdornment = defineRecipe({
+  className: 'cosmicInputAdornment',
+  description: 'Prefix and suffix adornments for the cosmic input component',
   base: {
     position: 'absolute',
     top: '50%',
@@ -452,7 +494,9 @@ export const cosmicInputAdornment = cva({
 });
 
 // Underline bar for some variants
-export const cosmicInputUnderline = cva({
+export const cosmicInputUnderline = defineRecipe({
+  className: 'cosmicInputUnderline',
+  description: 'The underline bar for the cosmic input component',
   base: {
     position: 'absolute',
     bottom: '0',
@@ -468,6 +512,9 @@ export const cosmicInputUnderline = cva({
   },
 });
 
+/**
+ * Bulk export of all cosmic input components
+ */
 export const cosmicInput = {
   wrapper: cosmicInputWrapper,
   field: cosmicInputField,
@@ -477,17 +524,20 @@ export const cosmicInput = {
 };
 
 /**
- * Usage Example (in a React component):
+ * USAGE EXAMPLE (in a React component):
+ * =====================================
  * 
+ * // First, import the necessary components
  * import { 
  *   cosmicInputWrapper, 
  *   cosmicInputField,
  *   cosmicInputLabel,
  *   cosmicInputAdornment,
  *   cosmicInputUnderline
- * } from '../styled-system/recipes/cosmicInput';
+ * } from './panda.config/recipes/cosmicInput';
  * import { useState, useRef, useEffect } from 'react';
  *
+ * // Define props interface for the Input component
  * interface CosmicInputProps {
  *   label: string;
  *   value: string;
@@ -525,7 +575,7 @@ export const cosmicInput = {
  *   const inputRef = useRef<HTMLInputElement>(null);
  *   const [isFocused, setIsFocused] = useState(false);
  *   
- *   // Input wrapper classes
+ *   // Get styles from recipes
  *   const wrapperStyles = cosmicInputWrapper({
  *     variant,
  *     size,
@@ -603,6 +653,54 @@ export const cosmicInput = {
  *       
  *       
  *       {error && <div className="error-message">{error}</div>}
+ *     </div>
+ *   );
+ * }
+ * 
+ * // Example usage
+ * function FormExample() {
+ *   const [email, setEmail] = useState('');
+ *   const [password, setPassword] = useState('');
+ *   const [emailError, setEmailError] = useState('');
+ *   
+ *   const handleEmailChange = (e) => {
+ *     setEmail(e.target.value);
+ *     
+ *     // Simple validation
+ *     if (!e.target.value.includes('@')) {
+ *       setEmailError('Please enter a valid email address');
+ *     } else {
+ *       setEmailError('');
+ *     }
+ *   };
+ *   
+ *   return (
+ *     <div className="form-container">
+ *       <CosmicInput
+ *         label="Email Address"
+ *         value={email}
+ *         onChange={handleEmailChange}
+ *         error={emailError}
+ *         variant="cosmic"
+ *         prefix={<EmailIcon />}
+ *       />
+ *       
+ *       <CosmicInput
+ *         label="Password"
+ *         value={password}
+ *         onChange={(e) => setPassword(e.target.value)}
+ *         type="password"
+ *         variant="cosmic"
+ *         prefix={<LockIcon />}
+ *         suffix={
+ *           <EyeIcon 
+ *             onClick={() => togglePasswordVisibility()} 
+ *             style={cosmicInputAdornment({ position: 'suffix', interactive: true })}
+ *           />
+ *         }
+ *       />
+ *       
+ *       <button type="submit">Sign In</button>
  *     </div>
  *   );
  * }

@@ -1,21 +1,63 @@
-// src/styled-system/recipes/cosmicSubmenu.ts
+// panda.config/recipes/cosmicSubmenu.ts
 
-import { cva } from '../../styled-system/css';
+import { defineRecipe } from '@pandacss/dev';
 
 /**
- * Cosmic Submenu - An elegant dropdown panel component for navigation submenus
+ * ====================================================================================
+ * COSMIC SUBMENU - An elegant dropdown panel component for navigation submenus
+ * ====================================================================================
+ * 
+ * IMPORT INTO YOUR PANDA CONFIG:
+ * 
+ * import { 
+ *   cosmicSubmenu,
+ *   cosmicSubmenuGrid,
+ *   cosmicSubmenuHeader,
+ *   cosmicSubmenuTitle,
+ *   cosmicSubmenuDescription,
+ *   cosmicSubmenuItem,
+ *   cosmicSubmenuComponents
+ * } from './panda.config/recipes/cosmicSubmenu';
+ * 
+ * Then add to your config:
+ * 
+ * export default defineConfig({
+ *   // ...other config
+ *   theme: {
+ *     extend: {
+ *       recipes: {
+ *         // Method 1: Add individual components
+ *         Submenu: cosmicSubmenu,
+ *         SubmenuGrid: cosmicSubmenuGrid,
+ *         SubmenuHeader: cosmicSubmenuHeader,
+ *         SubmenuTitle: cosmicSubmenuTitle,
+ *         SubmenuDescription: cosmicSubmenuDescription,
+ *         SubmenuItem: cosmicSubmenuItem,
+ *         
+ *         // Method 2: Or use the combined object
+ *         // This adds all components with their original naming
+ *         ...cosmicSubmenuComponents
+ *       }
+ *     }
+ *   }
+ * })
  * 
  * Features:
- * - Smooth entrance and exit animations
- * - Flexible grid layout for submenu items
+ * - Smooth entrance and exit animations with configurable timing
+ * - Flexible grid layout for organizing submenu items
  * - Support for header with title and description
  * - Consistent styling with other cosmic components
  * - Multiple visual variants for different aesthetic needs
  * - Position variants for different menu orientations
+ * - Animation options for entrance and exit effects
+ * - Accessible design with proper ARIA attributes
+ * - Responsive sizing and layout options
  */
 
 // Main submenu container
-export const cosmicSubmenu = cva({
+export const cosmicSubmenu = defineRecipe ({
+  className: 'cosmicSubmenu',
+  description: 'A cosmic submenu component with various styles and animations',
   base: {
     position: 'absolute',
     display: 'flex',
@@ -263,7 +305,9 @@ export const cosmicSubmenu = cva({
 });
 
 // Submenu content grid layout
-export const cosmicSubmenuGrid = cva({
+export const cosmicSubmenuGrid = defineRecipe ({
+  className: 'cosmicSubmenuGrid',
+  description: 'A grid layout for submenu items',
   base: {
     display: 'grid',
     width: '100%',
@@ -342,7 +386,9 @@ export const cosmicSubmenuGrid = cva({
 });
 
 // Submenu header section
-export const cosmicSubmenuHeader = cva({
+export const cosmicSubmenuHeader = defineRecipe ({
+  className: 'cosmicSubmenuHeader',
+  description: 'A header section for the submenu with title and description',
   base: {
     display: 'flex',
     flexDirection: 'column',
@@ -394,7 +440,9 @@ export const cosmicSubmenuHeader = cva({
 });
 
 // Submenu title
-export const cosmicSubmenuTitle = cva({
+export const cosmicSubmenuTitle = defineRecipe ({
+  className: 'cosmicSubmenuTitle',
+  description: 'A title for the submenu',
   base: {
     fontFamily: 'heading',
     color: 'primary',
@@ -407,7 +455,9 @@ export const cosmicSubmenuTitle = cva({
 });
 
 // Submenu description
-export const cosmicSubmenuDescription = cva({
+export const cosmicSubmenuDescription = defineRecipe ({
+  className: 'cosmicSubmenuDescription',
+  description: 'A description for the submenu',
   base: {
     fontSize: 'desktopSubmenuDescription',
     color: 'textMuted',
@@ -417,7 +467,9 @@ export const cosmicSubmenuDescription = cva({
 });
 
 // Submenu item
-export const cosmicSubmenuItem = cva({
+export const cosmicSubmenuItem = defineRecipe ({
+  className: 'cosmicSubmenuItem',
+  description: 'A single item in the submenu',
   base: {
     display: 'flex',
     flexDirection: 'row',
@@ -619,8 +671,11 @@ export const cosmicSubmenuComponents = {
 };
 
 /**
- * Usage Example (in a React component):
+ * USAGE EXAMPLE (in a React component):
+ * =====================================
  * 
+ * // First, import the necessary components
+ * import { useState } from 'react';
  * import { 
  *   cosmicSubmenu,
  *   cosmicSubmenuGrid,
@@ -628,25 +683,26 @@ export const cosmicSubmenuComponents = {
  *   cosmicSubmenuTitle,
  *   cosmicSubmenuDescription,
  *   cosmicSubmenuItem 
- * } from '../styled-system/recipes/cosmicSubmenu';
- * import { useState } from 'react';
+ * } from './panda.config/recipes/cosmicSubmenu';
  * 
+ * // Define props interface for the Submenu component
  * interface SubmenuProps {
  *   items: Array<{
- *     id: string;
- *     label: string;
- *     href: string;
- *     icon?: React.ReactNode;
- *     description?: string;
+ *     id: string;                // Unique identifier for the item
+ *     label: string;             // Display text for the item
+ *     href: string;              // Navigation link or action identifier
+ *     icon?: React.ReactNode;    // Optional icon component
+ *     description?: string;      // Optional description text
  *   }>;
- *   title?: string;
- *   description?: string;
- *   isOpen: boolean;
- *   position?: 'top' | 'topStart' | 'topEnd' | 'bottom' | 'right' | 'left';
- *   variant?: 'standard' | 'accent' | 'minimal' | 'cosmic';
- *   onItemClick?: (href: string) => void;
+ *   title?: string;              // Optional submenu title
+ *   description?: string;        // Optional submenu description
+ *   isOpen: boolean;             // Whether the submenu is currently displayed
+ *   position?: 'top' | 'topStart' | 'topEnd' | 'bottom' | 'right' | 'left'; // Position relative to trigger
+ *   variant?: 'standard' | 'accent' | 'minimal' | 'cosmic'; // Visual style variant
+ *   onItemClick?: (href: string) => void; // Callback when an item is clicked
  * }
  * 
+ * // Create the CosmicSubmenu component
  * function CosmicSubmenuComponent({
  *   items,
  *   title,
@@ -665,14 +721,15 @@ export const cosmicSubmenuComponents = {
  *   });
  *   
  *   const gridStyles = cosmicSubmenuGrid({ 
- *     columns: 'auto',
- *     gap: 'none',
- *     padding: 'none'
+ *     columns: items.length > 3 ? '2' : '1',
+ *     gap: 'md',
+ *     padding: 'md'
  *   });
  *   
  *   const headerStyles = cosmicSubmenuHeader({
  *     align: 'start',
- *     hasBorder: true
+ *     hasBorder: true,
+ *     hasBackground: variant === 'cosmic'
  *   });
  *   
  *   const titleStyles = cosmicSubmenuTitle({});
@@ -731,4 +788,120 @@ export const cosmicSubmenuComponents = {
  *     </div>
  *   );
  * }
+ * 
+ * // EXAMPLES OF USAGE:
+ * 
+ * // Basic Submenu
+ * function BasicSubmenuExample() {
+ *   const [isOpen, setIsOpen] = useState(false);
+ *   
+ *   const submenuItems = [
+ *     { id: 'item1', label: 'Dashboard', href: '/dashboard' },
+ *     { id: 'item2', label: 'Settings', href: '/settings' },
+ *     { id: 'item3', label: 'Profile', href: '/profile' },
+ *   ];
+ *   
+ *   return (
+ *     <div className="relative">
+ *       <button onClick={() => setIsOpen(!isOpen)}>
+ *         Toggle Menu
+ *       </button>
+ *       
+ *       <CosmicSubmenuComponent
+ *         items={submenuItems}
+ *         isOpen={isOpen}
+ *         position="topStart"
+ *         onItemClick={(href) => {
+ *           console.log(`Navigating to: ${href}`);
+ *           setIsOpen(false);
+ *         }}
+ *       />
+ *     </div>
+ *   );
+ * }
+ * 
+ * // Cosmic Submenu with Icons and Descriptions
+ * function CosmicSubmenuExample() {
+ *   const [isOpen, setIsOpen] = useState(false);
+ *   
+ *   const submenuItems = [
+ *     { 
+ *       id: 'products', 
+ *       label: 'Our Products', 
+ *       href: '/products',
+ *       icon: <ProductIcon />,
+ *       description: 'Explore our range of premium products' 
+ *     },
+ *     { 
+ *       id: 'services', 
+ *       label: 'Services', 
+ *       href: '/services',
+ *       icon: <ServiceIcon />,
+ *       description: 'Professional services tailored to your needs' 
+ *     },
+ *     { 
+ *       id: 'about', 
+ *       label: 'About Us', 
+ *       href: '/about',
+ *       icon: <AboutIcon />,
+ *       description: 'Learn more about our company and mission' 
+ *     },
+ *   ];
+ *   
+ *   return (
+ *     <div className="relative">
+ *       <button onClick={() => setIsOpen(!isOpen)}>
+ *         Our Offerings
+ *       </button>
+ *       
+ *       <CosmicSubmenuComponent
+ *         items={submenuItems}
+ *         isOpen={isOpen}
+ *         position="top"
+ *         variant="cosmic"
+ *         title="Discover Our Offerings"
+ *         description="Explore our full range of products and services"
+ *         onItemClick={(href) => {
+ *           console.log(`Navigating to: ${href}`);
+ *           setIsOpen(false);
+ *         }}
+ *       />
+ *     </div>
+ *   );
+ * }
  */
+
+// Add these keyframe animations to your global CSS or Panda CSS config:
+/* 
+@keyframes cosmicSubmenuFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes cosmicSubmenuShimmer {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 100% 100%;
+  }
+}
+
+@keyframes cosmicSubmenuGlow {
+  0% {
+    box-shadow: 0 0 5px var(--color-glow);
+  }
+  50% {
+    box-shadow: 0 0 20px var(--color-glow);
+  }
+  100% {
+    box-shadow: 0 0 5px var(--color-glow);
+  }
+}
+*/

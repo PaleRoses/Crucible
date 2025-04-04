@@ -1,9 +1,43 @@
-// src/styled-system/recipes/cosmicDropdown.ts
-
-import { cva } from '../../styled-system/css';
+// panda.config/recipes/cosmicDropdown.ts
+import { defineRecipe } from '@pandacss/dev';
 
 /**
- * Cosmic Dropdown - A sophisticated dropdown component with luxury styling
+ * ====================================================================================
+ * COSMIC DROPDOWN - A sophisticated dropdown component with luxury styling
+ * ====================================================================================
+ * 
+ * IMPORT INTO YOUR PANDA CONFIG:
+ * 
+ * import { 
+ *   cosmicDropdownTrigger, 
+ *   cosmicDropdownContent, 
+ *   cosmicDropdownItem,
+ *   cosmicDropdownSeparator,
+ *   cosmicDropdownLabel,
+ *   cosmicDropdown
+ * } from './panda.config/recipes/cosmicDropdown';
+ * 
+ * Then add to your config:
+ * 
+ * export default defineConfig({
+ *   // ...other config
+ *   theme: {
+ *     extend: {
+ *       recipes: {
+ *         // Method 1: Add individual components
+ *         DropdownTrigger: cosmicDropdownTrigger,
+ *         DropdownContent: cosmicDropdownContent,
+ *         DropdownItem: cosmicDropdownItem,
+ *         DropdownSeparator: cosmicDropdownSeparator,
+ *         DropdownLabel: cosmicDropdownLabel,
+ *         
+ *         // Method 2: Or use the combined object
+ *         // This adds all components with their original naming
+ *         ...cosmicDropdown
+ *       }
+ *     }
+ *   }
+ * })
  * 
  * Features:
  * - Elegant opening/closing animations with refined timing
@@ -16,7 +50,9 @@ import { cva } from '../../styled-system/css';
  */
 
 // Trigger button styling
-export const cosmicDropdownTrigger = cva({
+export const cosmicDropdownTrigger = defineRecipe({
+  className: 'cosmicDropdownTrigger',
+  description: 'A sophisticated dropdown trigger button with luxury styling',
   base: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -230,7 +266,9 @@ export const cosmicDropdownTrigger = cva({
 });
 
 // Content panel styling
-export const cosmicDropdownContent = cva({
+export const cosmicDropdownContent = defineRecipe({
+  className: 'cosmicDropdownContent',
+  description: 'A sophisticated dropdown content panel with luxury styling',
   base: {
     position: 'absolute',
     zIndex: 'dropdown',
@@ -439,7 +477,9 @@ export const cosmicDropdownContent = cva({
 });
 
 // Dropdown item styling
-export const cosmicDropdownItem = cva({
+export const cosmicDropdownItem = defineRecipe({
+  className: 'cosmicDropdownItem',
+  description: 'A sophisticated dropdown item with luxury styling',
   base: {
     display: 'flex',
     alignItems: 'center',
@@ -649,7 +689,9 @@ export const cosmicDropdownItem = cva({
 });
 
 // Dropdown separator
-export const cosmicDropdownSeparator = cva({
+export const cosmicDropdownSeparator = defineRecipe({
+  className: 'cosmicDropdownSeparator',
+  description: 'A separator for dropdown items',
   base: {
     height: '1px',
     backgroundColor: 'border',
@@ -659,7 +701,9 @@ export const cosmicDropdownSeparator = cva({
 });
 
 // Dropdown group label
-export const cosmicDropdownLabel = cva({
+export const cosmicDropdownLabel = defineRecipe({
+  className: 'cosmicDropdownLabel',
+  description: 'A label for dropdown item groups',
   base: {
     padding: '0.5rem 1rem',
     fontSize: '0.75em',
@@ -690,6 +734,9 @@ export const cosmicDropdownLabel = cva({
   },
 });
 
+/**
+ * Bulk export of all cosmic dropdown components
+ */
 export const cosmicDropdown = {
   trigger: cosmicDropdownTrigger,
   content: cosmicDropdownContent,
@@ -699,16 +746,30 @@ export const cosmicDropdown = {
 };
 
 /**
- * Usage Example (in a React component):
+ * USAGE EXAMPLE (in a React component):
+ * =====================================
  * 
+ * // First, import the necessary components
  * import { 
  *   cosmicDropdownTrigger, 
  *   cosmicDropdownContent, 
  *   cosmicDropdownItem,
  *   cosmicDropdownSeparator,
  *   cosmicDropdownLabel
- * } from '../styled-system/recipes/cosmicDropdown';
+ * } from './panda.config/recipes/cosmicDropdown';
  * import { useState, useRef, useEffect } from 'react';
+ * 
+ * // Define props interface for the Dropdown component
+ * interface DropdownProps {
+ *   trigger: React.ReactNode;           // Content for the trigger button
+ *   triggerVariant?: 'standard' | 'minimal' | 'outline' | 'cosmic';
+ *   contentVariant?: 'standard' | 'minimal' | 'outline' | 'cosmic';
+ *   size?: 'sm' | 'md' | 'lg';
+ *   position?: 'bottomStart' | 'bottomEnd' | 'bottomCenter' | 'topStart' | 'topEnd' | 'topCenter';
+ *   width?: 'auto' | 'trigger' | 'fixed';
+ *   disabled?: boolean;
+ *   children: React.ReactNode;
+ * }
  * 
  * function CosmicDropdown({
  *   trigger,
@@ -719,9 +780,9 @@ export const cosmicDropdown = {
  *   width = 'auto',
  *   disabled = false,
  *   children
- * }) {
+ * }: DropdownProps) {
  *   const [isOpen, setIsOpen] = useState(false);
- *   const dropdownRef = useRef(null);
+ *   const dropdownRef = useRef<HTMLDivElement>(null);
  *   
  *   // Get styles from recipes
  *   const triggerStyles = cosmicDropdownTrigger({ 
@@ -739,8 +800,8 @@ export const cosmicDropdown = {
  *   
  *   // Close dropdown when clicking outside
  *   useEffect(() => {
- *     const handleClickOutside = (event) => {
- *       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+ *     const handleClickOutside = (event: MouseEvent) => {
+ *       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
  *         setIsOpen(false);
  *       }
  *     };
@@ -792,6 +853,19 @@ export const cosmicDropdown = {
  * }
  * 
  * // Example dropdown item component
+ * interface DropdownItemProps {
+ *   label: string;
+ *   icon?: React.ReactNode;
+ *   description?: string;
+ *   suffix?: React.ReactNode;
+ *   isSelected?: boolean;
+ *   isDisabled?: boolean;
+ *   variant?: 'standard' | 'cosmic';
+ *   destructive?: boolean;
+ *   compact?: boolean;
+ *   onClick?: () => void;
+ * }
+ * 
  * function DropdownItem({ 
  *   label, 
  *   icon, 
@@ -800,12 +874,14 @@ export const cosmicDropdown = {
  *   isSelected,
  *   isDisabled,
  *   variant = 'standard',
+ *   destructive = false,
+ *   compact = false,
  *   onClick
- * }) {
+ * }: DropdownItemProps) {
  *   const itemStyles = cosmicDropdownItem({ 
  *     variant,
- *     destructive: false, // Set to true for destructive actions
- *     compact: false // Set to true for compact styling
+ *     destructive,
+ *     compact
  *   });
  *   
  *   return (
@@ -868,14 +944,16 @@ export const cosmicDropdown = {
  *     </CosmicDropdown>
  *   );
  * }
- * 
- * // Optional: Add the shimmer animation to your global CSS or keyframes config
- * // @keyframes cosmicDropdownShimmer {
- * //   0% {
- * //     background-position: 0% 0%;
- * //   }
- * //   100% {
- * //     background-position: 200% 200%;
- * //   }
- * // }
  */
+
+// Add these keyframe animations to your global CSS or Panda CSS config:
+/* 
+@keyframes cosmicDropdownShimmer {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 200% 200%;
+  }
+}
+*/

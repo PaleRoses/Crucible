@@ -1,9 +1,27 @@
-// src/styled-system/recipes/cosmicNavItem.ts
-
-import { cva } from '../../styled-system/css';
+// panda.config/recipes/cosmicNavItem.ts
+import { defineRecipe } from '@pandacss/dev';
 
 /**
- * Cosmic Navigation Item - A versatile navigation item component with multiple states
+ * ====================================================================================
+ * COSMIC NAVIGATION ITEM - A versatile navigation item component with multiple states
+ * ====================================================================================
+ * 
+ * IMPORT INTO YOUR PANDA CONFIG:
+ * 
+ * import { cosmicNavItem } from './panda.config/recipes/cosmicNavItem';
+ * 
+ * Then add to your config:
+ * 
+ * export default defineConfig({
+ *   // ...other config
+ *   theme: {
+ *     extend: {
+ *       recipes: {
+ *         NavItem: cosmicNavItem
+ *       }
+ *     }
+ *   }
+ * })
  * 
  * Features:
  * - Support for desktop and mobile navigation layouts
@@ -14,7 +32,9 @@ import { cva } from '../../styled-system/css';
  * - Compatible with both top navigation and sidebar navigation
  */
 
-export const cosmicNavItem = cva({
+export const cosmicNavItem = defineRecipe({
+  className: 'cosmicNavItem',
+  description: 'A versatile navigation item component with multiple states',
   base: {
     display: 'flex',
     alignItems: 'center',
@@ -292,12 +312,14 @@ export const cosmicNavItem = cva({
 });
 
 /**
- * Usage Example (in a React component):
+ * USAGE EXAMPLE (in a React component):
+ * =====================================
  * 
- * import { cosmicNavItem } from '../styled-system/recipes/cosmicNavItem';
- * import { css } from '../styled-system/css';
+ * // First, import the cosmicNavItem
+ * import { cosmicNavItem } from './panda.config/recipes/cosmicNavItem';
  * import Link from 'next/link';
  * 
+ * // Define props interface for the NavItem component
  * interface NavItemProps {
  *   label: string;
  *   href: string;
@@ -371,6 +393,73 @@ export const cosmicNavItem = cva({
  *         </div>
  *       </a>
  *     </Link>
+ *   );
+ * }
+ * 
+ * // Example usage in a navigation component
+ * function NavigationBar() {
+ *   const [activeItem, setActiveItem] = useState('home');
+ *   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
+ *   
+ *   const handleNavItemClick = (item: string) => {
+ *     setActiveItem(item);
+ *   };
+ *   
+ *   const toggleSubmenu = (item: string) => {
+ *     setOpenSubmenu(prev => prev === item ? null : item);
+ *   };
+ *   
+ *   return (
+ *     <nav className="site-navigation">
+ *       <NavItem 
+ *         label="Home" 
+ *         href="/" 
+ *         isActive={activeItem === 'home'}
+ *         variant="cosmic"
+ *         onNavItemClick={() => handleNavItemClick('home')}
+ *       />
+ *       <NavItem 
+ *         label="Products" 
+ *         href="#" 
+ *         hasSubmenu={true}
+ *         isActive={activeItem === 'products'}
+ *         isSubmenuOpen={openSubmenu === 'products'}
+ *         variant="cosmic"
+ *         onNavItemClick={() => toggleSubmenu('products')}
+ *       />
+ *       {openSubmenu === 'products' && (
+ *         <div className="submenu">
+ *           <NavItem 
+ *             label="Product 1" 
+ *             href="/products/1" 
+ *             variant="cosmic" 
+ *             size="sm"
+ *             direction="vertical"
+ *           />
+ *           <NavItem 
+ *             label="Product 2" 
+ *             href="/products/2" 
+ *             variant="cosmic" 
+ *             size="sm"
+ *             direction="vertical"
+ *           />
+ *         </div>
+ *       )}
+ *       <NavItem 
+ *         label="About" 
+ *         href="/about" 
+ *         isActive={activeItem === 'about'}
+ *         variant="cosmic"
+ *         onNavItemClick={() => handleNavItemClick('about')}
+ *       />
+ *       <NavItem 
+ *         label="Contact" 
+ *         href="/contact" 
+ *         isActive={activeItem === 'contact'}
+ *         variant="cosmic"
+ *         onNavItemClick={() => handleNavItemClick('contact')}
+ *       />
+ *     </nav>
  *   );
  * }
  */

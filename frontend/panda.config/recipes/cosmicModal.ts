@@ -1,9 +1,44 @@
-// src/styled-system/recipes/cosmicModal.ts
+// panda.config/recipes/cosmicModal.ts
 
-import { cva } from '../../styled-system/css';
+import { defineRecipe } from '@pandacss/dev';
 
 /**
- * Cosmic Modal - An elegant dialog component with lunar aesthetics
+ * ====================================================================================
+ * COSMIC MODAL - An elegant dialog component with lunar aesthetics
+ * ====================================================================================
+ * 
+ * IMPORT INTO YOUR PANDA CONFIG:
+ * 
+ * import { 
+ *   cosmicModalOverlay,
+ *   cosmicModalContent,
+ *   cosmicModalHeader,
+ *   cosmicModalBody,
+ *   cosmicModalFooter,
+ *   cosmicModal
+ * } from './panda.config/recipes/cosmicModal';
+ * 
+ * Then add to your config:
+ * 
+ * export default defineConfig({
+ *   // ...other config
+ *   theme: {
+ *     extend: {
+ *       recipes: {
+ *         // Method 1: Add individual components
+ *         ModalOverlay: cosmicModalOverlay,
+ *         ModalContent: cosmicModalContent,
+ *         ModalHeader: cosmicModalHeader,
+ *         ModalBody: cosmicModalBody,
+ *         ModalFooter: cosmicModalFooter,
+ *         
+ *         // Method 2: Or use the combined object
+ *         // This adds all components with their original naming
+ *         ...cosmicModal
+ *       }
+ *     }
+ *   }
+ * })
  * 
  * Features:
  * - Sophisticated entrance and exit animations
@@ -16,7 +51,9 @@ import { cva } from '../../styled-system/css';
  */
 
 // Modal overlay/backdrop styling
-export const cosmicModalOverlay = cva({
+export const cosmicModalOverlay = defineRecipe({
+  className: 'cosmicModalOverlay',
+  description: 'A cosmic-themed modal overlay with backdrop effects',
   base: {
     position: 'fixed',
     inset: 0,
@@ -92,7 +129,9 @@ export const cosmicModalOverlay = cva({
 });
 
 // Modal content container
-export const cosmicModalContent = cva({
+export const cosmicModalContent = defineRecipe({
+  className: 'cosmicModalContent',
+  description: 'Cosmic-themed modal content with entrance animations',
   base: {
     position: 'relative',
     display: 'flex',
@@ -225,7 +264,9 @@ export const cosmicModalContent = cva({
 });
 
 // Modal header
-export const cosmicModalHeader = cva({
+export const cosmicModalHeader = defineRecipe({
+  className: 'cosmicModalHeader',
+  description: 'Cosmic-themed modal header with title and close button',
   base: {
     display: 'flex',
     alignItems: 'center',
@@ -339,7 +380,9 @@ export const cosmicModalHeader = cva({
 });
 
 // Modal body
-export const cosmicModalBody = cva({
+export const cosmicModalBody = defineRecipe({
+  className: 'cosmicModalBody',
+  description: 'Cosmic-themed modal body with content area',
   base: {
     padding: '1.25rem',
     color: 'text',
@@ -415,7 +458,9 @@ export const cosmicModalBody = cva({
 });
 
 // Modal footer
-export const cosmicModalFooter = cva({
+export const cosmicModalFooter = defineRecipe({
+  className: 'cosmicModalFooter',
+  description: 'Cosmic-themed modal footer with action buttons',
   base: {
     display: 'flex',
     alignItems: 'center',
@@ -496,29 +541,32 @@ export const cosmicModal = {
 };
 
 /**
- * Usage Example (in a React component):
+ * USAGE EXAMPLE (in a React component):
+ * =====================================
  * 
+ * // First, import the necessary components
  * import { useState, useRef, useEffect } from 'react';
- * import {
+ * import { 
  *   cosmicModalOverlay,
  *   cosmicModalContent,
  *   cosmicModalHeader,
  *   cosmicModalBody,
  *   cosmicModalFooter
- * } from '../styled-system/recipes/cosmicModal';
+ * } from './panda.config/recipes/cosmicModal';
  * 
+ * // Define props interface for the Modal component
  * interface CosmicModalProps {
- *   isOpen: boolean;
- *   onClose: () => void;
- *   title: string;
- *   children: React.ReactNode;
- *   icon?: React.ReactNode;
- *   variant?: 'standard' | 'filled' | 'minimal' | 'cosmic';
- *   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
- *   footer?: React.ReactNode;
- *   footerAlign?: 'start' | 'center' | 'end' | 'between';
- *   bodyPadding?: 'none' | 'sm' | 'md' | 'lg';
- *   initialFocus?: React.RefObject<HTMLElement>;
+ *   isOpen: boolean;                // Whether the modal is visible
+ *   onClose: () => void;            // Function to call when closing
+ *   title: string;                  // Modal title text
+ *   children: React.ReactNode;      // Modal body content
+ *   icon?: React.ReactNode;         // Optional icon for the header
+ *   variant?: 'standard' | 'filled' | 'minimal' | 'cosmic'; // Visual style
+ *   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full'; // Size variant
+ *   footer?: React.ReactNode;       // Optional footer content
+ *   footerAlign?: 'start' | 'center' | 'end' | 'between'; // Footer alignment
+ *   bodyPadding?: 'none' | 'sm' | 'md' | 'lg'; // Content padding size
+ *   initialFocus?: React.RefObject<HTMLElement>; // Element to focus when opened
  * }
  * 
  * export function CosmicModal({
@@ -691,4 +739,83 @@ export const cosmicModal = {
  *     </div>
  *   );
  * }
+ * 
+ * // EXAMPLES OF USAGE:
+ * 
+ * // Basic modal
+ * <CosmicModal
+ *   isOpen={isModalOpen}
+ *   onClose={() => setIsModalOpen(false)}
+ *   title="Basic Modal"
+ * >
+ *   <p>This is a standard modal with default styling.</p>
+ * </CosmicModal>
+ * 
+ * // Cosmic variant with custom footer
+ * <CosmicModal
+ *   isOpen={isCosmicModalOpen}
+ *   onClose={() => setIsCosmicModalOpen(false)}
+ *   title="Cosmic Modal"
+ *   variant="cosmic"
+ *   size="lg"
+ *   icon={<span>✨</span>}
+ *   footer={
+ *     <>
+ *       <button onClick={() => setIsCosmicModalOpen(false)}>Cancel</button>
+ *       <button className="primaryButton">Confirm</button>
+ *     </>
+ *   }
+ * >
+ *   <p>This modal features the cosmic styling with glow effects.</p>
+ *   <p>It also has a custom footer with action buttons.</p>
+ * </CosmicModal>
  */
+
+// Add these keyframe animations to your global CSS or Panda CSS config:
+/* 
+@keyframes cosmicModalEnter {
+  0% {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes cosmicModalExit {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+}
+
+@media (max-width: 640px) {
+  @keyframes cosmicModalEnter {
+    0% {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes cosmicModalExit {
+    0% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+  }
+}
+*/

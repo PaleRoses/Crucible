@@ -1,10 +1,48 @@
-// src/styled-system/recipes/cosmicSideBar.ts
+// panda.config/recipes/cosmicSideBar.ts
 
-import { cva } from '../../styled-system/css';
+import { defineRecipe } from '@pandacss/dev';
 
 /**
- * Cosmic Sidebar - A sophisticated sidebar component with push-content behavior
- *
+ * ====================================================================================
+ * COSMIC SIDEBAR - A sophisticated sidebar component with push-content behavior
+ * ====================================================================================
+ * 
+ * IMPORT INTO YOUR PANDA CONFIG:
+ * 
+ * import { 
+ *   cosmicPageLayout,
+ *   cosmicSidebar,
+ *   cosmicSidebarHeader,
+ *   cosmicSidebarContent,
+ *   cosmicSidebarItem,
+ *   cosmicSidebarFooter,
+ *   cosmicSidebarToggle,
+ *   cosmicSideBar
+ * } from './panda.config/recipes/cosmicSideBar';
+ * 
+ * Then add to your config:
+ * 
+ * export default defineConfig({
+ *   // ...other config
+ *   theme: {
+ *     extend: {
+ *       recipes: {
+ *         // Method 1: Add individual components
+ *         PageLayout: cosmicPageLayout,
+ *         Sidebar: cosmicSidebar,
+ *         SidebarHeader: cosmicSidebarHeader,
+ *         SidebarContent: cosmicSidebarContent,
+ *         SidebarItem: cosmicSidebarItem,
+ *         SidebarFooter: cosmicSidebarFooter,
+ *         SidebarToggle: cosmicSidebarToggle,
+ *         
+ *         // Method 2: Or use the combined object
+ *         ...cosmicSideBar
+ *       }
+ *     }
+ *   }
+ * })
+ * 
  * Features:
  * - Elegant push-content behavior that moves the main content when expanded
  * - Smooth transitions and animations for all state changes
@@ -15,7 +53,9 @@ import { cva } from '../../styled-system/css';
  */
 
 // Layout container that wraps both sidebar and content
-export const cosmicPageLayout = cva({
+export const cosmicPageLayout = defineRecipe({
+  className: 'cosmicPageLayout',
+  description: 'A sophisticated sidebar component with push-content behavior',
   base: {
     display: 'flex',
     width: '100%',
@@ -143,7 +183,9 @@ export const cosmicPageLayout = cva({
 });
 
 // Main sidebar container
-export const cosmicSidebar = cva({
+export const cosmicSidebar = defineRecipe({
+  className: 'cosmicSidebar',
+  description: 'A sophisticated sidebar component with push-content behavior',
   base: {
     position: 'fixed',
     top: 0,
@@ -296,7 +338,9 @@ export const cosmicSidebar = cva({
 });
 
 // Sidebar header section
-export const cosmicSidebarHeader = cva({
+export const cosmicSidebarHeader = defineRecipe({
+  className: 'cosmicSidebarHeader',
+  description: 'Header section of the sidebar',
   base: {
     display: 'flex',
     alignItems: 'center',
@@ -330,7 +374,9 @@ export const cosmicSidebarHeader = cva({
 });
 
 // Sidebar content section (navigation)
-export const cosmicSidebarContent = cva({
+export const cosmicSidebarContent = defineRecipe({
+  className: 'cosmicSidebarContent',
+  description: 'Content section of the sidebar for navigation items',
   base: {
     flex: 1,
     display: 'flex',
@@ -354,7 +400,9 @@ export const cosmicSidebarContent = cva({
 });
 
 // Navigation item
-export const cosmicSidebarItem = cva({
+export const cosmicSidebarItem = defineRecipe({
+  className: 'cosmicSidebarItem',
+  description: 'A navigation item component for the sidebar',
   base: {
     display: 'flex',
     alignItems: 'center',
@@ -467,7 +515,9 @@ export const cosmicSidebarItem = cva({
 });
 
 // Sidebar footer section
-export const cosmicSidebarFooter = cva({
+export const cosmicSidebarFooter = defineRecipe({
+  className: 'cosmicSidebarFooter',
+  description: 'Footer section of the sidebar for additional controls or user info',
   base: {
     display: 'flex',
     flexDirection: 'column',
@@ -481,7 +531,9 @@ export const cosmicSidebarFooter = cva({
 });
 
 // Toggle button to expand/collapse the sidebar
-export const cosmicSidebarToggle = cva({
+export const cosmicSidebarToggle = defineRecipe({
+  className: 'cosmicSidebarToggle',
+  description: 'Toggle button to expand or collapse the sidebar',
   base: {
     display: 'flex',
     alignItems: 'center',
@@ -566,113 +618,117 @@ export const cosmicSideBar = {
 };
 
 /**
- * Usage Example (in a React component):
- *
+ * USAGE EXAMPLE (in a React component):
+ * =====================================
+ * 
+ * // First, import the necessary components
  * import {
- * cosmicPageLayout, // <-- Renamed from cosmicLayout
- * cosmicSidebar,
- * cosmicSidebarHeader,
- * cosmicSidebarContent,
- * cosmicSidebarItem,
- * cosmicSidebarFooter,
- * cosmicSidebarToggle
- * } from '../styled-system/recipes/cosmicSideBar';
- * import { useState, useEffect } from 'react';
- *
+ *   cosmicPageLayout,
+ *   cosmicSidebar,
+ *   cosmicSidebarHeader,
+ *   cosmicSidebarContent,
+ *   cosmicSidebarItem,
+ *   cosmicSidebarFooter,
+ *   cosmicSidebarToggle
+ * } from './panda.config/recipes/cosmicSideBar';
+ * import { useState } from 'react';
+ * 
+ * // Define props interface for the Sidebar component
  * interface SidebarProps {
- * variant?: 'standard' | 'elevated' | 'minimal' | 'cosmic';
- * contentTransition?: 'push' | 'overlay' | 'mixed';
- * initiallyExpanded?: boolean;
+ *   variant?: 'standard' | 'elevated' | 'minimal' | 'cosmic';
+ *   contentTransition?: 'push' | 'overlay' | 'mixed';
+ *   initiallyExpanded?: boolean;
  * }
- *
+ * 
  * function CosmicSidebarLayout({
- * variant = 'standard',
- * contentTransition = 'push',
- * initiallyExpanded = true,
- * children
+ *   variant = 'standard',
+ *   contentTransition = 'push',
+ *   initiallyExpanded = true,
+ *   children
  * }: React.PropsWithChildren<SidebarProps>) {
- * const [isExpanded, setIsExpanded] = useState(initiallyExpanded);
- *
- * // Get styles from recipes
- * const layoutStyles = cosmicPageLayout({ contentTransition }); // <-- Updated usage
- * const sidebarStyles = cosmicSidebar({ variant, initiallyExpanded });
- * const headerStyles = cosmicSidebarHeader({});
- * const contentStyles = cosmicSidebarContent({});
- * const footerStyles = cosmicSidebarFooter({});
- * const toggleStyles = cosmicSidebarToggle({ variant });
- * const itemStyles = cosmicSidebarItem({ variant: variant === 'cosmic' ? 'cosmic' : 'standard' });
- *
- * // Toggle sidebar expanded state
- * const toggleSidebar = () => {
- * setIsExpanded(!isExpanded);
- * };
- *
- * // Demo navigation items
- * const navItems = [
- * { icon: '🏠', text: 'Dashboard', active: true },
- * { icon: '📊', text: 'Analytics', active: false },
- * { icon: '⚙️', text: 'Settings', active: false },
- * { icon: '👤', text: 'Profile', active: false },
- * ];
- *
- * return (
- * <aside className="cosmic-sidebar" style={sidebarStyles} data-expanded={isExpanded}>
- * <div className="sidebar-header" style={headerStyles}>
- * <div className="sidebar-header-logo">
- * <span role="img" aria-label="Logo">🌙</span>
- * </div>
- * <div className="sidebar-header-title">Cosmic UI</div>
- * </div>
- *
- * <div className="sidebar-content" style={contentStyles}>
- * {navItems.map((item, index) => (
- * <div
- * key={index}
- * className="sidebar-item"
- * style={itemStyles}
- * data-active={item.active}
- * >
- * <div className="sidebar-item-icon">{item.icon}</div>
- * <div className="sidebar-item-text">{item.text}</div>
- * </div>
- * ))}
- * </div>
- *
- * <div className="sidebar-footer" style={footerStyles}>
- * <div className="sidebar-item" style={itemStyles}>
- * <div className="sidebar-item-icon">🔍</div>
- * <div className="sidebar-item-text">Help & Resources</div>
- * </div>
- * </div>
- *
- * <button
- * className="sidebar-toggle"
- * style={toggleStyles}
- * onClick={toggleSidebar}
- * aria-label={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
- * >
- * <span className="toggle-icon">
- * {isExpanded ? '◀' : '▶'}
- * </span>
- * </button>
- * </aside>
- *
- * <main className="content-area">
- * {children}
- * </main>
- * </div>
- * );
+ *   const [isExpanded, setIsExpanded] = useState(initiallyExpanded);
+ * 
+ *   // Get styles from recipes
+ *   const layoutStyles = cosmicPageLayout({ contentTransition });
+ *   const sidebarStyles = cosmicSidebar({ variant, initiallyExpanded });
+ *   const headerStyles = cosmicSidebarHeader({});
+ *   const contentStyles = cosmicSidebarContent({});
+ *   const footerStyles = cosmicSidebarFooter({});
+ *   const toggleStyles = cosmicSidebarToggle({ variant });
+ *   const itemStyles = cosmicSidebarItem({ variant: variant === 'cosmic' ? 'cosmic' : 'standard' });
+ * 
+ *   // Toggle sidebar expanded state
+ *   const toggleSidebar = () => {
+ *     setIsExpanded(!isExpanded);
+ *   };
+ * 
+ *   // Demo navigation items
+ *   const navItems = [
+ *     { icon: '🏠', text: 'Dashboard', active: true },
+ *     { icon: '📊', text: 'Analytics', active: false },
+ *     { icon: '⚙️', text: 'Settings', active: false },
+ *     { icon: '👤', text: 'Profile', active: false },
+ *   ];
+ * 
+ *   return (
+ *     <div className={layoutStyles} data-sidebar-expanded={isExpanded}>
+ *       <aside className="cosmic-sidebar" style={sidebarStyles} data-expanded={isExpanded}>
+ *         <div className="sidebar-header" style={headerStyles}>
+ *           <div className="sidebar-header-logo">
+ *             <span role="img" aria-label="Logo">🌙</span>
+ *           </div>
+ *           <div className="sidebar-header-title">Cosmic UI</div>
+ *         </div>
+ * 
+ *         <div className="sidebar-content" style={contentStyles}>
+ *           {navItems.map((item, index) => (
+ *             <div
+ *               key={index}
+ *               className="sidebar-item"
+ *               style={itemStyles}
+ *               data-active={item.active}
+ *             >
+ *               <div className="sidebar-item-icon">{item.icon}</div>
+ *               <div className="sidebar-item-text">{item.text}</div>
+ *             </div>
+ *           ))}
+ *         </div>
+ * 
+ *         <div className="sidebar-footer" style={footerStyles}>
+ *           <div className="sidebar-item" style={itemStyles}>
+ *             <div className="sidebar-item-icon">🔍</div>
+ *             <div className="sidebar-item-text">Help & Resources</div>
+ *           </div>
+ *         </div>
+ * 
+ *         <button
+ *           className="sidebar-toggle"
+ *           style={toggleStyles}
+ *           onClick={toggleSidebar}
+ *           aria-label={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+ *         >
+ *           <span className="toggle-icon">
+ *             {isExpanded ? '◀' : '▶'}
+ *           </span>
+ *         </button>
+ *       </aside>
+ * 
+ *       <main className="content-area">
+ *         {children}
+ *       </main>
+ *     </div>
+ *   );
  * }
- *
+ * 
  * // Example Usage
  * function App() {
- * return (
- * <CosmicSidebarLayout variant="cosmic" contentTransition="mixed">
- * <div style={{ padding: '20px' }}>
- * <h1>Main Content</h1>
- * <p>Your application content goes here.</p>
- * </div>
- * </CosmicSidebarLayout>
- * );
+ *   return (
+ *     <CosmicSidebarLayout variant="cosmic" contentTransition="mixed">
+ *       <div style={{ padding: '20px' }}>
+ *         <h1>Main Content</h1>
+ *         <p>Your application content goes here.</p>
+ *       </div>
+ *     </CosmicSidebarLayout>
+ *   );
  * }
  */

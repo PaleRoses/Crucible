@@ -1,9 +1,29 @@
-// src/styled-system/recipes/cosmicIconButton.ts
+// panda.config/recipes/cosmicIconButton.ts
 
-import { cva } from '../../styled-system/css';
+import { defineRecipe } from '@pandacss/dev';
 
 /**
- * Cosmic Icon Button - A minimal, SVG-focused button component
+ * ====================================================================================
+ * COSMIC ICON BUTTON - A minimal, SVG-focused button component
+ * ====================================================================================
+ * 
+ * IMPORT INTO YOUR PANDA CONFIG:
+ * 
+ * import { cosmicIconButton } from './panda.config/recipes/cosmicIconButton';
+ * 
+ * Then add to your config:
+ * 
+ * export default defineConfig({
+ *   // ...other config
+ *   theme: {
+ *     extend: {
+ *       recipes: {
+ *         // Add to your recipes
+ *         IconButton: cosmicIconButton
+ *       }
+ *     }
+ *   }
+ * })
  * 
  * Features:
  * - Clean, minimal styling optimized for SVG icons
@@ -14,7 +34,9 @@ import { cva } from '../../styled-system/css';
  * - Consistent with cosmic design language
  */
 
-export const cosmicIconButton = cva({
+export const cosmicIconButton = defineRecipe({
+  className: 'cosmicIconButton',
+  description: 'A minimal, SVG-focused button component',
   base: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -317,26 +339,29 @@ export const cosmicIconButton = cva({
 });
 
 /**
- * Usage Example (in a React component):
+ * USAGE EXAMPLE (in a React component):
+ * =====================================
  * 
- * import { cosmicIconButton } from '../styled-system/recipes/cosmicIconButton';
- * import { css } from '../styled-system/css';
+ * // First, import the cosmicIconButton
+ * import { cosmicIconButton } from './panda.config/recipes/cosmicIconButton';
+ * import { useState } from 'react';
  * 
+ * // Define the IconButton component with all supported props
  * interface IconButtonProps {
- *   icon: React.ReactNode;
- *   label: string;
+ *   icon: React.ReactNode;        // SVG icon to display
+ *   label: string;                // Accessible label text
  *   variant?: 'ghost' | 'subtle' | 'light' | 'outline' | 'solid' | 'cosmic';
  *   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
- *   isActive?: boolean;
+ *   isActive?: boolean;           // For toggle buttons
  *   labelPosition?: 'srOnly' | 'right' | 'bottom';
  *   disabled?: boolean;
  *   onClick?: () => void;
- *   ariaControls?: string;
- *   ariaExpanded?: boolean;
- *   ariaPressed?: boolean;
+ *   ariaControls?: string;        // ID of element controlled by button
+ *   ariaExpanded?: boolean;       // For disclosure widgets
+ *   ariaPressed?: boolean;        // For toggle buttons
  * }
  * 
- * function CosmicIconButtonComponent({
+ * function CosmicIconButton({
  *   icon,
  *   label,
  *   variant = 'ghost',
@@ -350,7 +375,7 @@ export const cosmicIconButton = cva({
  *   ariaPressed,
  *   ...props
  * }: IconButtonProps) {
- *   // Get styles from recipe
+ *   // Apply the cosmic icon button styles
  *   const buttonStyles = cosmicIconButton({
  *     variant,
  *     size,
@@ -380,35 +405,69 @@ export const cosmicIconButton = cva({
  *   );
  * }
  * 
- * // Example usage:
- * function MyComponent() {
+ * // EXAMPLES OF BUTTON USAGE:
+ * 
+ * // Basic like button with toggle state
+ * function LikeButton() {
  *   const [isLiked, setIsLiked] = useState(false);
  *   
  *   return (
- *     <div>
- *       <CosmicIconButtonComponent
- *         icon={<HeartIcon />}
- *         label="Like"
- *         variant="cosmic"
- *         isActive={isLiked}
- *         onClick={() => setIsLiked(!isLiked)}
- *         ariaPressed={isLiked}
+ *     <CosmicIconButton
+ *       icon={<HeartIcon />}
+ *       label="Like"
+ *       variant="cosmic"
+ *       isActive={isLiked}
+ *       onClick={() => setIsLiked(!isLiked)}
+ *       ariaPressed={isLiked}
+ *     />
+ *   );
+ * }
+ * 
+ * // Settings button with visible label
+ * <CosmicIconButton
+ *   icon={<SettingsIcon />}
+ *   label="Settings"
+ *   variant="subtle"
+ *   labelPosition="right"
+ *   onClick={() => openSettings()}
+ * />
+ * 
+ * // Share button with outline style
+ * <CosmicIconButton
+ *   icon={<ShareIcon />}
+ *   label="Share"
+ *   variant="outline"
+ *   size="lg"
+ *   onClick={() => shareContent()}
+ * />
+ * 
+ * // Delete button with solid styling
+ * <CosmicIconButton
+ *   icon={<TrashIcon />}
+ *   label="Delete"
+ *   variant="solid"
+ *   onClick={() => confirmDelete()}
+ * />
+ * 
+ * // Menu button controlling a dropdown
+ * function MenuButton() {
+ *   const [isOpen, setIsOpen] = useState(false);
+ *   
+ *   return (
+ *     <>
+ *       <CosmicIconButton
+ *         icon={<MenuIcon />}
+ *         label="Menu"
+ *         variant="light"
+ *         isActive={isOpen}
+ *         onClick={() => setIsOpen(!isOpen)}
+ *         ariaControls="menu-dropdown"
+ *         ariaExpanded={isOpen}
  *       />
- *       
- *       <CosmicIconButtonComponent
- *         icon={<SettingsIcon />}
- *         label="Settings"
- *         variant="subtle"
- *         labelPosition="right"
- *       />
- *       
- *       <CosmicIconButtonComponent
- *         icon={<ShareIcon />}
- *         label="Share"
- *         variant="outline"
- *         size="lg"
- *       />
- *     </div>
+ *       <div id="menu-dropdown" style={{ display: isOpen ? 'block' : 'none' }}>
+ *         Menu content here
+ *       </div>
+ *     </>
  *   );
  * }
  */

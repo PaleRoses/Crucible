@@ -1,9 +1,29 @@
-// src/styled-system/recipes/cosmicDonerButton.ts
+// panda.config/recipes/cosmicDonerButton.ts
 
-import { cva } from '../../styled-system/css';
+import { defineRecipe } from '@pandacss/dev';
 
 /**
- * Cosmic Doner Button - A stylized hamburger menu button with animated lines
+ * ====================================================================================
+ * COSMIC DONER BUTTON - A stylized hamburger menu button with animated lines
+ * ====================================================================================
+ * 
+ * IMPORT INTO YOUR PANDA CONFIG:
+ * 
+ * import { cosmicDonerButton } from './panda.config/recipes/cosmicDonerButton';
+ * 
+ * Then add to your config:
+ * 
+ * export default defineConfig({
+ *   // ...other config
+ *   theme: {
+ *     extend: {
+ *       recipes: {
+ *         // Add to your recipes
+ *         DonerButton: cosmicDonerButton
+ *       }
+ *     }
+ *   }
+ * })
  * 
  * Features:
  * - Three expandable lines that animate on hover
@@ -11,7 +31,9 @@ import { cva } from '../../styled-system/css';
  * - Configurable size and visual variants
  * - Open/closed state styling
  */
-export const cosmicDonerButton = cva({
+export const cosmicDonerButton = defineRecipe({
+  className: 'cosmicDonerButton',
+  description: 'A stylized hamburger menu button with animated lines',
   // Base styles for the button container
   base: {
     position: 'relative',
@@ -268,20 +290,79 @@ export const cosmicDonerButton = cva({
 });
 
 /**
- * Usage Example (in a React component):
+ * USAGE EXAMPLE (in a React component):
+ * =====================================
  * 
- * import { cosmicDonerButton } from '../styled-system/recipes/cosmicDonerButton';
- * import { css } from '../styled-system/css';
+ * // First, import the cosmicDonerButton
+ * import { cosmicDonerButton } from './panda.config/recipes/cosmicDonerButton';
+ * import { useState } from 'react';
  * 
- * function DonerButton({ isOpen, onClick, size = 'md', variant = 'solid' }) {
- *   const buttonStyles = cosmicDonerButton({ isOpen, size, variant });
+ * // Define the DonerButton component with all supported props
+ * function DonerButton({ 
+ *   size = 'md',               // Size variant (sm, md, lg)
+ *   variant = 'solid',         // Visual style variant
+ *   onClick,                   // Click handler
+ *   initialState = false       // Initial open/closed state
+ * }) {
+ *   // Track menu open/closed state
+ *   const [isOpen, setIsOpen] = useState(initialState);
+ *   
+ *   // Apply the cosmic button styles
+ *   const buttonStyles = cosmicDonerButton({ 
+ *     size, 
+ *     variant, 
+ *     isOpen 
+ *   });
+ *   
+ *   // Handle click to toggle menu state
+ *   const handleClick = () => {
+ *     setIsOpen(!isOpen);
+ *     if (onClick) onClick();
+ *   };
  *   
  *   return (
- *     <button className={buttonStyles} onClick={onClick} aria-label="Menu">
+ *     <button 
+ *       className={buttonStyles} 
+ *       onClick={handleClick} 
+ *       aria-label="Menu" 
+ *       aria-expanded={isOpen}
+ *     >
  *       <span></span>
  *       <span></span>
  *       <span></span>
  *     </button>
  *   );
  * }
+ * 
+ * // EXAMPLES OF BUTTON USAGE:
+ * 
+ * // Basic menu button with default styling
+ * <DonerButton onClick={() => console.log('Menu clicked')} />
+ * 
+ * // Small cosmic variant
+ * <DonerButton 
+ *   size="sm"
+ *   variant="cosmic"
+ *   onClick={() => toggleSidebar()}
+ * />
+ * 
+ * // Large outline variant (initially open)
+ * <DonerButton 
+ *   size="lg"
+ *   variant="outline"
+ *   initialState={true}
+ *   onClick={() => handleMenuToggle()}
+ * />
+ * 
+ * // Borderless variant for minimal UI
+ * <DonerButton 
+ *   variant="borderless"
+ *   onClick={() => setMenuOpen(!menuOpen)}
+ * />
+ * 
+ * // Ghost variant
+ * <DonerButton 
+ *   variant="ghost"
+ *   onClick={() => toggleNavigation()}
+ * />
  */

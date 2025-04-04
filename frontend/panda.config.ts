@@ -1,6 +1,12 @@
 // improved-panda.config.ts
 import { defineConfig } from "@pandacss/dev";
 import { textStyles } from './panda.config/text-styles';
+import { cosmicAccordionRoot, cosmicAccordionItem, cosmicAccordionTrigger, cosmicAccordionContent}  from './panda.config/recipes/cosmicAccordion';
+import { cosmicAvatar, cosmicAvatarStatus, cosmicAvatarBadge, cosmicAvatarGroup } from './panda.config/recipes/cosmicAvatar';
+import { cosmicCard } from './panda.config/recipes/cosmicCard';
+import { cosmicCollapsible} from './panda.config/recipes/cosmicCollapsible';
+import { cosmicCollapsibleContainer, cosmicCollapsibleTrigger, cosmicCollapsibleContent, cosmicCollapsibleGroup } from './panda.config/recipes/cosmicCollapsible';
+
 import { cosmicButtonRecipe } from './panda.config/recipes/cosmicButton';
 
 export default defineConfig({
@@ -632,7 +638,8 @@ export default defineConfig({
         }
       },
       recipes: {
-        cosmicButton: cosmicButtonRecipe,
+        Button: cosmicButtonRecipe,
+        AccordionRoot: cosmicAccordionRoot,
       }
     },
 

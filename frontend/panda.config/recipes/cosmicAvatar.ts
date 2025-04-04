@@ -1,9 +1,42 @@
-// src/styled-system/recipes/cosmicAvatar.ts
+//panda.config//recipes/cosmicAvatar.ts
 
-import { cva } from '../../styled-system/css';
+import { defineRecipe } from '@pandacss/dev';
 
 /**
- * Cosmic Avatar - A sophisticated user avatar component with lunar-inspired styling
+ * ====================================================================================
+ * COSMIC AVATAR - A sophisticated user avatar component with lunar-inspired styling
+ * ====================================================================================
+ * 
+ * IMPORT INTO YOUR PANDA CONFIG:
+ * 
+ * import { 
+ *   cosmicAvatar,
+ *   cosmicAvatarStatus,
+ *   cosmicAvatarBadge,
+ *   cosmicAvatarGroup,
+ *   cosmicAvatarComponents
+ * } from './panda.config/recipes/cosmicAvatar';
+ * 
+ * Then add to your config:
+ * 
+ * export default defineConfig({
+ *   // ...other config
+ *   theme: {
+ *     extend: {
+ *       recipes: {
+ *         // Method 1: Add individual components
+ *         Avatar: cosmicAvatar,
+ *         AvatarStatus: cosmicAvatarStatus,
+ *         AvatarBadge: cosmicAvatarBadge,
+ *         AvatarGroup: cosmicAvatarGroup,
+ *         
+ *         // Method 2: Or use the combined object
+ *         // This adds all components with their original naming
+ *         ...cosmicAvatarComponents
+ *       }
+ *     }
+ *   }
+ * })
  * 
  * Features:
  * - Multiple shape variants (circle, square, rounded)
@@ -16,7 +49,9 @@ import { cva } from '../../styled-system/css';
  */
 
 // Main avatar container
-export const cosmicAvatar = cva({
+export const cosmicAvatar = defineRecipe({
+  className: 'cosmic-avatar',
+  description: 'A luxurious, moon-inspired avatar component with cosmic styling',
   base: {
     position: 'relative',
     display: 'inline-flex',
@@ -344,7 +379,9 @@ export const cosmicAvatar = cva({
 });
 
 // Status indicator styling
-export const cosmicAvatarStatus = cva({
+export const cosmicAvatarStatus = defineRecipe({
+  className: 'cosmic-avatar-status',
+  description: 'Status indicator for the avatar component',
   base: {
     position: 'absolute',
     borderRadius: 'full',
@@ -358,7 +395,9 @@ export const cosmicAvatarStatus = cva({
 });
 
 // Badge styling
-export const cosmicAvatarBadge = cva({
+export const cosmicAvatarBadge = defineRecipe({
+  className: 'cosmic-avatar-badge',
+  description: 'Notification badge for the avatar component',
   base: {
     position: 'absolute',
     borderRadius: 'full',
@@ -401,7 +440,9 @@ export const cosmicAvatarBadge = cva({
 });
 
 // Avatar group (for overlapping avatars)
-export const cosmicAvatarGroup = cva({
+export const cosmicAvatarGroup = defineRecipe({
+  className: 'cosmic-avatar-group',
+  description: 'Group of avatars with overlapping effect',
   base: {
     display: 'flex',
     flexDirection: 'row',
@@ -461,30 +502,36 @@ export const cosmicAvatarComponents = {
 };
 
 /**
- * Usage Example (in a React component):
- * 
+ * USAGE EXAMPLE (in a React component):
+ * ====================================
+ */
+
+/**
+ * // First, import the necessary components
  * import { 
  *   cosmicAvatar, 
  *   cosmicAvatarStatus, 
  *   cosmicAvatarBadge,
  *   cosmicAvatarGroup
- * } from '../styled-system/recipes/cosmicAvatar';
+ * } from '../panda.config/recipes/cosmicAvatar';
  * import { useState, useEffect } from 'react';
  * 
+ * // Define the props interface for our component
  * interface AvatarProps {
- *   src?: string;
- *   alt?: string;
- *   initials?: string;
- *   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
- *   shape?: 'circle' | 'square' | 'rounded';
- *   variant?: 'standard' | 'subtle' | 'outline' | 'solid' | 'cosmic';
- *   status?: 'none' | 'online' | 'busy' | 'away' | 'offline';
- *   badgeContent?: string | number;
- *   badgeVariant?: 'danger' | 'warning' | 'success' | 'info' | 'primary';
- *   interactive?: boolean;
- *   onClick?: () => void;
+ *   src?: string;               // Image source URL
+ *   alt?: string;               // Alt text for the image
+ *   initials?: string;          // Initials to display when no image
+ *   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';  // Size variant
+ *   shape?: 'circle' | 'square' | 'rounded';  // Shape variant
+ *   variant?: 'standard' | 'subtle' | 'outline' | 'solid' | 'cosmic';  // Visual style
+ *   status?: 'none' | 'online' | 'busy' | 'away' | 'offline';  // Status indicator
+ *   badgeContent?: string | number;  // Content to show in the badge
+ *   badgeVariant?: 'danger' | 'warning' | 'success' | 'info' | 'primary';  // Badge style
+ *   interactive?: boolean;      // Whether the avatar is clickable
+ *   onClick?: () => void;       // Click handler for interactive avatars
  * }
  * 
+ * // Create the Avatar component
  * function CosmicAvatarComponent({
  *   src,
  *   alt = '',
@@ -498,10 +545,11 @@ export const cosmicAvatarComponents = {
  *   interactive = false,
  *   onClick,
  * }: AvatarProps) {
+ *   // State to track if the image has loaded
  *   const [imageLoaded, setImageLoaded] = useState(false);
  *   const [imageError, setImageError] = useState(false);
  *   
- *   // Get styles from the recipe
+ *   // Get styles from the recipes
  *   const avatarStyles = cosmicAvatar({
  *     size,
  *     shape,
@@ -529,6 +577,7 @@ export const cosmicAvatarComponents = {
  *   const getInitials = () => {
  *     if (initials) return initials.substring(0, 2);
  *     if (alt) {
+ *       // Get first letter of each word in alt text
  *       return alt
  *         .split(' ')
  *         .map(word => word[0])
@@ -555,4 +604,94 @@ export const cosmicAvatarComponents = {
  *       tabIndex={interactive ? 0 : undefined}
  *       aria-label={alt || `Avatar with initials ${getInitials()}`}
  *     >
+ *       <div className="avatar-content avatar-initials">
+ *         {getInitials()}
+ *       </div>
+ *       
+ *       {src && (
+ *         <div className="avatar-content">
+ *           <img 
+ *             src={src}
+ *             alt={alt}
+ *             onLoad={handleImageLoad}
+ *             onError={handleImageError}
+ *           />
+ *         </div>
+ *       )}
+ *       
+ *       {status !== 'none' && (
+ *         <div className={`avatar-status ${statusStyles}`}></div>
+ *       )}
+ *       
+ *       {badgeContent && (
+ *         <div className={`avatar-badge ${badgeStyles}`}>
+ *           {typeof badgeContent === 'number' && badgeContent > 99 ? '99+' : badgeContent}
+ *         </div>
+ *       )}
+ *     </div>
+ *   );
+ * }
+ * 
+ * // Example of Avatar Group usage
+ * function AvatarGroupExample() {
+ *   const users = [
+ *     { id: 1, name: 'Jane Doe', src: '/images/avatar1.jpg', status: 'online' },
+ *     { id: 2, name: 'John Smith', src: '/images/avatar2.jpg', status: 'busy' },
+ *     { id: 3, name: 'Alice Johnson', initials: 'AJ', status: 'away' },
+ *     // Add more users as needed
+ *   ];
+ *   
+ *   // Get group styles from the recipe
+ *   const groupStyles = cosmicAvatarGroup({ spacing: 'normal' });
+ *   
+ *   return (
+ *     <div className={groupStyles}>
+ *       {users.map(user => (
+ *         <CosmicAvatarComponent
+ *           key={user.id}
+ *           src={user.src}
+ *           alt={user.name}
+ *           initials={user.initials}
+ *           status={user.status}
+ *           variant="cosmic"
+ *           size="md"
+ *         />
+ *       ))}
+ *     </div>
+ *   );
+ * }
+ * 
+ * // Simple usage example
+ * function App() {
+ *   return (
+ *     <div className="flex gap-4 p-4">
+ *       <CosmicAvatarComponent 
+ *         src="/images/avatar.jpg"
+ *         alt="User Avatar"
+ *         size="lg"
+ *         variant="cosmic"
+ *         status="online"
+ *       />
+ *       
+ *       <CosmicAvatarComponent
+ *         initials="JS"
+ *         size="lg"
+ *         variant="solid"
+ *         badgeContent={3}
+ *         badgeVariant="primary"
+ *       />
+ *       
+ *       <CosmicAvatarComponent
+ *         src="/images/avatar3.jpg"
+ *         alt="Interactive Avatar"
+ *         size="lg"
+ *         variant="outline"
+ *         interactive={true}
+ *         onClick={() => console.log('Avatar clicked')}
+ *       />
+ *       
+ *       <AvatarGroupExample />
+ *     </div>
+ *   );
+ * }
  */

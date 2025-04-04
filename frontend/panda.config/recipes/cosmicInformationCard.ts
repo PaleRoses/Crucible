@@ -1,9 +1,29 @@
-// src/styled-system/recipes/cosmicInformationCard.ts
+// panda.config/recipes/cosmicInformationCard.ts
 
-import { cva } from '../../styled-system/css';
+import { defineRecipe } from '@pandacss/dev';
 
 /**
- * Cosmic Information Card - An elegant card component with angular header design
+ * ====================================================================================
+ * COSMIC INFORMATION CARD - An elegant card component with angular header design
+ * ====================================================================================
+ * 
+ * IMPORT INTO YOUR PANDA CONFIG:
+ * 
+ * import { cosmicInformationCard } from './panda.config/recipes/cosmicInformationCard';
+ * 
+ * Then add to your config:
+ * 
+ * export default defineConfig({
+ *   // ...other config
+ *   theme: {
+ *     extend: {
+ *       recipes: {
+ *         // Add to your recipes
+ *         InformationCard: cosmicInformationCard
+ *       }
+ *     }
+ *   }
+ * })
  * 
  * Features:
  * - Distinctive angled header with optional icon
@@ -15,7 +35,9 @@ import { cva } from '../../styled-system/css';
  */
 
 // Main card container
-export const cosmicInformationCard = cva({
+export const cosmicInformationCard = defineRecipe({
+  className: 'cosmicInformationCard',
+  description: 'An elegant card component with angular header design',
   base: {
     position: 'relative',
     width: '100%',
@@ -356,22 +378,25 @@ export const cosmicInformationCard = cva({
 });
 
 /**
- * Usage Example (in a React component):
+ * USAGE EXAMPLE (in a React component):
+ * =====================================
  * 
- * import { cosmicInformationCard } from '../styled-system/recipes/cosmicInformationCard';
+ * // First, import the cosmicInformationCard
+ * import { cosmicInformationCard } from './panda.config/recipes/cosmicInformationCard';
  * 
+ * // Define the InformationCard component with all supported props
  * interface InformationCardProps {
- *   title: string;
- *   content: React.ReactNode;
- *   icon?: React.ReactNode;
+ *   title: string;                // Title displayed in the card header
+ *   content: React.ReactNode;     // Content to display in the card body
+ *   icon?: React.ReactNode;       // Optional icon for the header
  *   variant?: 'standard' | 'emphasis' | 'warning' | 'success' | 'minimal' | 'cosmic' | 'borderless';
- *   size?: 'sm' | 'md' | 'lg';
- *   fullWidthHeader?: boolean;
- *   interactive?: boolean;
- *   onClick?: () => void;
+ *   size?: 'sm' | 'md' | 'lg';    // Size variant
+ *   fullWidthHeader?: boolean;    // Whether header extends full width
+ *   interactive?: boolean;        // Whether card is clickable
+ *   onClick?: () => void;         // Click handler for interactive cards
  * }
  * 
- * function CosmicInformationCardComponent({
+ * function CosmicInformationCard({
  *   title,
  *   content,
  *   icon,
@@ -408,21 +433,57 @@ export const cosmicInformationCard = cva({
  *   );
  * }
  * 
- * // Example usage:
- * function App() {
- *   const StarIcon = () => (
+ * // EXAMPLES OF CARD USAGE:
+ * 
+ * // Simple Star Icon component
+ * function StarIcon() {
+ *   return (
  *     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
  *       <path d="M12 1L9.5 8.5H2L8 13.5L5.5 21L12 16L18.5 21L16 13.5L22 8.5H14.5L12 1Z" />
  *     </svg>
  *   );
- * 
- *   return (
- *     <CosmicInformationCardComponent
- *       title="Overcharge"
- *       content="Overcharging immediately allows you to make any quick action of your choice as a Free Action, even one you already made this turn."
- *       icon={<StarIcon />}
- *       variant="cosmic"
- *     />
- *   );
  * }
+ * 
+ * // Basic information card with cosmic styling
+ * <CosmicInformationCard
+ *   title="Overcharge"
+ *   content="Overcharging immediately allows you to make any quick action of your choice as a Free Action, even one you already made this turn."
+ *   icon={<StarIcon />}
+ *   variant="cosmic"
+ * />
+ * 
+ * // Warning card for important information
+ * <CosmicInformationCard
+ *   title="Warning"
+ *   content={<div>This action cannot be undone. Please review your changes before proceeding.</div>}
+ *   icon={<AlertIcon />}
+ *   variant="warning"
+ *   size="lg"
+ * />
+ * 
+ * // Interactive success card
+ * <CosmicInformationCard
+ *   title="Achievement Unlocked"
+ *   content="You've completed all required tasks! Click to claim your reward."
+ *   icon={<TrophyIcon />}
+ *   variant="success"
+ *   interactive={true}
+ *   onClick={() => claimReward()}
+ * />
+ * 
+ * // Minimal card with no icon
+ * <CosmicInformationCard
+ *   title="Quick Tip"
+ *   content="Press Ctrl+Space to activate quick search from anywhere in the application."
+ *   variant="minimal"
+ *   hasIcon={false}
+ * />
+ * 
+ * // Borderless card with full-width header
+ * <CosmicInformationCard
+ *   title="Today's Progress"
+ *   content={<ProgressChart data={userData} />}
+ *   variant="borderless"
+ *   fullWidthHeader={true}
+ * />
  */

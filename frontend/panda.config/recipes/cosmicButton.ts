@@ -1,9 +1,29 @@
-// src/styled-system/recipes/cosmicButton.ts
+//panda.config//recipes/cosmicButton.ts
 
 import { defineRecipe } from '@pandacss/dev';
 
 /**
- * Cosmic Button - A luxurious, moon-inspired button component
+ * ====================================================================================
+ * COSMIC BUTTON - A luxurious, moon-inspired button component
+ * ====================================================================================
+ * 
+ * IMPORT INTO YOUR PANDA CONFIG:
+ * 
+ * import { cosmicButtonRecipe } from './panda.config/recipes/cosmicButton';
+ * 
+ * Then add to your config:
+ * 
+ * export default defineConfig({
+ *   // ...other config
+ *   theme: {
+ *     extend: {
+ *       recipes: {
+ *         // Add to your recipes
+ *         Button: cosmicButtonRecipe
+ *       }
+ *     }
+ *   }
+ * })
  * 
  * Features:
  * - Elegant transitions and animations
@@ -448,26 +468,32 @@ export const cosmicButtonRecipe = defineRecipe({
 });
 
 /**
- * Usage Example (in a React component):
+ * USAGE EXAMPLE (in a React component):
+ * =====================================
  * 
- * import { cosmicButton } from '../styled-system/recipes/cosmicButton';
+ * // First, import the cosmicButtonRecipe
+ * import { cosmicButtonRecipe } from './panda.config/recipes/cosmicButton';
  * import { css } from '../styled-system/css';
  * 
+ * // Define the Button component with all supported props
  * function Button({ 
- *   children, 
- *   variant = 'primary', 
- *   size = 'md', 
- *   width = 'auto',
- *   rounded = false,
- *   isLoading = false,
- *   isDisabled = false,
- *   leadingIcon,
- *   trailingIcon,
- *   onClick,
- *   ...props
+ *   children,                   // Button text/content
+ *   variant = 'primary',        // Visual style variant
+ *   size = 'md',                // Size variant
+ *   width = 'auto',             // Width variant (auto or full)
+ *   rounded = false,            // Whether to use fully rounded corners
+ *   isLoading = false,          // Loading state
+ *   isDisabled = false,         // Disabled state
+ *   leadingIcon,                // Icon to show before text
+ *   trailingIcon,               // Icon to show after text
+ *   onClick,                    // Click handler
+ *   ...props                    // Any other HTML button props
  * }) {
+ *   // Check if this is an icon-only button (no children, but has an icon)
  *   const isIconOnly = !children && (leadingIcon || trailingIcon);
- *   const buttonStyles = cosmicButton({ 
+ *   
+ *   // Apply the cosmic button styles using the recipe
+ *   const buttonStyles = cosmicButtonRecipe({ 
  *     variant, 
  *     size, 
  *     width,
@@ -484,6 +510,7 @@ export const cosmicButtonRecipe = defineRecipe({
  *       {...props}
  *     >
  *       {isLoading && <span className="loading-indicator" />}
+ *       
  *       <span className="button-content">
  *         {leadingIcon && <span className="leading-icon">{leadingIcon}</span>}
  *         {children}
@@ -492,6 +519,47 @@ export const cosmicButtonRecipe = defineRecipe({
  *     </button>
  *   );
  * }
+ * 
+ * // EXAMPLES OF BUTTON USAGE:
+ * 
+ * // Basic button
+ * <Button>Click Me</Button>
+ * 
+ * // Different variants
+ * <Button variant="primary">Primary</Button>
+ * <Button variant="secondary">Secondary</Button>
+ * <Button variant="outline">Outline</Button>
+ * <Button variant="ghost">Ghost</Button>
+ * <Button variant="subtle">Subtle</Button>
+ * <Button variant="borderless">Borderless</Button>
+ * <Button variant="cosmic">Cosmic</Button>
+ * <Button variant="link">Link</Button>
+ * 
+ * // Different sizes
+ * <Button size="xs">Extra Small</Button>
+ * <Button size="sm">Small</Button>
+ * <Button size="md">Medium</Button>
+ * <Button size="lg">Large</Button>
+ * <Button size="xl">Extra Large</Button>
+ * 
+ * // Full width button
+ * <Button width="full">Full Width</Button>
+ * 
+ * // Rounded button
+ * <Button rounded>Rounded</Button>
+ * 
+ * // Loading state
+ * <Button isLoading>Loading</Button>
+ * 
+ * // Disabled state
+ * <Button isDisabled>Disabled</Button>
+ * 
+ * // With icons
+ * <Button leadingIcon={<Icon name="star" />}>With Leading Icon</Button>
+ * <Button trailingIcon={<Icon name="arrow-right" />}>With Trailing Icon</Button>
+ * 
+ * // Icon-only button (will be circular if rounded=true)
+ * <Button rounded leadingIcon={<Icon name="settings" />}></Button>
  */
 
 // Add these keyframe animations to your global CSS or Panda CSS config:

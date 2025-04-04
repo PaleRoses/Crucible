@@ -1,9 +1,42 @@
-// src/styled-system/recipes/cosmicCollapsible.ts
+// panda.config/recipes/cosmicCollapsible.ts
 
-import { cva } from '../../styled-system/css';
+import { defineRecipe } from '@pandacss/dev';
 
 /**
- * Cosmic Collapsible - An elegant collapsible/accordion component with luxury styling
+ * ====================================================================================
+ * COSMIC COLLAPSIBLE - An elegant collapsible/accordion component with luxury styling
+ * ====================================================================================
+ * 
+ * IMPORT INTO YOUR PANDA CONFIG:
+ * 
+ * import { 
+ *   cosmicCollapsibleContainer,
+ *   cosmicCollapsibleTrigger,
+ *   cosmicCollapsibleContent,
+ *   cosmicCollapsibleGroup,
+ *   cosmicCollapsible
+ * } from './panda.config/recipes/cosmicCollapsible';
+ * 
+ * Then add to your config:
+ * 
+ * export default defineConfig({
+ *   // ...other config
+ *   theme: {
+ *     extend: {
+ *       recipes: {
+ *         // Method 1: Add individual components
+ *         CollapsibleContainer: cosmicCollapsibleContainer,
+ *         CollapsibleTrigger: cosmicCollapsibleTrigger,
+ *         CollapsibleContent: cosmicCollapsibleContent,
+ *         CollapsibleGroup: cosmicCollapsibleGroup,
+ *         
+ *         // Method 2: Or use the combined object
+ *         // This adds all components with their original naming
+ *         ...cosmicCollapsible
+ *       }
+ *     }
+ *   }
+ * })
  * 
  * Features:
  * - Smooth reveal animations with configurable timing
@@ -15,7 +48,9 @@ import { cva } from '../../styled-system/css';
  */
 
 // Container that wraps both trigger and content panel
-export const cosmicCollapsibleContainer = cva({
+export const cosmicCollapsibleContainer = defineRecipe({
+  className: 'cosmicCollapsibleContainer',
+  description: 'Container for the collapsible component with cosmic styling',
   base: {
     position: 'relative',
     width: '100%',
@@ -146,7 +181,9 @@ export const cosmicCollapsibleContainer = cva({
 });
 
 // The trigger/header button that controls expansion
-export const cosmicCollapsibleTrigger = cva({
+export const cosmicCollapsibleTrigger = defineRecipe({
+  className: 'cosmicCollapsibleTrigger',
+  description: 'Trigger button for the collapsible component with cosmic styling',
   base: {
     display: 'flex',
     width: '100%',
@@ -384,7 +421,9 @@ export const cosmicCollapsibleTrigger = cva({
 });
 
 // The content area that expands/collapses
-export const cosmicCollapsibleContent = cva({
+export const cosmicCollapsibleContent = defineRecipe({
+  className: 'cosmicCollapsibleContent',
+  description: 'Content area for the collapsible component with cosmic styling',
   base: {
     overflow: 'hidden',
     position: 'relative',
@@ -444,7 +483,9 @@ export const cosmicCollapsibleContent = cva({
 });
 
 // Group container for accordion-style behavior (optional)
-export const cosmicCollapsibleGroup = cva({
+export const cosmicCollapsibleGroup = defineRecipe({
+  className: 'cosmicCollapsibleGroup',
+  description: 'Group container for multiple collapsible items with cosmic styling',
   base: {
     display: 'flex',
     flexDirection: 'column',
@@ -514,27 +555,31 @@ export const cosmicCollapsible = {
 };
 
 /**
- * Usage Example (in a React component):
+ * USAGE EXAMPLE (in a React component):
+ * =====================================
  * 
+ * // First, import the necessary components
  * import { useState, useRef, useEffect } from 'react';
  * import { 
  *   cosmicCollapsibleContainer,
  *   cosmicCollapsibleTrigger,
  *   cosmicCollapsibleContent,
  *   cosmicCollapsibleGroup
- * } from '../styled-system/recipes/cosmicCollapsible';
+ * } from './panda.config/recipes/cosmicCollapsible';
  * 
+ * // Define props interface for the Collapsible component
  * interface CollapsibleProps {
- *   title: string;
- *   children: React.ReactNode;
- *   icon?: React.ReactNode;
- *   variant?: 'standard' | 'elevated' | 'minimal' | 'cosmic';
- *   size?: 'sm' | 'md' | 'lg';
- *   defaultExpanded?: boolean;
- *   disabled?: boolean;
- *   id?: string;
+ *   title: string;                 // Title displayed in the header
+ *   children: React.ReactNode;     // Content that shows/hides
+ *   icon?: React.ReactNode;        // Optional icon for the header
+ *   variant?: 'standard' | 'elevated' | 'minimal' | 'cosmic'; // Visual style
+ *   size?: 'sm' | 'md' | 'lg';     // Size variant
+ *   defaultExpanded?: boolean;     // Whether expanded by default
+ *   disabled?: boolean;            // Disabled state
+ *   id?: string;                   // Optional ID for ARIA attributes
  * }
  * 
+ * // Basic Collapsible Component
  * function CosmicCollapsible({
  *   title,
  *   children,
@@ -545,6 +590,7 @@ export const cosmicCollapsible = {
  *   disabled = false,
  *   id
  * }: CollapsibleProps) {
+ *   // State for expansion
  *   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
  *   const contentRef = useRef<HTMLDivElement>(null);
  *   const [contentHeight, setContentHeight] = useState<number | 'auto'>(defaultExpanded ? 'auto' : 0);
@@ -635,12 +681,12 @@ export const cosmicCollapsible = {
  *   );
  * }
  * 
- * // Example Accordion Group
+ * // Accordion Group Component
  * interface AccordionProps {
- *   children: React.ReactNode;
- *   variant?: 'standard' | 'elevated' | 'minimal' | 'cosmic';
- *   mode?: 'connected' | 'separated';
- *   allowMultiple?: boolean;
+ *   children: React.ReactNode;     // Collapsible items
+ *   variant?: 'standard' | 'elevated' | 'minimal' | 'cosmic'; // Visual style
+ *   mode?: 'connected' | 'separated'; // Layout mode
+ *   allowMultiple?: boolean;       // Whether multiple items can be open at once
  * }
  * 
  * function CosmicAccordion({
@@ -649,6 +695,7 @@ export const cosmicCollapsible = {
  *   mode = 'separated',
  *   allowMultiple = false
  * }: AccordionProps) {
+ *   // Track which items are expanded
  *   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
  *   
  *   // Generate unique ID for the accordion group
@@ -700,40 +747,74 @@ export const cosmicCollapsible = {
  *   );
  * }
  * 
- * // Usage Example
- * function ExampleUsage() {
- *   return (
- *     <div className="container">
- *       <h2>Single Collapsible</h2>
- *       <CosmicCollapsible 
- *         title="Luxury Features" 
- *         variant="cosmic"
- *         icon={<span>✨</span>}
- *       >
- *         <p>Premium content that can be hidden until needed.</p>
- *         <p>This component handles height animations seamlessly.</p>
- *       </CosmicCollapsible>
- *       
- *       <h2>Accordion Group</h2>
- *       <CosmicAccordion variant="cosmic" mode="connected">
- *         <CosmicCollapsible title="Section One" icon={<span>1</span>}>
- *           <p>First accordion content section.</p>
- *         </CosmicCollapsible>
- *         <CosmicCollapsible title="Section Two" icon={<span>2</span>}>
- *           <p>Second accordion content section.</p>
- *         </CosmicCollapsible>
- *         <CosmicCollapsible title="Section Three" icon={<span>3</span>}>
- *           <p>Third accordion content section.</p>
- *         </CosmicCollapsible>
- *       </CosmicAccordion>
- *     </div>
- *   );
- * }
+ * // EXAMPLES OF USAGE:
  * 
- * // Add these keyframes to your global CSS:
- * // @keyframes cosmicParticlesShimmer {
- * //   0% { opacity: 0.03; transform: translateY(0); }
- * //   50% { opacity: 0.05; }
- * //   100% { opacity: 0.03; transform: translateY(-2px); }
- * // }
+ * // Basic single collapsible
+ * <CosmicCollapsible 
+ *   title="Click to expand"
+ *   variant="standard" 
+ *   size="md"
+ * >
+ *   <p>This content can be shown or hidden.</p>
+ * </CosmicCollapsible>
+ * 
+ * // Cosmic variant with icon
+ * <CosmicCollapsible 
+ *   title="Cosmic Features" 
+ *   variant="cosmic"
+ *   icon={<span>✨</span>}
+ *   defaultExpanded={true}
+ * >
+ *   <p>Premium content with cosmic styling.</p>
+ *   <p>Animations create a smooth user experience.</p>
+ * </CosmicCollapsible>
+ * 
+ * // Disabled collapsible
+ * <CosmicCollapsible 
+ *   title="Not Available" 
+ *   disabled={true}
+ *   variant="elevated"
+ * >
+ *   <p>This content cannot be accessed.</p>
+ * </CosmicCollapsible>
+ * 
+ * // Accordion group (connected style)
+ * <CosmicAccordion 
+ *   variant="cosmic" 
+ *   mode="connected"
+ *   allowMultiple={false}
+ * >
+ *   <CosmicCollapsible title="Section One" icon={<span>1</span>}>
+ *     <p>First accordion section content.</p>
+ *   </CosmicCollapsible>
+ *   <CosmicCollapsible title="Section Two" icon={<span>2</span>}>
+ *     <p>Second accordion section content.</p>
+ *   </CosmicCollapsible>
+ *   <CosmicCollapsible title="Section Three" icon={<span>3</span>}>
+ *     <p>Third accordion section content.</p>
+ *   </CosmicCollapsible>
+ * </CosmicAccordion>
+ * 
+ * // Minimal separated accordion
+ * <CosmicAccordion 
+ *   variant="minimal" 
+ *   mode="separated"
+ *   allowMultiple={true}
+ * >
+ *   <CosmicCollapsible title="FAQ Question 1">
+ *     <p>Answer to question 1.</p>
+ *   </CosmicCollapsible>
+ *   <CosmicCollapsible title="FAQ Question 2">
+ *     <p>Answer to question 2.</p>
+ *   </CosmicCollapsible>
+ * </CosmicAccordion>
  */
+
+// Add these keyframes to your global CSS:
+/* 
+@keyframes cosmicParticlesShimmer {
+  0% { opacity: 0.03; transform: translateY(0); }
+  50% { opacity: 0.05; }
+  100% { opacity: 0.03; transform: translateY(-2px); }
+}
+*/

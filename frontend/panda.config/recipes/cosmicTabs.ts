@@ -1,9 +1,43 @@
-// src/styled-system/recipes/cosmicTabs.ts
+// panda.config/recipes/cosmicTabs.ts
 
-import { cva } from '../../styled-system/css';
+import { defineRecipe } from '@pandacss/dev';
 
 /**
- * Cosmic Tabs - A sophisticated tabs component with luxury styling
+ * ====================================================================================
+ * COSMIC TABS - A sophisticated tabs component with luxury styling
+ * ====================================================================================
+ * 
+ * IMPORT INTO YOUR PANDA CONFIG:
+ * 
+ * import { 
+ *   cosmicTabsContainer, 
+ *   cosmicTabsList, 
+ *   cosmicTabTrigger,
+ *   cosmicTabsContent,
+ *   cosmicTabPanel,
+ *   cosmicTabs
+ * } from './panda.config/recipes/cosmicTabs';
+ * 
+ * Then add to your config:
+ * 
+ * export default defineConfig({
+ *   // ...other config
+ *   theme: {
+ *     extend: {
+ *       recipes: {
+ *         // Method 1: Add individual components
+ *         TabsContainer: cosmicTabsContainer,
+ *         TabsList: cosmicTabsList,
+ *         TabTrigger: cosmicTabTrigger,
+ *         TabsContent: cosmicTabsContent,
+ *         TabPanel: cosmicTabPanel,
+ *         
+ *         // Method 2: Or use the combined object
+ *         ...cosmicTabs
+ *       }
+ *     }
+ *   }
+ * })
  * 
  * Features:
  * - Multiple visual variants (underline, filled, minimal, cosmic)
@@ -16,7 +50,9 @@ import { cva } from '../../styled-system/css';
  */
 
 // Main container that wraps the entire tabs component
-export const cosmicTabsContainer = cva({
+export const cosmicTabsContainer = defineRecipe ({
+  className: 'cosmicTabsContainer',
+  description: 'A container for the tabs component',
   base: {
     display: 'flex',
     flexDirection: 'column',
@@ -103,7 +139,9 @@ export const cosmicTabsContainer = cva({
 });
 
 // Tab list - container for all tab triggers
-export const cosmicTabsList = cva({
+export const cosmicTabsList = defineRecipe ({
+  className: 'cosmicTabsList',
+  description: 'A list of tab triggers',
   base: {
     display: 'flex',
     position: 'relative',
@@ -231,7 +269,9 @@ export const cosmicTabsList = cva({
 });
 
 // Individual tab trigger (the clickable tab item)
-export const cosmicTabTrigger = cva({
+export const cosmicTabTrigger = defineRecipe ({
+  className: 'cosmicTabTrigger',
+  description: 'A single tab trigger',
   base: {
     position: 'relative',
     display: 'flex',
@@ -477,7 +517,9 @@ export const cosmicTabTrigger = cva({
 });
 
 // Tab content container (where the tab panels live)
-export const cosmicTabsContent = cva({
+export const cosmicTabsContent = defineRecipe ({
+  className: 'cosmicTabsContent',
+  description: 'A container for the tab content',
   base: {
     flexGrow: 1,
     position: 'relative',
@@ -577,7 +619,9 @@ export const cosmicTabsContent = cva({
 });
 
 // Individual tab panel (the content for each tab)
-export const cosmicTabPanel = cva({
+export const cosmicTabPanel = defineRecipe ({
+  className: 'cosmicTabPanel',
+  description: 'A single tab panel',
   base: {
     width: '100%',
     outline: 'none',
@@ -624,6 +668,9 @@ export const cosmicTabPanel = cva({
   },
 });
 
+/**
+ * Bulk export of all cosmic tabs components
+ */
 export const cosmicTabs = {
   container: cosmicTabsContainer,
   list: cosmicTabsList,
@@ -648,17 +695,20 @@ export const cosmicTabs = {
  */
 
 /**
- * Usage Example (in a React component):
+ * USAGE EXAMPLE (in a React component):
+ * =====================================
  * 
+ * // First, import the necessary components
  * import { 
  *   cosmicTabsContainer, 
  *   cosmicTabsList, 
  *   cosmicTabTrigger,
  *   cosmicTabsContent,
  *   cosmicTabPanel
- * } from '../styled-system/recipes/cosmicTabs';
+ * } from './panda.config/recipes/cosmicTabs';
  * import { useState } from 'react';
  * 
+ * // Define props interface for the Tabs component
  * interface TabsProps {
  *   tabs: Array<{
  *     id: string;
@@ -675,7 +725,7 @@ export const cosmicTabs = {
  *   fullWidth?: boolean;
  * }
  * 
- * export function CosmicTabs({
+ * function CosmicTabs({
  *   tabs,
  *   defaultTab,
  *   variant = 'standard',

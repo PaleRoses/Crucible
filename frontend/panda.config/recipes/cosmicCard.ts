@@ -1,9 +1,28 @@
-// src/styled-system/recipes/cosmicCard.ts
-
-import { cva } from '../../styled-system/css';
+// panda.config/recipes/cosmicCard.ts
+import { defineRecipe } from '@pandacss/dev';
 
 /**
- * Cosmic Card - A versatile content container with cosmic styling
+ * ====================================================================================
+ * COSMIC CARD - A versatile content container with cosmic styling
+ * ====================================================================================
+ * 
+ * IMPORT INTO YOUR PANDA CONFIG:
+ * 
+ * import { cosmicCard } from './panda.config/recipes/cosmicCard';
+ * 
+ * Then add to your config:
+ * 
+ * export default defineConfig({
+ *   // ...other config
+ *   theme: {
+ *     extend: {
+ *       recipes: {
+ *         // Add to your recipes
+ *         Card: cosmicCard
+ *       }
+ *     }
+ *   }
+ * })
  * 
  * Features:
  * - Glowing borders and cosmic background effects
@@ -12,7 +31,9 @@ import { cva } from '../../styled-system/css';
  * - Configurable size and content density options
  * - Support for different content layouts
  */
-export const cosmicCard = cva({
+export const cosmicCard = defineRecipe({
+  className: 'cosmicCard',
+  description: 'A versatile content container with cosmic styling',
   // Base styles applied to all cards
   base: {
     position: 'relative',
@@ -269,20 +290,22 @@ export const cosmicCard = cva({
 });
 
 /**
- * Usage Example (in a React component):
+ * USAGE EXAMPLE (in a React component):
+ * =====================================
  * 
- * import { cosmicCard } from '../styled-system/recipes/cosmicCard';
- * import { css } from '../styled-system/css';
+ * // First, import the cosmicCard
+ * import { cosmicCard } from './panda.config/recipes/cosmicCard';
  * 
+ * // Define the Card component with all supported props
  * function CosmicCard({ 
- *   title, 
- *   children, 
- *   footer, 
- *   variant = 'standard', 
- *   size = 'md', 
- *   interactive = false,
- *   borderStyle = 'solid',
- *   onClick
+ *   title,                       // Optional header content
+ *   children,                    // Main card content
+ *   footer,                      // Optional footer content
+ *   variant = 'standard',        // Visual style variant
+ *   size = 'md',                 // Size variant
+ *   interactive = false,         // Whether the card is clickable
+ *   borderStyle = 'solid',       // Border style variant
+ *   onClick                      // Click handler (for interactive cards)
  * }) {
  *   const cardStyles = cosmicCard({ 
  *     variant, 
@@ -292,16 +315,61 @@ export const cosmicCard = cva({
  *   });
  *   
  *   return (
- *     <div className={cardStyles} onClick={interactive ? onClick : undefined} tabIndex={interactive ? 0 : undefined}>
+ *     <div 
+ *       className={cardStyles} 
+ *       onClick={interactive ? onClick : undefined} 
+ *       tabIndex={interactive ? 0 : undefined}
+ *     >
  *       {title && <div className="card-header">{title}</div>}
  *       <div className="card-content">{children}</div>
  *       {footer && <div className="card-footer">{footer}</div>}
  *     </div>
  *   );
  * }
+ * 
+ * // EXAMPLES OF CARD USAGE:
+ * 
+ * // Basic card
+ * <CosmicCard title="Basic Card">
+ *   <p>This is a standard card with default styling.</p>
+ * </CosmicCard>
+ * 
+ * // Card with header and footer
+ * <CosmicCard 
+ *   title={<h3>Card with Header and Footer</h3>}
+ *   footer={<div>Footer content with actions or metadata</div>}
+ * >
+ *   <p>Main content goes here.</p>
+ * </CosmicCard>
+ * 
+ * // Featured card with cosmic styling
+ * <CosmicCard 
+ *   variant="cosmic" 
+ *   size="lg"
+ *   borderStyle="glowing"
+ *   title={<h2>Cosmic Experience</h2>}
+ * >
+ *   <p>Immerse yourself in the cosmic experience with this premium card.</p>
+ *   <div>Additional content can be added here.</div>
+ * </CosmicCard>
+ * 
+ * // Interactive card
+ * <CosmicCard
+ *   interactive={true}
+ *   variant="elevated"
+ *   onClick={() => console.log('Card clicked!')}
+ *   title="Click Me"
+ * >
+ *   <p>This card is clickable. Try clicking it!</p>
+ * </CosmicCard>
+ * 
+ * // Minimal style card
+ * <CosmicCard variant="minimal">
+ *   <p>A clean, minimal card without borders.</p>
+ * </CosmicCard>
  */
 
-// You'll need to add this keyframe animation to your global CSS or Panda CSS config:
+// Add these keyframe animations to your global CSS or Panda CSS config:
 /* 
 @keyframes cosmicCardStarsTwinkle {
   0% {

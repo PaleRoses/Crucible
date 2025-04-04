@@ -1,9 +1,28 @@
-// src/styled-system/recipes/cosmicTooltip.ts
+// panda.config/recipes/cosmicTooltip.ts
 
-import { cva } from '../../styled-system/css';
+import { defineRecipe } from '@pandacss/dev';
 
 /**
- * Cosmic Tooltip - An elegant tooltip component with luxury styling
+ * ====================================================================================
+ * COSMIC TOOLTIP - An elegant tooltip component with luxury styling
+ * ====================================================================================
+ * 
+ * IMPORT INTO YOUR PANDA CONFIG:
+ * 
+ * import { cosmicTooltip } from './panda.config/recipes/cosmicTooltip';
+ * 
+ * Then add to your config:
+ * 
+ * export default defineConfig({
+ *   // ...other config
+ *   theme: {
+ *     extend: {
+ *       recipes: {
+ *         Tooltip: cosmicTooltip
+ *       }
+ *     }
+ *   }
+ * })
  * 
  * Features:
  * - Multiple positioning options (top, right, bottom, left)
@@ -15,7 +34,9 @@ import { cva } from '../../styled-system/css';
  */
 
 // Main tooltip container
-export const cosmicTooltip = cva({
+export const cosmicTooltip = defineRecipe({
+  className: 'cosmicTooltip',
+  description: 'A cosmic tooltip with elegant styling and multiple variants',
   base: {
     position: 'absolute',
     zIndex: 'tooltip',
@@ -307,11 +328,14 @@ export const cosmicTooltip = cva({
 });
 
 /**
- * Usage Example (in a React component):
+ * USAGE EXAMPLE (in a React component):
+ * =====================================
  * 
- * import { cosmicTooltip } from '../styled-system/recipes/cosmicTooltip';
- * import { useState, useRef, useId } from 'react';
+ * // First, import the necessary components
+ * import { cosmicTooltip } from './panda.config/recipes/cosmicTooltip';
+ * import { useState, useRef, useId, useEffect } from 'react';
  * 
+ * // Define props interface for the Tooltip component
  * interface TooltipProps {
  *   content: React.ReactNode;
  *   children: React.ReactElement;
@@ -415,15 +439,43 @@ export const cosmicTooltip = cva({
  *   );
  * }
  * 
- * // Example usage:
+ * // Example usage
  * function App() {
  *   return (
- *     <CosmicTooltipComponent
- *       content="This is a cosmic tooltip with a beautiful glow effect"
- *       variant="cosmic"
- *     >
- *       <button>Hover me</button>
- *     </CosmicTooltipComponent>
+ *     <div className="tooltip-examples">
+ *       <h3>Tooltip Examples</h3>
+ *       
+ *       <div className="example-row">
+ *         <CosmicTooltipComponent
+ *           content="This is a cosmic tooltip with a beautiful glow effect"
+ *           variant="cosmic"
+ *           position="top"
+ *         >
+ *           <button>Hover me</button>
+ *         </CosmicTooltipComponent>
+ *       </div>
+ *       
+ *       <div className="example-row">
+ *         <CosmicTooltipComponent
+ *           content="Dark variant positioned on the right"
+ *           variant="dark"
+ *           position="right"
+ *         >
+ *           <span className="info-icon">ℹ️</span>
+ *         </CosmicTooltipComponent>
+ *       </div>
+ *       
+ *       <div className="example-row">
+ *         <CosmicTooltipComponent
+ *           content="Click to toggle this tooltip visibility"
+ *           variant="accent"
+ *           position="bottom"
+ *           showOnClick={true}
+ *         >
+ *           <button>Click me</button>
+ *         </CosmicTooltipComponent>
+ *       </div>
+ *     </div>
  *   );
  * }
  */

@@ -1,13 +1,10 @@
-// src/styled-system/recipes/cosmicMenuButton.ts
+// panda.config/recipes/cosmicMenuButton.ts
 
-// Import cva from your generated styled-system directory
-// This is the standard way to create atomic recipes/variants outside the main config
-import { cva } from '../../styled-system/css';
+import { defineRecipe } from '@pandacss/dev';
 
-// No need to import defineRecipe from '@pandacss/dev' for this pattern
-
-// Define the button variants using cva
-export const cosmicMenuButton = cva({
+export const cosmicMenuButton = defineRecipe({
+  className: 'cosmicMenuButton',
+  description: 'A cosmic-themed menu button with hover effects and size variants',
   // base styles apply to all variants
   base: {
     position: 'relative',

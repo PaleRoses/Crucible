@@ -1,9 +1,43 @@
-// src/styled-system/recipes/cosmicSwitch.ts
+// panda.config/recipes/cosmicSwitch.ts
 
-import { cva } from '../../styled-system/css';
+import { defineRecipe } from '@pandacss/dev';
 
 /**
- * Cosmic Switch - An elegant toggle switch component with lunar-inspired animations
+ * ====================================================================================
+ * COSMIC SWITCH - An elegant toggle switch component with lunar-inspired animations
+ * ====================================================================================
+ * 
+ * IMPORT INTO YOUR PANDA CONFIG:
+ * 
+ * import { 
+ *   cosmicSwitchContainer, 
+ *   cosmicSwitchInput, 
+ *   cosmicSwitchTrack, 
+ *   cosmicSwitchThumb,
+ *   cosmicSwitchLabel,
+ *   cosmicSwitch
+ * } from './panda.config/recipes/cosmicSwitch';
+ * 
+ * Then add to your config:
+ * 
+ * export default defineConfig({
+ *   // ...other config
+ *   theme: {
+ *     extend: {
+ *       recipes: {
+ *         // Method 1: Add individual components
+ *         SwitchContainer: cosmicSwitchContainer,
+ *         SwitchInput: cosmicSwitchInput,
+ *         SwitchTrack: cosmicSwitchTrack,
+ *         SwitchThumb: cosmicSwitchThumb,
+ *         SwitchLabel: cosmicSwitchLabel,
+ *         
+ *         // Method 2: Or use the combined object
+ *         ...cosmicSwitch
+ *       }
+ *     }
+ *   }
+ * })
  * 
  * Features:
  * - Smooth transitions between states with lunar-inspired animations
@@ -15,7 +49,9 @@ import { cva } from '../../styled-system/css';
  */
 
 // Container wrapper styling
-export const cosmicSwitchContainer = cva({
+export const cosmicSwitchContainer = defineRecipe ({
+  className: 'cosmicSwitchContainer',
+  description: 'Container for the cosmic switch component',
   base: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -61,7 +97,9 @@ export const cosmicSwitchContainer = cva({
 });
 
 // Hidden input styling (visually hidden but accessible)
-export const cosmicSwitchInput = cva({
+export const cosmicSwitchInput = defineRecipe ({
+  className: 'cosmicSwitchInput',
+  description: 'Hidden input for the cosmic switch component',
   base: {
     border: '0',
     clip: 'rect(0 0 0 0)',
@@ -77,7 +115,9 @@ export const cosmicSwitchInput = cva({
 });
 
 // Track styling (the background element)
-export const cosmicSwitchTrack = cva({
+export const cosmicSwitchTrack = defineRecipe ({
+  className: 'cosmicSwitchTrack',
+  description: 'Track for the cosmic switch component',
   base: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -219,7 +259,9 @@ export const cosmicSwitchTrack = cva({
 });
 
 // Thumb styling (the moving indicator)
-export const cosmicSwitchThumb = cva({
+export const cosmicSwitchThumb = defineRecipe ({
+  className: 'cosmicSwitchThumb',
+  description: 'Thumb for the cosmic switch component',
   base: {
     position: 'relative',
     borderRadius: 'full',
@@ -327,7 +369,9 @@ export const cosmicSwitchThumb = cva({
 });
 
 // Label styling
-export const cosmicSwitchLabel = cva({
+export const cosmicSwitchLabel = defineRecipe ({
+  className: 'cosmicSwitchLabel',
+  description: 'Label for the cosmic switch component',
   base: {
     fontFamily: 'body',
     color: 'text',
@@ -374,17 +418,20 @@ export const cosmicSwitch = {
 };
 
 /**
- * Usage Example (in a React component):
+ * USAGE EXAMPLE (in a React component):
+ * =====================================
  * 
+ * // First, import the necessary components
  * import { 
  *   cosmicSwitchContainer, 
  *   cosmicSwitchInput, 
  *   cosmicSwitchTrack, 
  *   cosmicSwitchThumb,
  *   cosmicSwitchLabel
- * } from '../styled-system/recipes/cosmicSwitch';
+ * } from './panda.config/recipes/cosmicSwitch';
  * import { useState, useId } from 'react';
  * 
+ * // Define props interface for the Switch component
  * interface CosmicSwitchProps {
  *   checked?: boolean;
  *   onChange?: (checked: boolean) => void;
@@ -471,6 +518,59 @@ export const cosmicSwitch = {
  *         </span>
  *       )}
  *     </label>
+ *   );
+ * }
+ * 
+ * // Example usage with different variants and states
+ * function SwitchExamples() {
+ *   const [darkMode, setDarkMode] = useState(false);
+ *   const [notifications, setNotifications] = useState(true);
+ *   const [soundEnabled, setSoundEnabled] = useState(false);
+ *   
+ *   return (
+ *     <div className="switch-examples">
+ *       <h3>Switch Examples</h3>
+ *       
+ *       <div className="example-row">
+ *         <CosmicSwitch
+ *           label="Dark Mode"
+ *           checked={darkMode}
+ *           onChange={setDarkMode}
+ *           variant="cosmic"
+ *           size="md"
+ *         />
+ *       </div>
+ *       
+ *       <div className="example-row">
+ *         <CosmicSwitch
+ *           label="Enable Notifications"
+ *           checked={notifications}
+ *           onChange={setNotifications}
+ *           variant="standard"
+ *           size="md"
+ *         />
+ *       </div>
+ *       
+ *       <div className="example-row">
+ *         <CosmicSwitch
+ *           label="Sound Effects"
+ *           checked={soundEnabled}
+ *           onChange={setSoundEnabled}
+ *           variant="minimal"
+ *           size="sm"
+ *           labelPosition="left"
+ *         />
+ *       </div>
+ *       
+ *       <div className="example-row">
+ *         <CosmicSwitch
+ *           label="Disabled Option"
+ *           disabled={true}
+ *           variant="cosmic"
+ *           size="lg"
+ *         />
+ *       </div>
+ *     </div>
  *   );
  * }
  */

@@ -1,9 +1,46 @@
-// src/styled-system/recipes/cosmicRadioButton.ts
+// panda.config/recipes/cosmicRadioButton.ts
 
-import { cva } from '../../styled-system/css';
+import { defineRecipe } from '@pandacss/dev';
 
 /**
- * Cosmic Radio Button - An elegant selection component with luxury styling
+ * ====================================================================================
+ * COSMIC RADIO BUTTON - An elegant selection component with luxury styling
+ * ====================================================================================
+ * 
+ * IMPORT INTO YOUR PANDA CONFIG:
+ * 
+ * import { 
+ *   cosmicRadioGroup,
+ *   cosmicRadioContainer,
+ *   cosmicRadioInput,
+ *   cosmicRadioMarker,
+ *   cosmicRadioLabel,
+ *   cosmicRadioError,
+ *   cosmicRadioButton
+ * } from './panda.config/recipes/cosmicRadioButton';
+ * 
+ * Then add to your config:
+ * 
+ * export default defineConfig({
+ *   // ...other config
+ *   theme: {
+ *     extend: {
+ *       recipes: {
+ *         // Method 1: Add individual components
+ *         RadioGroup: cosmicRadioGroup,
+ *         RadioContainer: cosmicRadioContainer,
+ *         RadioInput: cosmicRadioInput,
+ *         RadioMarker: cosmicRadioMarker,
+ *         RadioLabel: cosmicRadioLabel,
+ *         RadioError: cosmicRadioError,
+ *         
+ *         // Method 2: Or use the combined object
+ *         // This adds all components with their original naming
+ *         ...cosmicRadioButton
+ *       }
+ *     }
+ *   }
+ * })
  * 
  * Features:
  * - Subtle animations and transitions for all interaction states
@@ -11,10 +48,14 @@ import { cva } from '../../styled-system/css';
  * - Supports various sizes and group layouts
  * - Fully respects the active theme's color tokens
  * - Consistent styling with other cosmic components
+ * - Accessible design with keyboard navigation support
+ * - Error state handling with elegant animations
  */
 
 // Radio group container styling
-export const cosmicRadioGroup = cva({
+export const cosmicRadioGroup = defineRecipe({
+  className: 'cosmicRadioGroup',
+  description: 'A container for grouping radio buttons with cosmic styling',
   base: {
     display: 'flex',
     flexDirection: 'column',
@@ -54,7 +95,9 @@ export const cosmicRadioGroup = cva({
 });
 
 // Individual radio container styling
-export const cosmicRadioContainer = cva({
+export const cosmicRadioContainer = defineRecipe({
+  className: 'cosmicRadioContainer',
+  description: 'A container for individual radio buttons with cosmic styling',
   base: {
     position: 'relative',
     display: 'flex',
@@ -96,7 +139,9 @@ export const cosmicRadioContainer = cva({
 });
 
 // The actual input (visually hidden)
-export const cosmicRadioInput = cva({
+export const cosmicRadioInput = defineRecipe({
+  className: 'cosmicRadioInput',
+  description: 'The hidden input element for the radio button',
   base: {
     position: 'absolute',
     opacity: 0,
@@ -137,7 +182,9 @@ export const cosmicRadioInput = cva({
 });
 
 // The visible radio marker (the circle element)
-export const cosmicRadioMarker = cva({
+export const cosmicRadioMarker = defineRecipe({
+  className: 'cosmicRadioMarker',
+  description: 'The visible marker for the radio button, styled to match cosmic theme',
   base: {
     position: 'relative',
     display: 'flex',
@@ -346,7 +393,9 @@ export const cosmicRadioMarker = cva({
 });
 
 // Label styling
-export const cosmicRadioLabel = cva({
+export const cosmicRadioLabel = defineRecipe({
+  className: 'cosmicRadioLabel',
+  description: 'Label for the radio button, styled to match cosmic theme',
   base: {
     color: 'text',
     transition: 'color 0.3s ease',
@@ -380,7 +429,9 @@ export const cosmicRadioLabel = cva({
 });
 
 // Error message styling
-export const cosmicRadioError = cva({
+export const cosmicRadioError = defineRecipe({
+  className: 'cosmicRadioError',
+  description: 'Error message for the radio button group, styled to match cosmic theme',
   base: {
     marginTop: '1',
     fontSize: 'sm',
@@ -391,6 +442,9 @@ export const cosmicRadioError = cva({
   },
 });
 
+/**
+ * Bulk export of all cosmic radio button components
+ */
 export const cosmicRadioButton = {
   group: cosmicRadioGroup,
   container: cosmicRadioContainer,
@@ -401,8 +455,11 @@ export const cosmicRadioButton = {
 };
 
 /**
- * Usage Example (in a React component):
+ * USAGE EXAMPLE (in a React component):
+ * =====================================
  * 
+ * // First, import the necessary components
+ * import { useState } from 'react';
  * import { 
  *   cosmicRadioGroup,
  *   cosmicRadioContainer,
@@ -410,9 +467,9 @@ export const cosmicRadioButton = {
  *   cosmicRadioMarker,
  *   cosmicRadioLabel,
  *   cosmicRadioError
- * } from '../styled-system/recipes/cosmicRadioButton';
- * import { useState } from 'react';
+ * } from './panda.config/recipes/cosmicRadioButton';
  * 
+ * // Define props interface for the RadioGroup component
  * interface RadioOption {
  *   value: string;
  *   label: string;
@@ -420,19 +477,20 @@ export const cosmicRadioButton = {
  * }
  * 
  * interface CosmicRadioGroupProps {
- *   name: string;
- *   options: RadioOption[];
- *   value: string;
- *   onChange: (value: string) => void;
- *   variant?: 'outline' | 'filled' | 'minimal' | 'cosmic';
- *   size?: 'sm' | 'md' | 'lg';
- *   layout?: 'vertical' | 'horizontal';
- *   spacing?: 'tight' | 'normal' | 'loose';
- *   error?: string;
- *   labelPosition?: 'right' | 'left';
- *   isDisabled?: boolean;
+ *   name: string;                   // Form field name
+ *   options: RadioOption[];         // Array of radio options
+ *   value: string;                  // Currently selected value
+ *   onChange: (value: string) => void; // Change handler
+ *   variant?: 'outline' | 'filled' | 'minimal' | 'cosmic'; // Visual style
+ *   size?: 'sm' | 'md' | 'lg';      // Size variant
+ *   layout?: 'vertical' | 'horizontal'; // Layout orientation
+ *   spacing?: 'tight' | 'normal' | 'loose'; // Spacing between options
+ *   error?: string;                 // Error message if validation fails
+ *   labelPosition?: 'right' | 'left'; // Position of label relative to radio
+ *   isDisabled?: boolean;           // Disabled state for the entire group
  * }
  * 
+ * // Create the RadioGroup component
  * function CosmicRadioGroup({
  *   name,
  *   options,
@@ -464,16 +522,16 @@ export const cosmicRadioButton = {
  *   
  *   return (
  *     <div 
- *       className="cosmic-radio-group" 
- *       style={groupStyles}
+ *       className={groupStyles}
  *       data-layout={layout}
  *       data-error={!!error}
+ *       role="radiogroup"
+ *       aria-labelledby={`${name}-group-label`}
  *     >
  *       {options.map((option) => (
  *         <label
  *           key={option.value}
- *           className="cosmic-radio-container"
- *           style={containerStyles}
+ *           className={containerStyles}
  *           data-disabled={isDisabled || option.disabled}
  *         >
  *           <input
@@ -483,17 +541,16 @@ export const cosmicRadioButton = {
  *             checked={value === option.value}
  *             onChange={() => handleChange(option.value)}
  *             disabled={isDisabled || option.disabled}
- *             className="radio-input"
- *             style={inputStyles}
+ *             className={inputStyles}
+ *             aria-disabled={isDisabled || option.disabled}
  *           />
  *           <div 
- *             className="radio-marker" 
- *             style={markerStyles}
+ *             className={markerStyles}
  *             data-variant={variant}
+ *             aria-hidden="true"
  *           ></div>
  *           <span 
- *             className="radio-label"
- *             style={labelStyles}
+ *             className={labelStyles}
  *           >
  *             {option.label}
  *           </span>
@@ -501,7 +558,7 @@ export const cosmicRadioButton = {
  *       ))}
  *       
  *       {error && (
- *         <div className="radio-error" style={errorStyles}>
+ *         <div className={errorStyles} aria-live="polite">
  *           {error}
  *         </div>
  *       )}
@@ -509,25 +566,114 @@ export const cosmicRadioButton = {
  *   );
  * }
  * 
- * // Example Usage
- * function ExampleForm() {
+ * // EXAMPLES OF USAGE:
+ * 
+ * // Basic RadioGroup
+ * function BasicExample() {
  *   const [selectedOption, setSelectedOption] = useState('option1');
  *   
  *   const radioOptions = [
- *     { value: 'option1', label: 'Premium Option' },
- *     { value: 'option2', label: 'Standard Option' },
- *     { value: 'option3', label: 'Basic Option', disabled: true },
+ *     { value: 'option1', label: 'Option 1' },
+ *     { value: 'option2', label: 'Option 2' },
+ *     { value: 'option3', label: 'Option 3' },
  *   ];
  *   
  *   return (
  *     <CosmicRadioGroup
- *       name="example"
+ *       name="basic"
+ *       options={radioOptions}
+ *       value={selectedOption}
+ *       onChange={setSelectedOption}
+ *     />
+ *   );
+ * }
+ * 
+ * // Cosmic-themed RadioGroup with horizontal layout
+ * function CosmicExample() {
+ *   const [selectedOption, setSelectedOption] = useState('premium');
+ *   
+ *   const radioOptions = [
+ *     { value: 'premium', label: 'Premium Plan' },
+ *     { value: 'standard', label: 'Standard Plan' },
+ *     { value: 'basic', label: 'Basic Plan', disabled: true },
+ *   ];
+ *   
+ *   return (
+ *     <CosmicRadioGroup
+ *       name="plans"
  *       options={radioOptions}
  *       value={selectedOption}
  *       onChange={setSelectedOption}
  *       variant="cosmic"
- *       layout="vertical"
+ *       size="lg"
+ *       layout="horizontal"
+ *       spacing="loose"
  *     />
  *   );
  * }
+ * 
+ * // RadioGroup with error state
+ * function ValidationExample() {
+ *   const [selectedOption, setSelectedOption] = useState('');
+ *   const [error, setError] = useState<string | undefined>(undefined);
+ *   
+ *   const radioOptions = [
+ *     { value: 'yes', label: 'Yes' },
+ *     { value: 'no', label: 'No' },
+ *   ];
+ *   
+ *   const handleChange = (value: string) => {
+ *     setSelectedOption(value);
+ *     setError(undefined);
+ *   };
+ *   
+ *   const handleSubmit = () => {
+ *     if (!selectedOption) {
+ *       setError('Please select an option');
+ *     }
+ *   };
+ *   
+ *   return (
+ *     <>
+ *       <CosmicRadioGroup
+ *         name="consent"
+ *         options={radioOptions}
+ *         value={selectedOption}
+ *         onChange={handleChange}
+ *         variant="filled"
+ *         error={error}
+ *       />
+ *       <button onClick={handleSubmit}>Submit</button>
+ *     </>
+ *   );
+ * }
  */
+
+// Add these keyframe animations to your global CSS or Panda CSS config if you want enhanced animations:
+/* 
+@keyframes cosmicRadioPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb), 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(var(--color-primary-rgb), 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--color-primary-rgb), 0);
+  }
+}
+
+@keyframes cosmicRadioMarkerAppear {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+*/

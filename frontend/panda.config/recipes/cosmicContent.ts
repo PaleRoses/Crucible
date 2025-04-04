@@ -1,22 +1,52 @@
-// src/styled-system/recipes/cosmicLayout.ts
+// panda.config/recipes/cosmicContent.ts
 
-import { cva } from '../../styled-system/css';
+import { defineRecipe } from '@pandacss/dev';
 
 /**
- * Cosmic Layout System - A comprehensive layout structure with sidebar, header, and content area
+ * ====================================================================================
+ * COSMIC LAYOUT SYSTEM - A comprehensive layout structure with header and content area
+ * ====================================================================================
+ * 
+ * IMPORT INTO YOUR PANDA CONFIG:
+ * 
+ * import { 
+ *   cosmicLayout,
+ *   cosmicHeader,
+ *   cosmicContent,
+ *   cosmicContentInner
+ * } from './panda.config/recipes/cosmicContent';
+ * 
+ * Then add to your config:
+ * 
+ * export default defineConfig({
+ *   // ...other config
+ *   theme: {
+ *     extend: {
+ *       recipes: {
+ *         // Add individual components
+ *         Layout: cosmicLayout,
+ *         Header: cosmicHeader,
+ *         Content: cosmicContent,
+ *         ContentInner: cosmicContentInner
+ *       }
+ *     }
+ *   }
+ * })
  * 
  * Features:
- * - Flexible layout with sidebar, header, and content components
- * - Sticky sidebar and header options with scrollable content
+ * - Flexible layout with header and content components
+ * - Support for sidebar integration (if imported separately)
+ * - Sticky header option with scrollable content
  * - Support for responsive behaviors
- * - Multiple sidebar states (expanded, collapsed, hidden)
  * - Theme-adaptive styling
  * - Borderless and backgroundless variants for all components
- * - Special borderless/backgroundless support for cosmic styling
+ * - Special cosmic styling with subtle background effects
  */
 
 // Main layout container
-export const cosmicLayout = cva({
+export const cosmicLayout = defineRecipe({
+  className: 'cosmicLayout',
+  description: 'Main layout container with sidebar, header, and content area',
   base: {
     display: 'flex',
     width: '100%',
@@ -43,7 +73,9 @@ export const cosmicLayout = cva({
 });
 
 // Header component
-export const cosmicHeader = cva({
+export const cosmicHeader = defineRecipe({
+  className: 'cosmicHeader',
+  description: 'Header component with sticky and scrollable behavior',
   base: {
     display: 'flex',
     alignItems: 'center',
@@ -191,7 +223,9 @@ export const cosmicHeader = cva({
 });
 
 // Main content area
-export const cosmicContent = cva({
+export const cosmicContent = defineRecipe({
+  className: 'cosmicContent',
+  description: 'Main content area with padding and scrollable behavior',
   base: {
     flex: 1,
     width: '100%',
@@ -353,7 +387,9 @@ export const cosmicContent = cva({
 });
 
 // Inner content wrapper (for consistent padding/styling)
-export const cosmicContentInner = cva({
+export const cosmicContentInner = defineRecipe({
+  className: 'cosmicContentInner',
+  description: 'Inner content wrapper with padding and max width',
   base: {
     width: '100%',
     height: '100%',
@@ -402,18 +438,22 @@ export const cosmicContentInner = cva({
 });
 
 /**
- * Usage Example (in a React component):
+ * USAGE EXAMPLE (in a React component):
+ * =====================================
  * 
+ * // First, import the necessary components
  * import { 
  *   cosmicLayout,
- *   cosmicSidebar,
  *   cosmicHeader,
  *   cosmicContent,
  *   cosmicContentInner 
- * } from '../styled-system/recipes/cosmicLayout';
+ * } from './panda.config/recipes/cosmicContent';
  * import { useState, useEffect } from 'react';
  * 
+ * // Note: This example assumes you have a cosmicSidebar imported from elsewhere
+ * 
  * function CosmicLayoutExample() {
+ *   // State for sidebar and header visibility
  *   const [sidebarExpanded, setSidebarExpanded] = useState(true);
  *   const [headerVisible, setHeaderVisible] = useState(true);
  *   const [prevScrollPos, setPrevScrollPos] = useState(0);
@@ -448,21 +488,6 @@ export const cosmicContentInner = cva({
  *       className={cosmicLayout({ background: 'transparent' })}
  *       data-sidebar-expanded={sidebarExpanded}
  *     >
- *       <aside 
- *         className={cosmicSidebar({ 
- *           variant: 'cosmicBorderless',
- *           border: 'hidden',
- *           background: 'visible'
- *         })}
- *         data-expanded={sidebarExpanded}
- *       >
- *         <div style={{ padding: '1rem' }}>
- *           <button onClick={toggleSidebar}>
- *             {sidebarExpanded ? 'Collapse' : 'Expand'}
- *           </button>
- *         </div>
- *       </aside>
- *       
  *       <header 
  *         className={cosmicHeader({ 
  *           variant: 'cosmicMinimal', 
@@ -488,17 +513,69 @@ export const cosmicContentInner = cva({
  *           variant: 'cosmic' 
  *         })}>
  *           <h2>Welcome to Cosmic UI</h2>
- *           <p>This is a modern layout with a borderless and backgroundless cosmic theme.</p>
+ *           <p>This is a modern layout with a cosmic theme.</p>
  *           
- *           {Array.from({ length: 20 }).map((_, i) => (
- *             <div key={i} style={{ marginBottom: '2rem' }}>
- *               <h3>Section {i + 1}</h3>
- *               <p>Lorem ipsum dolor sit amet consectetur adipisicing elit.</p>
- *             </div>
- *           ))}
+ *           <div className="content-section">
+ *             <h3>Features Section</h3>
+ *             <p>This layout system provides flexible and responsive behavior.</p>
+ *           </div>
+ *           
+ *           <div className="content-section">
+ *             <h3>Variants Section</h3>
+ *             <p>Multiple variants available including standard, cosmic, and minimal.</p>
+ *           </div>
  *         </div>
  *       </main>
  *     </div>
  *   );
  * }
+ * 
+ * // ADDITIONAL EXAMPLES:
+ * 
+ * // Basic layout with standard styling
+ * <div className={cosmicLayout()}>
+ *   <header className={cosmicHeader({ variant: 'standard' })}>
+ *     <h1>App Header</h1>
+ *   </header>
+ *   <main className={cosmicContent({ variant: 'standard', padding: 'md' })}>
+ *     <div className={cosmicContentInner({ container: true })}>
+ *       Content goes here
+ *     </div>
+ *   </main>
+ * </div>
+ * 
+ * // Cosmic layout with glassmorphic header
+ * <div className={cosmicLayout({ background: 'transparent' })}>
+ *   <header className={cosmicHeader({ variant: 'glassmorphic' })}>
+ *     <h1>Glassmorphic Header</h1>
+ *   </header>
+ *   <main className={cosmicContent({ 
+ *     variant: 'cosmic',
+ *     padding: 'lg',
+ *     customScrollbar: true
+ *   })}>
+ *     <div className={cosmicContentInner({ container: true, variant: 'cosmic' })}>
+ *       Content with cosmic styling
+ *     </div>
+ *   </main>
+ * </div>
+ * 
+ * // Content-focused layout with minimal styling
+ * <div className={cosmicLayout()}>
+ *   <header className={cosmicHeader({ 
+ *     variant: 'minimal',
+ *     hideOnScroll: true
+ *   })}>
+ *     <h1>Minimal Header</h1>
+ *   </header>
+ *   <main className={cosmicContent({ 
+ *     variant: 'minimal',
+ *     maxWidth: 'content'
+ *   })}>
+ *     <div className={cosmicContentInner({ container: true })}>
+ *       <h2>Content-focused design</h2>
+ *       <p>Perfect for reading-optimized layouts</p>
+ *     </div>
+ *   </main>
+ * </div>
  */

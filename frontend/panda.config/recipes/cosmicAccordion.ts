@@ -1,6 +1,6 @@
-// src/styled-system/recipes/cosmicAccordion.ts
+//panda.config//recipes/cosmicAccordion.ts
 
-import { cva } from '../../styled-system/css';
+import { defineRecipe } from '@pandacss/dev';
 
 /**
  * Cosmic Accordion - An elegant content disclosure component
@@ -14,8 +14,47 @@ import { cva } from '../../styled-system/css';
  * - Consistent styling with other cosmic components
  */
 
+/**
+ * ======================================================================================
+ * COSMIC ACCORDION COMPONENT
+ * ======================================================================================
+ * 
+ * IMPORT INTO YOUR PANDA CONFIG:
+ * 
+ * import { 
+ *   cosmicAccordionRoot,
+ *   cosmicAccordionItem, 
+ *   cosmicAccordionTrigger, 
+ *   cosmicAccordionContent,
+ *   cosmicAccordion
+ * } from './styled-system/recipes/cosmicAccordion';
+ * 
+ * Then add to your config:
+ * 
+ * export default defineConfig({
+ *   // ...other config
+ *   theme: {
+ *     extend: {
+ *       recipes: {
+ *         // Method 1: Add individual components
+ *         AccordionRoot: cosmicAccordionRoot,
+ *         AccordionItem: cosmicAccordionItem,
+ *         AccordionTrigger: cosmicAccordionTrigger,
+ *         AccordionContent: cosmicAccordionContent,
+ *         
+ *         // Method 2: Add the entire accordion object
+ *         Accordion: cosmicAccordion
+ *       }
+ *     }
+ *   }
+ * })
+ */
+
+
 // Root container for accordion group
-export const cosmicAccordionRoot = cva({
+export const cosmicAccordionRoot = defineRecipe({
+  className: 'cosmicAccordionRoot',
+  description: 'Root container for the cosmic accordion component',
   base: {
     display: 'flex',
     flexDirection: 'column',
@@ -178,7 +217,9 @@ export const cosmicAccordionRoot = cva({
 });
 
 // Individual accordion item
-export const cosmicAccordionItem = cva({
+export const cosmicAccordionItem = defineRecipe({
+  className: 'cosmicAccordionItem',
+  description: 'Individual item within the cosmic accordion',
   base: {
     display: 'flex',
     flexDirection: 'column',
@@ -273,7 +314,9 @@ export const cosmicAccordionItem = cva({
 });
 
 // Accordion trigger button
-export const cosmicAccordionTrigger = cva({
+export const cosmicAccordionTrigger = defineRecipe({
+  className: 'cosmicAccordionTrigger',
+  description: 'Trigger button for the cosmic accordion',
   base: {
     display: 'flex',
     alignItems: 'center',
@@ -355,7 +398,9 @@ export const cosmicAccordionTrigger = cva({
 });
 
 // Content area container
-export const cosmicAccordionContent = cva({
+export const cosmicAccordionContent = defineRecipe({
+  className: 'cosmicAccordionContent',
+  description: 'Content area of the cosmic accordion',
   base: {
     overflow: 'hidden',
     fontSize: '1rem',
@@ -441,166 +486,25 @@ export const cosmicAccordion = {
   trigger: cosmicAccordionTrigger,
   content: cosmicAccordionContent
 };
+
 /**
- * Usage Example (in a React component):
+ * Minimal Example Usage:
  * 
- * import { useState, useRef, useEffect } from 'react';
- * import {
- *   cosmicAccordionRoot,
- *   cosmicAccordionItem,
- *   cosmicAccordionTrigger,
- *   cosmicAccordionContent
- * } from '../styled-system/recipes/cosmicAccordion';
- * 
- * interface AccordionData {
- *   id: string;
- *   title: string;
- *   content: React.ReactNode;
- *   icon?: React.ReactNode;
- * }
- * 
- * interface CosmicAccordionProps {
- *   items: AccordionData[];
- *   variant?: 'standard' | 'filled' | 'minimal' | 'cosmic';
- *   size?: 'sm' | 'md' | 'lg';
- *   allowMultiple?: boolean;
- *   layout?: 'bordered' | 'separated' | 'default';
- *   defaultExpandedIds?: string[];
- * }
- * 
- * export function CosmicAccordion({
- *   items,
- *   variant = 'standard',
- *   size = 'md',
- *   allowMultiple = false,
- *   layout = 'default',
- *   defaultExpandedIds = [],
- * }: CosmicAccordionProps) {
- *   // Track expanded state of accordion items
- *   const [expandedItems, setExpandedItems] = useState<Set<string>>(
- *     new Set(defaultExpandedIds)
- *   );
- * 
- *   // Refs for content elements to animate height
- *   const contentRefs = useRef<Map<string, HTMLDivElement>>(new Map());
- *   
- *   // Get styles from recipes
- *   const rootStyles = cosmicAccordionRoot({
- *     variant,
- *     size,
- *     multiple: allowMultiple,
- *   });
- *   
- *   const itemStyles = cosmicAccordionItem({ variant });
- *   
- *   const getContentStyles = (itemId: string) => {
- *     return cosmicAccordionContent({ variant });
- *   };
- *   
- *   // Toggle item expansion
- *   const toggleItem = (itemId: string) => {
- *     setExpandedItems(prev => {
- *       const newSet = new Set(prev);
- *       
- *       if (newSet.has(itemId)) {
- *         newSet.delete(itemId);
- *       } else {
- *         // If not allowing multiple, clear previous selections
- *         if (!allowMultiple) {
- *           newSet.clear();
- *         }
- *         newSet.add(itemId);
- *       }
- *       
- *       return newSet;
- *     });
- *   };
- *   
- *   // Update content heights for animations when expanded state changes
- *   useEffect(() => {
- *     // For each content ref
- *     contentRefs.current.forEach((contentEl, itemId) => {
- *       const isExpanded = expandedItems.has(itemId);
- *       const innerEl = contentEl.querySelector('[data-accordion-content-inner]');
- *       
- *       if (!innerEl) return;
- *       
- *       if (isExpanded) {
- *         // Set height for animation
- *         const contentHeight = innerEl.scrollHeight;
- *         contentEl.style.height = `${contentHeight}px`;
- *         contentEl.style.opacity = '1';
- *       } else {
- *         // Collapse with animation
- *         contentEl.style.height = '0';
- *         contentEl.style.opacity = '0';
- *       }
- *     });
- *   }, [expandedItems]);
- *   
- *   const isBordered = layout === 'bordered';
- *   const isSeparated = layout === 'separated';
- *   
- *   return (
- *     <div 
- *       className={rootStyles}
- *       data-bordered={isBordered}
- *       data-separated={isSeparated}
- *     >
- *       {items.map((item, index) => {
- *         const isExpanded = expandedItems.has(item.id);
- *         const state = isExpanded ? 'open' : 'closed';
- *         const triggerStyles = cosmicAccordionTrigger({
- *           withIcon: !!item.icon,
- *         });
- *         
- *         return (
- *           <div
- *             key={item.id}
- *             className={itemStyles}
- *             data-accordion-item
- *             data-state={state}
- *           >
- *             <button
- *               className={triggerStyles}
- *               data-accordion-trigger
- *               data-state={state}
- *               onClick={() => toggleItem(item.id)}
- *               aria-expanded={isExpanded}
- *               aria-controls={`content-${item.id}`}
- *               id={`trigger-${item.id}`}
- *             >
- *               <span data-accordion-header>
- *                 {item.icon && (
- *                   <span aria-hidden="true">{item.icon}</span>
- *                 )}
- *                 {item.title}
- *               </span>
- *               
- *               <span data-accordion-icon aria-hidden="true">
- *                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
- *                   <polyline points="6 9 12 15 18 9"></polyline>
- *                 </svg>
- *               </span>
- *             </button>
- *             
- *             <div
- *               className={getContentStyles(item.id)}
- *               data-accordion-content
- *               data-state={state}
- *               id={`content-${item.id}`}
- *               role="region"
- *               aria-labelledby={`trigger-${item.id}`}
- *               ref={el => el && contentRefs.current.set(item.id, el)}
- *             >
- *               <div data-accordion-content-inner>
- *                 {item.content}
- *               </div>
- *             </div>
- *           </div>
- *         );
- *       })}
- *     </div>
- *   );
- * }
+ * <CosmicAccordion
+ *   items={[
+ *     {
+ *       id: "panel1",
+ *       title: "First Panel",
+ *       content: "Content for the first panel"
+ *     },
+ *     {
+ *       id: "panel2",
+ *       title: "Second Panel",
+ *       content: "Content for the second panel"
+ *     }
+ *   ]}
+ *   variant="cosmic"
+ *   size="md"
+ *   allowMultiple={false}
+ * />
  */
