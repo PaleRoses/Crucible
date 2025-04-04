@@ -1,6 +1,6 @@
 // src/styled-system/recipes/cosmicButton.ts
 
-import { cva } from '../../styled-system/css';
+import { defineRecipe } from '@pandacss/dev';
 
 /**
  * Cosmic Button - A luxurious, moon-inspired button component
@@ -13,7 +13,9 @@ import { cva } from '../../styled-system/css';
  * - Loading state with subtle lunar animation
  * - Fully respects the active theme's color tokens
  */
-export const cosmicButton = cva({
+export const cosmicButtonRecipe = defineRecipe({
+  className: 'cosmic-button',
+  description: 'A luxurious, moon-inspired button component',
   // Base styles applied to all button variants
   base: {
     position: 'relative',

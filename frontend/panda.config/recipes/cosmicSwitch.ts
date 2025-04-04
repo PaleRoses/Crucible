@@ -363,6 +363,17 @@ export const cosmicSwitchLabel = cva({
 });
 
 /**
+ * Bulk export of all cosmic switch components
+ */
+export const cosmicSwitch = {
+  container: cosmicSwitchContainer,
+  input: cosmicSwitchInput,
+  track: cosmicSwitchTrack,
+  thumb: cosmicSwitchThumb,
+  label: cosmicSwitchLabel
+};
+
+/**
  * Usage Example (in a React component):
  * 
  * import { 

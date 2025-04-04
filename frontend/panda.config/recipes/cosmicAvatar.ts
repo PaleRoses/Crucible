@@ -451,6 +451,16 @@ export const cosmicAvatarGroup = cva({
 });
 
 /**
+ * Bulk export of all cosmic avatar components
+ */
+export const cosmicAvatarComponents = {
+  avatar: cosmicAvatar,
+  status: cosmicAvatarStatus,
+  badge: cosmicAvatarBadge,
+  group: cosmicAvatarGroup
+};
+
+/**
  * Usage Example (in a React component):
  * 
  * import { 

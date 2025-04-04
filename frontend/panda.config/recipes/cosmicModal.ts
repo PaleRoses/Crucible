@@ -485,6 +485,17 @@ export const cosmicModalFooter = cva({
 });
 
 /**
+ * Bulk export of all cosmic modal components
+ */
+export const cosmicModal = {
+  overlay: cosmicModalOverlay,
+  content: cosmicModalContent,
+  header: cosmicModalHeader,
+  body: cosmicModalBody,
+  footer: cosmicModalFooter
+};
+
+/**
  * Usage Example (in a React component):
  * 
  * import { useState, useRef, useEffect } from 'react';

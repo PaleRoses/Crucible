@@ -504,6 +504,16 @@ export const cosmicCollapsibleGroup = cva({
 });
 
 /**
+ * Bulk export of all cosmic collapsible components
+ */
+export const cosmicCollapsible = {
+  container: cosmicCollapsibleContainer,
+  trigger: cosmicCollapsibleTrigger,
+  content: cosmicCollapsibleContent,
+  group: cosmicCollapsibleGroup
+};
+
+/**
  * Usage Example (in a React component):
  * 
  * import { useState, useRef, useEffect } from 'react';

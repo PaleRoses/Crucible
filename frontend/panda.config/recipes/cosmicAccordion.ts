@@ -432,6 +432,16 @@ export const cosmicAccordionContent = cva({
 });
 
 /**
+ * Bulk export of all cosmic accordion components
+ */
+
+export const cosmicAccordion = {
+  root: cosmicAccordionRoot,
+  item: cosmicAccordionItem,
+  trigger: cosmicAccordionTrigger,
+  content: cosmicAccordionContent
+};
+/**
  * Usage Example (in a React component):
  * 
  * import { useState, useRef, useEffect } from 'react';

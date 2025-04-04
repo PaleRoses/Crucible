@@ -23,7 +23,7 @@ import CosmicStars from '../effects/cosmic/CosmicStars'; // Adjust import path i
  */
 const Background = ({ config = {} }) => {
   // Use the specific CSS variable for the extension div background
-  const bottomBackgroundColor = 'var(--color-background-alt)';
+  const bottomBackgroundColor = 'var(--color-background)';
 
   // State to store the real viewport height for iOS fix
   const [viewportHeight, setViewportHeight] = useState('100vh'); // Default to CSS value
@@ -64,7 +64,7 @@ const Background = ({ config = {} }) => {
       // ...and specifically set the background colors using CSS variables.
       background: {
         topColor: 'var(--color-background)',
-        bottomColor: 'var(--color-background-alt)',
+        bottomColor: 'var(--color-background)',
       }
     },
     // ...and ensure colorResolutionOptions are passed through or defaulted.

@@ -468,6 +468,14 @@ export const cosmicInputUnderline = cva({
   },
 });
 
+export const cosmicInput = {
+  wrapper: cosmicInputWrapper,
+  field: cosmicInputField,
+  label: cosmicInputLabel,
+  adornment: cosmicInputAdornment,
+  underline: cosmicInputUnderline
+};
+
 /**
  * Usage Example (in a React component):
  * 

@@ -624,6 +624,14 @@ export const cosmicTabPanel = cva({
   },
 });
 
+export const cosmicTabs = {
+  container: cosmicTabsContainer,
+  list: cosmicTabsList,
+  trigger: cosmicTabTrigger,
+  content: cosmicTabsContent,
+  panel: cosmicTabPanel
+};
+
 /**
  * CSS Keyframes to be added to your global styles:
  * 

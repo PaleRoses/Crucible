@@ -553,6 +553,19 @@ export const cosmicSidebarToggle = cva({
 });
 
 /**
+ * Bulk export of all cosmic sidebar components
+ */
+export const cosmicSideBar = {
+  pageLayout: cosmicPageLayout,
+  sidebar: cosmicSidebar,
+  header: cosmicSidebarHeader,
+  content: cosmicSidebarContent,
+  item: cosmicSidebarItem,
+  footer: cosmicSidebarFooter,
+  toggle: cosmicSidebarToggle
+};
+
+/**
  * Usage Example (in a React component):
  *
  * import {

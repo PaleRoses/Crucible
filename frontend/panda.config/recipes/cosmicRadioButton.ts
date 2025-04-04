@@ -391,6 +391,15 @@ export const cosmicRadioError = cva({
   },
 });
 
+export const cosmicRadioButton = {
+  group: cosmicRadioGroup,
+  container: cosmicRadioContainer,
+  input: cosmicRadioInput,
+  marker: cosmicRadioMarker,
+  label: cosmicRadioLabel,
+  error: cosmicRadioError
+};
+
 /**
  * Usage Example (in a React component):
  * 

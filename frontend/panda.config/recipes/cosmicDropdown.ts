@@ -690,6 +690,14 @@ export const cosmicDropdownLabel = cva({
   },
 });
 
+export const cosmicDropdown = {
+  trigger: cosmicDropdownTrigger,
+  content: cosmicDropdownContent,
+  item: cosmicDropdownItem,
+  separator: cosmicDropdownSeparator,
+  label: cosmicDropdownLabel
+};
+
 /**
  * Usage Example (in a React component):
  * 

@@ -607,6 +607,18 @@ export const cosmicSubmenuItem = cva({
 });
 
 /**
+ * Bulk export of all cosmic submenu components
+ */
+export const cosmicSubmenuComponents = {
+  container: cosmicSubmenu,
+  grid: cosmicSubmenuGrid,
+  header: cosmicSubmenuHeader,
+  title: cosmicSubmenuTitle,
+  description: cosmicSubmenuDescription,
+  item: cosmicSubmenuItem
+};
+
+/**
  * Usage Example (in a React component):
  * 
  * import { 

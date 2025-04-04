@@ -1,6 +1,7 @@
 // improved-panda.config.ts
 import { defineConfig } from "@pandacss/dev";
 import { textStyles } from './panda.config/text-styles';
+import { cosmicButtonRecipe } from './panda.config/recipes/cosmicButton';
 
 export default defineConfig({
   // Basic setup
@@ -588,6 +589,7 @@ export default defineConfig({
         },
       },
       textStyles: textStyles,
+
       
       // Adding standard responsive breakpoints
       breakpoints: {
@@ -628,6 +630,9 @@ export default defineConfig({
           '0%': { transform: 'rotate(0deg)' },
           '100%': { transform: 'rotate(360deg)' }
         }
+      },
+      recipes: {
+        cosmicButton: cosmicButtonRecipe,
       }
     },
 
