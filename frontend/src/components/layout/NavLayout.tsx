@@ -295,7 +295,7 @@ const navItems = [
 const NavLayout: React.FC = () => {
   return (
     <ScrollAwareSpacer
-      height={45}
+      height={20}
       zIndex={100}
       transitionDuration={0.25}
       showOnScrollUp={true}

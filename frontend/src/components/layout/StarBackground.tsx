@@ -134,7 +134,7 @@ const Background: React.FC<BackgroundProps> = ({ config = {} }) => {
         style={{
           position: 'fixed',
           left: 0,
-          top: '100vh',
+          top: '50vh',
           width: '100%',
           height: '100vh',
           zIndex: -101,

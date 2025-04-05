@@ -24,8 +24,8 @@ function convertSidebarItems(pathname: string): NavigationItem[] {
       label: 'Core Rules',
       isSection: true,
       items: [
-        { id: 'motivations', label: 'Motivations', href: '/codex/motivations' },
-        { id: 'actions', label: 'Actions', href: '/codex/actions' },
+        { id: 'motivations', label: 'Motivations', href: '/codex/rules/motivations' },
+        { id: 'actions', label: 'Actions', href: '/codex/rules/actions' },
         { id: 'harm', label: 'Harm', href: '/codex/harm' },
         { id: 'equipment', label: 'Equipment', href: '/codex/equipment' },
         { id: 'moves', label: 'Moves', href: '/codex/moves' },
@@ -169,7 +169,8 @@ export default function Layout({
         id="main-content" 
         className={css({ 
           flex: '1',
-          padding: '6',
+          padding: '0',
+          marginTop: '0',
           transition: 'margin-left 300ms ease'
         })}
       >
