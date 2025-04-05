@@ -160,6 +160,8 @@ interface ElementCardProps {
   handleMobileOverflow?: boolean;       // Apply word-break styles on mobile
   mobileFontSizeFactor?: number;        // Multiplier for font size on mobile
   navTextPadding?: number;              // Left padding for desktop nav link text
+  contentAlignment?: 'left' | 'center' | 'right'; // Alignment for content and sidebar
+  appearImmediately?: boolean;          // Whether to appear immediately without viewport check
 }
 
 // Calculated layout values based on props
@@ -304,7 +306,7 @@ const debounce = <T extends (...args: unknown[]) => unknown>(fn: T, wait: number
 // Reusable CSS mixins for styled-components
 const containerMixins = {
   // Basic flex container layout, switches to column on mobile
-  responsiveContainer: css<ResponsiveProps>`
+  responsiveContainer: css<ExtendedContainerProps>`
     display: flex;
     flex-direction: ${props => props.$isMobile ? 'column' : 'row'};
     width: 90%; /* Adjust overall width */
@@ -317,17 +319,51 @@ const containerMixins = {
   `,
 };
 
+// Extended ResponsiveProps to include content alignment
+interface ExtendedContainerProps extends ResponsiveProps {
+  $contentAlignment?: 'left' | 'center' | 'right';
+}
+
 // Main container for the entire component
-const Container = styled(motion.div)<ResponsiveProps>`
+const Container = styled(motion.div)<ExtendedContainerProps>`
   ${containerMixins.responsiveContainer}
   min-height: ${props => props.$isMobile ? 'auto' : '70vh'}; /* Minimum height on desktop */
   padding-top: ${props => props.$isMobile ? '1.5rem' : '0'}; /* Add padding top on mobile */
+  
+  /* Handle container alignment */
+  ${props => !props.$isMobile && props.$contentAlignment === 'center' && `
+    justify-content: center;
+    align-items: flex-start;
+  `}
+  
+  /* Right alignment for desktop view */
+  ${props => !props.$isMobile && props.$contentAlignment === 'right' && `
+    justify-content: flex-end;
+    align-items: flex-start;
+  `}
 `;
 
+// Extended SidebarWrapper props with alignment
+interface SidebarWrapperProps {
+  $width: number;
+  $contentAlignment?: 'left' | 'center' | 'right';
+}
+
 // Wrapper for the sidebar content (used for width calculation)
-const SidebarWrapper = styled.div<{ $width: number }>`
+const SidebarWrapper = styled.div<SidebarWrapperProps>`
   width: ${props => `${props.$width}%`}; /* Dynamically set width */
   position: relative; /* Needed for sticky positioning calculation */
+  
+  /* Handle sidebar alignment based on content alignment */
+  ${props => props.$contentAlignment === 'center' && `
+    display: flex;
+    justify-content: center;
+  `}
+  
+  ${props => props.$contentAlignment === 'right' && `
+    display: flex;
+    justify-content: flex-end;
+  `}
 `;
 
 // The actual sidebar element that can become sticky
@@ -357,20 +393,39 @@ const mixins = {
   `,
 };
 
+// Extended ContentSectionProps to include content alignment
+interface ExtendedContentSectionProps extends ContentSectionProps {
+  $contentAlignment?: 'left' | 'center' | 'right';
+}
+
 // Wrapper for the main content area
-const ContentSection = styled.div<ContentSectionProps>`
+const ContentSection = styled.div<ExtendedContentSectionProps>`
   width: ${props => props.$isMobile ? '100%' : `${props.$width}%`}; /* Full width on mobile, dynamic on desktop */
   padding: ${props => props.$isMobile
     ? `0rem ${props.$mobileContentMargin}rem` /* Mobile padding */
     : `${spacing.lg} 0 ${spacing.md} ${props.$contentPadding}rem` /* Desktop padding */
   };
-  margin-left: ${props => props.$isMobile ? '0' : 'auto'}; /* Align content right on desktop */
-  text-align: ${props => props.$isMobile ? 'center' : 'left'}; /* Text alignment */
+  
+  /* Handle content alignment */
+  ${props => {
+    if (props.$isMobile) {
+      return 'margin: 0 auto; text-align: center;';
+    }
+    
+    switch (props.$contentAlignment) {
+      case 'center':
+        return 'margin-left: auto; margin-right: auto; text-align: center;';
+      case 'right':
+        return 'margin-left: auto; margin-right: 0; text-align: right;';
+      case 'left':
+      default:
+        return 'margin-left: 0; margin-right: auto; text-align: left;';
+    }
+  }}
 
   /* Mobile specific overrides */
   ${props => props.$isMobile && `
     max-width: ${props.$mobileContentMaxWidth || 95}%; /* Max width constraint */
-    margin: 0 auto; /* Center content */
     ${props.$handleMobileOverflow ? mixins.mobileOverflow : ''} /* Apply overflow handling */
   `}
 
@@ -1312,6 +1367,8 @@ const defaultElementCardProps: Partial<ElementCardProps> = {
   mobileFontSizeFactor: 1,
   mobileFadeDuration: 0.6,
   navTextPadding: 50,
+  contentAlignment: 'left', // Default content alignment
+  appearImmediately: true, // Default to appearing immediately
 };
 
 /**
@@ -1329,11 +1386,12 @@ const ElementCard = (props: ElementCardProps) => {
     useVirtualization, virtualItemHeight, virtualListThreshold, statsPosition, showOverview,
     mobileContentMargin, mobileBreakpoint, enhancedAccessibility, mobileSectionTextAlign,
     mobileContentMaxWidth, mobileSectionContentPadding, mobileFadeDuration,
-    handleMobileOverflow, mobileFontSizeFactor, navTextPadding
+    handleMobileOverflow, mobileFontSizeFactor, navTextPadding, contentAlignment, appearImmediately
   } = mergedProps as Required<ElementCardProps>;
 
   // State: Has the initial animation finished? (Used by useThreePhaseScroll)
-  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  // Initialize as true if we're appearing immediately
+  const [isInitialized, setIsInitialized] = useState<boolean>(appearImmediately || false);
   // State: Is the view currently considered mobile?
   const [isMobile, setIsMobile] = useState<boolean>(false);
 
@@ -1408,11 +1466,12 @@ const ElementCard = (props: ElementCardProps) => {
     maxSections
   });
 
-  // Hook to detect if the main container is in the viewport (for entry animation)
-  const isInView = useInView(containerRef, {
+  // Set initial view state based on appearImmediately prop
+  // If appearImmediately is true, skip useInView entirely
+  const isInView = appearImmediately ? true : useInView(containerRef, {
     amount: isMobile ? 0.1 : (animationConfig?.threshold ?? 0.2), // Lower threshold on mobile
     once: animationConfig?.once ?? true, // Animate once by default
-    margin: isMobile ? "-5px 0px" : "0px" // Adjust trigger margin slightly on mobile
+    margin: isMobile ? "-5px 0px" : "0px", // Adjust trigger margin slightly on mobile
   });
 
   // Callback to check window width and update mobile state
@@ -1445,21 +1504,35 @@ const ElementCard = (props: ElementCardProps) => {
     };
   }, [handleNavEvent]); // Dependency: the memoized event handler
 
-  // Effect to trigger the entry animation when the component scrolls into view
+  // Effect to trigger the entry animation when the component loads or scrolls into view
   useEffect(() => {
     if (isInView) {
       // Use different durations for mobile/desktop if specified
       const duration = isMobile ? (mobileFadeDuration ?? 0.6) : (animationConfig?.duration ?? 0.8);
+      
+      // If appearing immediately, use a shorter or no duration
+      const effectiveDuration = appearImmediately ? 0.2 : duration;
+      const effectiveDelay = appearImmediately ? 0 : (isMobile ? 0 : 0.1);
+      
       // Start the animation
       controls.start({
         opacity: 1, y: 0,
-        transition: { duration, ease: "easeOut", delay: isMobile ? 0 : 0.1 } // No delay on mobile
+        transition: { 
+          duration: effectiveDuration, 
+          ease: "easeOut", 
+          delay: effectiveDelay
+        }
       });
-      // Set initialized state slightly after animation completes
-      const timeout = setTimeout(() => setIsInitialized(true), duration * 1000 + 100);
-      return () => clearTimeout(timeout); // Cleanup timeout
+      
+      // Set initialized state slightly after animation completes or immediately
+      if (appearImmediately) {
+        setIsInitialized(true);
+      } else {
+        const timeout = setTimeout(() => setIsInitialized(true), effectiveDuration * 1000 + 100);
+        return () => clearTimeout(timeout); // Cleanup timeout
+      }
     }
-  }, [isInView, controls, animationConfig?.duration, isMobile, mobileFadeDuration]); // Dependencies
+  }, [isInView, controls, animationConfig?.duration, isMobile, mobileFadeDuration, appearImmediately]); // Dependencies
 
   // Memoized callback to determine if virtualization should be used for a given content array
   const shouldUseVirtualization = useCallback((items: (React.ReactNode | string)[] | undefined): boolean => (
@@ -1563,7 +1636,8 @@ const ElementCard = (props: ElementCardProps) => {
         <Container
           ref={containerRef} // Ref for useThreePhaseScroll and useInView
           $isMobile={isMobile}
-          initial={{ opacity: 0, y: animationConfig?.initialY ?? 30 }} // Initial animation state
+          $contentAlignment={contentAlignment}
+          initial={appearImmediately ? { opacity: 1, y: 0 } : { opacity: 0, y: animationConfig?.initialY ?? 30 }} // Initial animation state
           animate={controls} // Link to animation controls
           // Add ARIA role if enhanced accessibility is enabled
           role={enhancedAccessibility ? "region" : undefined}
@@ -1571,7 +1645,11 @@ const ElementCard = (props: ElementCardProps) => {
         >
           {/* Desktop Sidebar */}
           {!isMobile && (
-            <SidebarWrapper ref={sidebarWrapperRef} $width={layoutValues.sidebarWidth}>
+            <SidebarWrapper 
+              ref={sidebarWrapperRef} 
+              $width={layoutValues.sidebarWidth}
+              $contentAlignment={contentAlignment}
+            >
               {/* Inner sidebar holds content and receives sticky styles */}
               <Sidebar ref={sidebarRef}>
                 {/* Pass derived colors to InfoHeader */}
@@ -1664,6 +1742,7 @@ const ElementCard = (props: ElementCardProps) => {
             $mobileContentMargin={mobileContentMargin}
             $mobileContentMaxWidth={mobileContentMaxWidth}
             $handleMobileOverflow={handleMobileOverflow}
+            $contentAlignment={contentAlignment}
             role={enhancedAccessibility ? "main" : undefined} // ARIA role for main content
           >
              {/* Pass derived colors to StatsComponent if position is bottom (Desktop) */}
