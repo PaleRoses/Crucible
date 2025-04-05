@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useState, useCallback, useEffect, useContext, useRef, memo, useMemo } from 'react';
 // Added useMemo import
 import { motion, AnimatePresence, useAnimation, MotionValue, MotionStyle, Variants, TargetAndTransition, VariantLabels } from 'framer-motion'; // Import necessary types

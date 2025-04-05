@@ -33,7 +33,7 @@ import { defineRecipe } from '@pandacss/dev';
  * - Loading state with subtle lunar animation
  * - Fully respects the active theme's color tokens
  */
-export const cosmicButtonRecipe = defineRecipe({
+export const cosmicButton = defineRecipe({
   className: 'cosmic-button',
   description: 'A luxurious, moon-inspired button component',
   // Base styles applied to all button variants
