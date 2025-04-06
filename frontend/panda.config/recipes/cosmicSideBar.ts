@@ -210,12 +210,11 @@ export const cosmicSidebar = defineRecipe({
     height: '100vh',
     display: 'flex',
     flexDirection: 'column',
-    borderRight: '1px solid',
-    borderColor: 'border',
     transition: 'width var(--transition-default), transform var(--transition-default)',
     zIndex: 'sidebar',
     overflowX: 'hidden',
-    backgroundColor: 'backgroundAlt',
+    backgroundColor: 'none',
+    boxShadow: '0 0 15px var(--color-glow)',
 
     // Default width values (can be overridden with CSS custom properties)
     '--sidebar-collapsed-width': '60px',
@@ -280,16 +279,18 @@ export const cosmicSidebar = defineRecipe({
       },
 
       minimal: {
-        borderRight: '1px solid',
-        borderColor: 'transparent',
-        backgroundColor: 'color-mix(in srgb, var(--color-backgroundAlt) 80%, transparent)',
-        backdropFilter: 'blur(8px)',
+        borderRight: 'none',
+        backgroundColor: 'transparent', // Fully transparent background
+        backdropFilter: 'blur(8px)', // Keep blur for readability if needed
+        boxShadow: '3px 0 15px 0 token(colors.glow)',
       },
 
       cosmic: {
-        borderRight: '1px solid',
-        borderColor: 'color-mix(in srgb, var(--color-border) 70%, var(--color-primary))',
-        backgroundColor: 'color-mix(in srgb, var(--color-backgroundAlt) 95%, var(--color-primary))',
+        borderRight: 'none',
+        backgroundColor: 'transparent',
+        
+        
+        
         boxShadow: '0 0 15px var(--color-glow)',
 
         // Subtle background effect
@@ -417,8 +418,8 @@ export const cosmicSidebarItem = defineRecipe({
   base: {
     display: 'flex',
     alignItems: 'center',
-    padding: '2',
-    marginBottom: '1',
+    padding: '1',
+    marginBottom: '0.5',
     borderRadius: 'md',
     color: 'textMuted',
     cursor: 'pointer',

@@ -1,7 +1,5 @@
 import React, { useState, useCallback, useEffect, useContext, useRef, memo, useMemo } from 'react';
-// Added useMemo import
-import { motion, AnimatePresence, useAnimation, MotionValue, MotionStyle, Variants, TargetAndTransition, VariantLabels } from 'framer-motion'; // Import necessary types
-// Added MotionValue, MotionStyle, Variants, TargetAndTransition, VariantLabels imports
+import { motion, AnimatePresence, useAnimation, Variants, MotionStyle } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -10,7 +8,6 @@ import { usePathname, useRouter } from 'next/navigation';
 
 function useSubmenuManager(submenuBehavior: 'hover' | 'click', submenuCloseDelay: number) {
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
-  const [focusedItemId, setFocusedItemId] = useState<string | null>(null);
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastFocusedElementRef = useRef<HTMLElement | null>(null);
 
@@ -80,8 +77,6 @@ function useSubmenuManager(submenuBehavior: 'hover' | 'click', submenuCloseDelay
   return {
     activeItemId,
     setActiveItemId,
-    focusedItemId,
-    setFocusedItemId,
     handleNavItemMouseEnter,
     handleNavItemMouseLeave,
     cancelSubmenuClosing,
@@ -252,8 +247,8 @@ function useResponsiveNavigation(mobileBreakpoint: number, hideOnScroll: boolean
     isMobileView,
     isMobileMenuOpen,
     visible,
-    toggleMobileMenu,
-    scrollPositionRef // Return ref if needed elsewhere
+    toggleMobileMenu
+    // Removed unused scrollPositionRef from return
   };
 }
 
@@ -411,13 +406,10 @@ const createStyles = (colors: Colors) => {
       heading: { fontFamily: 'var(--font-heading, inherit)', letterSpacing: '0.1em', textTransform: 'uppercase' as React.CSSProperties["textTransform"] },
       text: { color: colors.text, lineHeight: 1.4 },
       interactive: { cursor: 'pointer' },
-      // Use tertiary color with alpha for hover effect
-      hoverEffect: { backgroundColor: colors.tertiary.replace(/[\d.]+\)$/, '0.3)') }, // Assuming tertiary is rgba
+      hoverEffect: { backgroundColor: colors.tertiary.replace(/[\d.]+\)$/, '0.3)') },
       focusVisible: { outline: `2px solid ${colors.primary}`, outlineOffset: '2px' },
       card: { background: colors.secondary, borderRadius: '6px', overflow: 'hidden' },
-      // Use tertiary color for standard borders
       border: { border: `1px solid ${colors.tertiary}` },
-      // Use primary color for accent borders
       borderAccent: { border: `1px solid ${colors.primary}` },
       fixed: { position: 'fixed' as React.CSSProperties["position"], top: 0, left: 0, width: '100%' },
       absolute: { position: 'absolute' as React.CSSProperties["position"] },
@@ -426,7 +418,7 @@ const createStyles = (colors: Colors) => {
       screenReaderOnly: {
         position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px',
         overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', borderWidth: 0,
-      } as React.CSSProperties // Cast screenReaderOnly
+      } as React.CSSProperties
   };
 
   // Return type for the createStyles function
@@ -442,11 +434,6 @@ const createStyles = (colors: Colors) => {
           container: (...args: any[]) => React.CSSProperties;
           content: (...args: any[]) => React.CSSProperties;
           itemsContainer: (...args: any[]) => React.CSSProperties;
-      };
-      tooltip: {
-          container: (...args: any[]) => CSSPropertiesWithCasting;
-          content: React.CSSProperties;
-          arrow: React.CSSProperties;
       };
       submenuItem: {
           wrapper: MotionStyleWithCasting;
@@ -512,7 +499,6 @@ const createStyles = (colors: Colors) => {
       link: { ...COMMON_STYLES.flexCenter, ...COMMON_STYLES.interactive, ...COMMON_STYLES.relative, color: colors.primary, padding: '8px', borderRadius: '50%' },
     },
     navBar: {
-      // Navbar container uses secondary background, primary border (default)
       container: (visible: boolean, height: string | number, width: string, zIndex: number, backdropFilter: string, boxShadow: string, borderStyle?: string): React.CSSProperties => ({
         ...COMMON_STYLES.fixed, ...COMMON_STYLES.flexRow, width, zIndex, backdropFilter, WebkitBackdropFilter: backdropFilter,
         background: colors.secondary, height, justifyContent: 'space-between',
@@ -520,7 +506,6 @@ const createStyles = (colors: Colors) => {
         transform: visible ? 'translateY(0)' : 'translateY(-100%)',
         opacity: visible ? 1 : 0,
         boxShadow: visible ? boxShadow : 'none',
-        // Use provided borderStyle or default to primary color border bottom
         borderBottom: borderStyle || `1px solid ${colors.primary}`,
       }),
       content: (maxWidth: string, horizontalPadding: string, verticalPadding: string): React.CSSProperties => ({
@@ -529,36 +514,16 @@ const createStyles = (colors: Colors) => {
       }),
       itemsContainer: (itemGap: string): React.CSSProperties => ({ ...COMMON_STYLES.flexRow, gap: itemGap, opacity: 1 }),
     },
-    tooltip: {
-      container: (visible: boolean): CSSPropertiesWithCasting => ({ // Use helper type
-        ...COMMON_STYLES.absolute, bottom: '-30px', left: '50%', transform: 'translateX(-50%)',
-        opacity: visible ? 1 : 0, visibility: visible ? 'visible' : 'hidden',
-        transition: 'opacity 0.3s ease, visibility 0.3s ease', zIndex: 200,
-        pointerEvents: 'none' as React.CSSProperties['pointerEvents'], // FIX: Cast pointerEvents
-      }),
-      // Tooltip uses secondary background, text color, primary border
-      content: {
-        background: colors.secondary, color: colors.text, borderRadius: '4px', fontSize: FONTS.tooltip,
-        fontWeight: 'normal', letterSpacing: '0.05em', whiteSpace: 'nowrap',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)', border: `1px solid ${colors.primary}`, padding: '4px 8px',
-      },
-      // Tooltip arrow matches tooltip background and border
-      arrow: {
-        ...COMMON_STYLES.absolute, top: '-4px', left: '50%', transform: 'translateX(-50%) rotate(45deg)',
-        width: '8px', height: '8px', background: colors.secondary, border: `1px solid ${colors.primary}`,
-        borderBottom: 'none', borderRight: 'none',
-      }
-    },
     submenuItem: {
       // Submenu item uses text color, primary border left
       wrapper: {
         ...COMMON_STYLES.flexRow, ...COMMON_STYLES.interactive, alignItems: 'flex-start', padding: '1rem',
         color: colors.text,
-        textAlign: 'left' as React.CSSProperties['textAlign'], // FIX: Cast textAlign
+        textAlign: 'left' as React.CSSProperties['textAlign'],
         borderRadius: 'var(--radius-small, 4px)',
         willChange: 'transform, background-color', backgroundColor: 'transparent',
-        border: 'none', // Reset border
-        borderLeft: `1px solid ${colors.primary}`, // Accent border on the left
+        border: 'none',
+        borderLeft: `1px solid ${colors.primary}`,
       },
       // Hover uses hoverEffect common style and primary color shadow/border
       hoverState: {
@@ -574,10 +539,9 @@ const createStyles = (colors: Colors) => {
       // Description uses text color with opacity
       description: { ...COMMON_STYLES.text, fontSize: FONTS.desktopSubmenuDescription, opacity: 0.7, maxWidth: '200px' }
     },
-    desktopNavItem: {
+          desktopNavItem: {
       wrapper: (itemStyle = {}): React.CSSProperties => ({ ...COMMON_STYLES.relative, ...itemStyle }),
-      // Nav item uses primary color when active, text color otherwise
-      navItem: (isItemActive: boolean, isActive: boolean): CSSPropertiesWithCasting => ({ // Use helper type
+      navItem: (isItemActive: boolean, isActive: boolean): CSSPropertiesWithCasting => ({
         ...COMMON_STYLES.flexRow, ...COMMON_STYLES.interactive, ...COMMON_STYLES.relative, ...COMMON_STYLES.heading,
         gap: '0.5rem', fontWeight: 'normal', fontSize: FONTS.desktopNavItem,
         color: isItemActive || isActive ? colors.primary : colors.text,
@@ -585,108 +549,96 @@ const createStyles = (colors: Colors) => {
       }),
       content: (isItemActive: boolean, isActive: boolean): React.CSSProperties => ({
         ...COMMON_STYLES.flexRow, gap: '0.5rem',
-        color: isItemActive || isActive ? colors.primary : 'inherit' // Inherit color from parent button
+        color: isItemActive || isActive ? colors.primary : 'inherit'
       }),
-      icon: { ...COMMON_STYLES.flexCenter, transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' },
-      label: (isItemActive: boolean, isActive: boolean): CSSPropertiesWithCasting => ({ // Use helper type
-        textTransform: 'uppercase' as React.CSSProperties['textTransform'], // FIX: Cast textTransform
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        color: isItemActive || isActive ? colors.primary : 'inherit' // Inherit color
+      icon: { ...COMMON_STYLES.flexCenter, transition: 'all 0.1s cubic-bezier(0.4, 0, 1, 1)' },
+      label: (isItemActive: boolean, isActive: boolean): CSSPropertiesWithCasting => ({
+        textTransform: 'uppercase' as React.CSSProperties['textTransform'],
+        transition: 'all 0.1s cubic-bezier(0.4, 0, 1, 1)',
+        color: isItemActive || isActive ? colors.primary : 'inherit'
       }),
-      // Arrow uses primary color when active
       arrow: (isItemActive: boolean): React.CSSProperties => ({
         ...COMMON_STYLES.flexRow, marginTop: '2px',
-        color: isItemActive ? colors.primary : "currentColor" // Use primary when open, inherit otherwise
+        color: isItemActive ? colors.primary : "currentColor"
       }),
     },
     globalSubmenu: {
-      container: (submenuStyle = {}): CSSPropertiesWithCasting => ({ // Use helper type
-        ...COMMON_STYLES.fixed, top: '45px', /* Adjust based on nav height */ left: 0, width: '100%', zIndex: 9,
+      container: (submenuStyle = {}): CSSPropertiesWithCasting => ({
+        ...COMMON_STYLES.fixed, top: '45px', left: 0, width: '100%', zIndex: 9,
         display: 'flex', justifyContent: 'center', alignItems: 'flex-start',
-        pointerEvents: 'none' as React.CSSProperties['pointerEvents'], // FIX: Cast pointerEvents
+        pointerEvents: 'none' as React.CSSProperties['pointerEvents'],
         ...submenuStyle
       }),
-      // Submenu container uses secondary background, primary border left, generated submenu shadow
       submenuContainer: {
         background: colors.secondary, borderRadius: '6px', boxShadow: SHADOWS.submenu(colors),
         overflow: 'hidden', borderLeft: `3px solid ${colors.primary}`,
-        pointerEvents: 'auto' as React.CSSProperties['pointerEvents'], // FIX: Cast pointerEvents
+        pointerEvents: 'auto' as React.CSSProperties['pointerEvents'],
         willChange: 'transform, opacity', margin: '0 auto', transformOrigin: 'top center',
       },
       grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', width: '100%' },
       header: {
           display: 'flex',
-          flexDirection: 'column' as React.CSSProperties['flexDirection'], // FIX: Cast flexDirection
+          flexDirection: 'column' as React.CSSProperties['flexDirection'],
           padding: '1.75rem'
       },
-      // Title uses primary color
       title: {
           fontFamily: 'var(--font-heading, inherit)', color: colors.primary, fontSize: FONTS.desktopSubmenuHeader,
           letterSpacing: '0.1em',
-          textTransform: 'uppercase' as React.CSSProperties['textTransform'], // FIX: Cast textTransform
+          textTransform: 'uppercase' as React.CSSProperties['textTransform'],
           marginBottom: '0.5rem'
       },
-      // Description uses text color
       description: { fontSize: FONTS.desktopSubmenuDescription, color: colors.text, opacity: 0.8, lineHeight: 1.4 },
     },
     mobileNavItem: {
-       // Mobile nav item uses primary when active, text otherwise. Tertiary border.
-      navItem: (isActive: boolean): CSSPropertiesWithCasting => ({ // Use helper type
+      navItem: (isActive: boolean): CSSPropertiesWithCasting => ({
         ...COMMON_STYLES.flexRow, ...COMMON_STYLES.interactive, ...COMMON_STYLES.heading,
         gap: '0.5rem', fontWeight: 'normal', fontSize: FONTS.mobileNavItem,
         color: isActive ? colors.primary : colors.text,
         padding: '0.75rem 1rem', backgroundColor: 'transparent', border: 'none', width: '100%',
-        textAlign: 'left' as React.CSSProperties['textAlign'], // FIX: Cast textAlign
+        textAlign: 'left' as React.CSSProperties['textAlign'],
         justifyContent: 'space-between',
         borderTop: `1px solid ${colors.tertiary}`, borderBottom: `1px solid ${colors.tertiary}`
       }),
       content: { ...COMMON_STYLES.flexRow, gap: '0.5rem' },
       label: {
-          textTransform: 'uppercase' as React.CSSProperties['textTransform'], // FIX: Cast textTransform
+          textTransform: 'uppercase' as React.CSSProperties['textTransform'],
           letterSpacing: '0.1em'
       },
       arrow: { ...COMMON_STYLES.flexCenter },
-      // Mobile submenu uses tertiary border, slightly darker secondary background
       submenuContainer: {
         ...COMMON_STYLES.flexColumn, width: '100%', gap: '0.25rem', padding: '0.5rem 0 0.5rem 1.5rem',
-        // Make background slightly darker/transparent version of secondary
-        background: colors.secondary.replace(/[\d.]+\)$/, '0.8)'), // Assuming secondary is rgba
+        background: colors.secondary.replace(/[\d.]+\)$/, '0.8)'),
         borderTop: `1px solid ${colors.tertiary}`, borderBottom: `1px solid ${colors.tertiary}`,
       },
-      // Mobile submenu item uses text color, tertiary border bottom
       submenuItem: {
         ...COMMON_STYLES.flexRow, ...COMMON_STYLES.interactive, padding: '0.5rem 1rem',
         color: colors.text, opacity: 0.9, border: 'none', borderBottom: `1px solid ${colors.tertiary}`,
         backgroundColor: 'transparent', width: '100%',
-        textAlign: 'left' as React.CSSProperties['textAlign'], // FIX: Cast textAlign
+        textAlign: 'left' as React.CSSProperties['textAlign'],
         fontSize: FONTS.mobileSubmenuItem,
       },
-      // Active mobile submenu item uses primary text, subtle background
       submenuItemActive: {
-        backgroundColor: colors.tertiary.replace(/[\d.]+\)$/, '0.2)'), // Use tertiary with low alpha
+        backgroundColor: colors.tertiary.replace(/[\d.]+\)$/, '0.2)'),
         color: colors.primary
       },
       submenuItemLink: { ...COMMON_STYLES.flexRow, gap: '0.5rem' },
-      // Icon uses primary color
       submenuItemIcon: { ...COMMON_STYLES.flexCenter, width: '16px', height: '16px', color: colors.primary, opacity: 0.8 },
       submenuItemLabel: { fontSize: FONTS.mobileSubmenuItem, letterSpacing: '0.05em', margin: 0 },
     },
     mobileMenu: {
-      // Mobile button uses primary when open, text otherwise
-      button: (isOpen: boolean, visible: boolean): CSSPropertiesWithCasting => ({ // Use helper type
+      button: (isOpen: boolean, visible: boolean): CSSPropertiesWithCasting => ({
         ...COMMON_STYLES.fixed, ...COMMON_STYLES.flexCenter, ...COMMON_STYLES.interactive,
         width: '45px', height: '47px', top: '10px', left: '10px', zIndex: 201,
         display: visible ? 'flex' : 'none', background: 'transparent',
         color: isOpen ? colors.primary : colors.text,
         fontSize: '1.5rem', padding: '0.5rem', opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(-100%)', border: 'none', // Ensure button has no border
+        transform: visible ? 'translateY(0)' : 'translateY(-100%)', border: 'none',
       }),
-       // Mobile menu container uses secondary background, mobile shadow
-      container: (mobileMenuStyle = {}): MotionStyleWithCasting => ({ // Use helper type
+      container: (mobileMenuStyle = {}): MotionStyleWithCasting => ({
         ...COMMON_STYLES.fixed, display: 'none', width: '100%', height: '100%',
         background: colors.secondary, zIndex: 200, overflowY: 'hidden', overflowX: 'hidden',
         boxShadow: SHADOWS.mobile, backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-        flexDirection: 'column' as React.CSSProperties['flexDirection'], // FIX: Cast flexDirection
+        flexDirection: 'column' as React.CSSProperties['flexDirection'],
         transform: 'translateY(-100%)', opacity: 0,
         ...mobileMenuStyle
       }),
@@ -694,24 +646,20 @@ const createStyles = (colors: Colors) => {
         ...COMMON_STYLES.flexColumn, width: '100%', padding: '0.5rem 0 0 0', marginTop: '0',
         overflowY: 'auto', height: 'calc(100vh - 130px)', paddingBottom: '2rem',
       },
-       // Mobile header uses secondary background
       header: {
         ...COMMON_STYLES.flexCenter, ...COMMON_STYLES.sticky,
-        flexDirection: 'column' as React.CSSProperties['flexDirection'], // FIX: Cast flexDirection
+        flexDirection: 'column' as React.CSSProperties['flexDirection'],
         width: '100%',
         padding: '0.75rem', marginBottom: '0', top: 0, backgroundColor: colors.secondary, zIndex: 1
       },
       logoContainer: { ...COMMON_STYLES.flexCenter, marginBottom: '0.75rem' },
       titleContainer: (mobileHeader?: React.ReactNode): React.CSSProperties => ({ ...COMMON_STYLES.flexCenter, marginBottom: mobileHeader ? '0.75rem' : 0 }),
-      // Logo link uses primary color
       logoLink: { ...COMMON_STYLES.flexRow, ...COMMON_STYLES.interactive, color: colors.primary },
-      // Header text uses text color
       headerText: { ...COMMON_STYLES.text, fontSize: '1.2rem', fontWeight: 'normal', textAlign: 'center', margin: 0 },
-      // Title text uses primary color
       titleText: {
           ...COMMON_STYLES.heading, color: colors.primary, fontSize: '1.4rem', paddingBottom: '0.5rem',
           fontWeight: '300', textAlign: 'center', margin: 0,
-          textTransform: 'uppercase' as React.CSSProperties['textTransform'] // FIX: Cast textTransform
+          textTransform: 'uppercase' as React.CSSProperties['textTransform']
       }
     }
   };
@@ -726,14 +674,17 @@ const TRANSITIONS = {
   defaultEase: [0.4, 0, 0.2, 1],
   springEase: [0.16, 1, 0.3, 1],
   sharpEase: [0.4, 0, 1, 1],
-  standard: { duration: 0.3, ease: [0.4, 0, 0.2, 1] },
-  quick: { duration: 0.15, ease: [0.4, 0, 1, 1] },
-  veryQuick: { duration: 0.08, ease: [0.4, 0, 1, 1] },
+  // Faster standard transition (from 0.3s to 0.12s)
+  standard: { duration: 0.12, ease: [0.4, 0, 1, 1] },
+  // Even quicker transitions for hover effects
+  quick: { duration: 0.08, ease: [0.4, 0, 1, 1] },
+  veryQuick: { duration: 0.04, ease: [0.4, 0, 1, 1] },
+  // Faster spring transition for more responsive feel
   spring: {
     type: "spring" as const, // Use "as const" for literal type
-    stiffness: 500,
-    damping: 25,
-    mass: 0.7
+    stiffness: 700, // Increased from 500
+    damping: 20,    // Decreased from 25
+    mass: 0.5       // Decreased from 0.7
   }
 };
 
@@ -744,7 +695,7 @@ const ANIMATIONS = {
     idle: { scale: 1 },
     hover: {
       scale: 1.05,
-      transition: TRANSITIONS.standard // Apply transition to the variant
+      transition: TRANSITIONS.quick // Changed from standard to quick for snappier hover effect
     }
   },
   arrow: {
@@ -752,10 +703,10 @@ const ANIMATIONS = {
     open: {
       rotate: 180,
       y: [0, 2, 0], // y keyframes
-      // Define transitions per-property within the variant's transition object
+      // Define transitions per-property with faster durations
       transition: {
-        y: { duration: 0.3, repeat: 0 }, // Transition for y
-        rotate: { duration: 0.3 }        // Transition for rotate
+        y: { duration: 0.15, repeat: 0 }, // Faster transition for y (from 0.3s to 0.15s)
+        rotate: { duration: 0.15 }        // Faster transition for rotate (from 0.3s to 0.15s)
       }
     }
   },
@@ -770,15 +721,15 @@ const ANIMATIONS = {
       transition: TRANSITIONS.quick // Apply transition to the variant
     }
   },
-  // Submenu content slide variants remain structured correctly
+  // Submenu content slide variants with faster transitions
   submenuContentSlideRight: { // Renamed for clarity, used directly later
       initial: { opacity: 0, x: 40 },
-      animate: { opacity: 1, x: 0, transition: { duration: 0.15, ease: TRANSITIONS.springEase } },
+      animate: { opacity: 1, x: 0, transition: { duration: 0.08, ease: TRANSITIONS.sharpEase } }, // Faster and sharper
       exit: { opacity: 0, x: -40, transition: TRANSITIONS.veryQuick }
   },
   submenuContentSlideLeft: { // Renamed for clarity, used directly later
       initial: { opacity: 0, x: -40 },
-      animate: { opacity: 1, x: 0, transition: { duration: 0.15, ease: TRANSITIONS.springEase } },
+      animate: { opacity: 1, x: 0, transition: { duration: 0.08, ease: TRANSITIONS.sharpEase } }, // Faster and sharper
       exit: { opacity: 0, x: 40, transition: TRANSITIONS.veryQuick }
   },
   submenuItem: {
@@ -787,12 +738,12 @@ const ANIMATIONS = {
     },
     animate: {
       opacity: 1, y: 0, scale: 1,
-      // Apply transition to the variant for the spring effect
+      // Apply faster spring transition for snappier hover interactions
       transition: TRANSITIONS.spring
     },
-    exit: { // Add a subtle exit for individual items if needed (optional)
+    exit: { // Faster exit for submenu items
         opacity: 0, scale: 0.95,
-        transition: TRANSITIONS.quick
+        transition: TRANSITIONS.veryQuick // Changed from quick to veryQuick for faster fadeout
     }
   },
   mobileMenu: {
@@ -859,16 +810,15 @@ const DefaultSubmenuIcon = memo(() => (
 ));
 DefaultSubmenuIcon.displayName = 'DefaultSubmenuIcon';
 
-// Example icons for default items (replace with actual icons or remove if not needed)
-const DefaultInfoIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>;
-const DefaultBuildingIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>;
-const DefaultUsersIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>;
-const DefaultSettingsIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>;
+// Example icons simplified for brevity and minimal path data
+const DefaultInfoIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM12 7.5h.01M12 11.5v5"/></svg>;
+const DefaultBuildingIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg>;
+const DefaultUsersIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 3a4 4 0 100 8 4 4 0 000-8zm8 11a3 3 0 100 6 3 3 0 000-6z"/></svg>;
+const DefaultSettingsIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 6v-2m0 16v-2M18 12h2M4 12h2m11-7l-1-1M6 6l-1-1m13 13l-1 1M6 18l-1 1M12 19a7 7 0 100-14 7 7 0 000 14zm0-3a4 4 0 110-8 4 4 0 010 8z"/></svg>;
 const DefaultCodeIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>;
 const DefaultSmartphoneIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>;
 const DefaultMenuIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>;
 const DefaultCloseIcon = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
-
 
 const DEFAULT_ICON_MAPPING: Record<string, React.ComponentType> = {
   'arrow': DefaultArrowIcon,
@@ -891,9 +841,7 @@ interface NavContextType {
   activeItemId: string | null;
   setActiveItemId: (id: string | null) => void;
   visible: boolean;
-  focusedItemId: string | null;
-  setFocusedItemId: (id: string | null) => void;
-  // Use the return type of createStyles for the styles object
+  // Removed focusedItemId and setFocusedItemId
   styles: ReturnType<typeof createStyles>;
 }
 
@@ -904,8 +852,7 @@ const NavContext = React.createContext<NavContextType>({
     activeItemId: null,
     setActiveItemId: () => {},
     visible: true,
-    focusedItemId: null,
-    setFocusedItemId: () => {},
+    // Removed focusedItemId and setFocusedItemId
     styles: defaultStyles, // Provide default styles
 });
 
@@ -924,22 +871,7 @@ const getIconComponent = (icon: React.ReactNode | string | undefined, iconMappin
 
 
 // --- Sub-Components ---
-// (LogoTooltip, MemoizedSubmenuItem, DesktopNavItemComponent,
-// GlobalSubmenuComponent, MobileNavItemComponent, MobileMenuComponent)
 // These components use useContext(NavContext) to get styles.
-
-const LogoTooltip = memo(({ visible }: { visible: boolean }) => {
-  const { styles } = useContext(NavContext); // Get styles from context
-  // Ensure styles and nested properties exist before accessing
-  if (!styles?.tooltip?.container) return null;
-  return (
-    <div style={styles.tooltip.container(visible)} role="tooltip" id="logo-tooltip">
-      {styles.tooltip.arrow && <div style={styles.tooltip.arrow} aria-hidden="true" />}
-      {styles.tooltip.content && <div style={styles.tooltip.content}>Home Page</div>}
-    </div>
-  );
-});
-LogoTooltip.displayName = 'LogoTooltip';
 
 const MemoizedSubmenuItem = memo(({
   subItem,
@@ -1040,12 +972,12 @@ const DesktopNavItemComponent = memo(({
   // Ensure styles are loaded
   if (!styles?.desktopNavItem || !styles.colors) return null;
 
-  // Animate color based on active state
+  // Animate color based on active state - with faster transition
   useEffect(() => {
     controls.start({
       color: isItemActive || isActive ? styles.colors.primary : styles.colors.text,
       scale: 1, // Keep scale consistent or add hover effect here if desired
-      transition: { duration: 0.2 } // Faster transition for color
+      transition: { duration: 0.08 } // Much faster transition for color (0.2s to 0.08s)
     });
   }, [controls, isItemActive, isActive, styles.colors.primary, styles.colors.text]);
 
@@ -1940,7 +1872,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
 
   // --- State and Hooks ---
   const {
-    activeItemId, setActiveItemId, focusedItemId, setFocusedItemId,
+    activeItemId, setActiveItemId,
     handleNavItemMouseEnter, handleNavItemMouseLeave, cancelSubmenuClosing
   } = useSubmenuManager(submenuBehavior, submenuCloseDelay);
 
@@ -1975,45 +1907,38 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
 
       return `
         .nav-logo-link {
-          display: flex; /* Use flex for centering */
-          align-items: center; /* Center icon vertically */
-          justify-content: center; /* Center icon horizontally */
+          display: flex;
+          align-items: center;
+          justify-content: center;
           color: ${primary};
           cursor: pointer;
           position: relative;
           padding: 8px;
           border-radius: 50%;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          outline: none; /* Remove default outline */
+          transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+          outline: none;
         }
-        .nav-logo-link:hover, .nav-logo-link:focus-visible { /* Use focus-visible */
+        .nav-logo-link:hover, .nav-logo-link:focus-visible {
           background: ${glow};
           box-shadow: 0 0 18px 8px ${glow};
           transform: scale(1.1);
-          /* Ensure focus outline is visible if needed, or rely on background/shadow */
-          /* outline: 2px solid ${primary}; */
-          /* outline-offset: 2px; */
         }
         .nav-logo-link:active {
-          background: transparent; /* Reset background on click */
+          background: transparent;
           box-shadow: none;
           transform: scale(1);
           transition: all 0.1s ease;
         }
-        /* Tooltip styles (using class for dynamic injection) */
         .nav-logo-tooltip {
           position: absolute;
-          bottom: -35px; /* Adjusted position */
+          bottom: -35px;
           left: 50%;
           transform: translateX(-50%);
-          opacity: 0;
-          visibility: hidden;
-          transition: opacity 0.2s ease, visibility 0.2s ease;
-          transition-delay: 0.3s; /* Slight delay before showing */
-          z-index: ${zIndex + 10}; /* Ensure tooltip is above nav */
+          display: none;
+          z-index: ${zIndex + 10};
           pointer-events: none;
           background: ${secondary};
-          backdrop-filter: blur(5px); /* Optional: subtle blur */
+          backdrop-filter: blur(5px);
           -webkit-backdrop-filter: blur(5px);
           color: ${text};
           padding: 6px 12px;
@@ -2022,14 +1947,13 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
           font-weight: normal;
           letter-spacing: 0.05em;
           white-space: nowrap;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Slightly softer shadow */
-          border: 1px solid ${tertiary}; /* Use tertiary for border */
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+          border: 1px solid ${tertiary};
         }
-        /* Arrow for tooltip */
         .nav-logo-tooltip::before {
             content: '';
             position: absolute;
-            top: -5px; /* Position arrow correctly */
+            top: -5px;
             left: 50%;
             transform: translateX(-50%) rotate(45deg);
             width: 8px;
@@ -2039,17 +1963,12 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
             border-left: 1px solid ${tertiary};
         }
 
-        /* Show tooltip on hover/focus of the link */
         .nav-logo-link:hover .nav-logo-tooltip,
         .nav-logo-link:focus-visible .nav-logo-tooltip {
-          opacity: 1;
-          visibility: visible;
+          display: block;
         }
-        /* Hide tooltip immediately on active/click */
         .nav-logo-link:active .nav-logo-tooltip {
-          opacity: 0;
-          visibility: hidden;
-          transition-delay: 0s;
+          display: none;
         }
       `;
   }, [styles, zIndex]); // Depend on styles object and zIndex
@@ -2136,8 +2055,6 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
     activeItemId,
     setActiveItemId,
     visible,
-    focusedItemId,
-    setFocusedItemId,
     styles, // Pass memoized styles object via context
   };
 

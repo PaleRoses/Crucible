@@ -579,7 +579,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       top: 0,
       left: 0,
       zIndex: 50,
-      backgroundColor: 'backgroundAlt',
       borderBottom: '1px solid',
       borderColor: 'border'
     })}>
@@ -639,7 +638,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         className={css({
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
           zIndex: 90,
           transition: `opacity ${transitionDuration}ms ease, visibility ${transitionDuration}ms ease`,
           visibility: isDrawerOpen ? 'visible' : 'hidden',

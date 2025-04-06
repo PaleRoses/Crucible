@@ -229,7 +229,6 @@ export default function RootLayout({ children }: RootLayoutProps) {
               
               {/* ThemeSelector also needs to be persistent */}
               <div className="persistent-element">
-                <ThemeSelector />
               </div>
               
               {/* Only the main content area transitions */}

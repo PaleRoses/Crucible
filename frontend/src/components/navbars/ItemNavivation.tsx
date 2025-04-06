@@ -358,6 +358,62 @@ const Card = styled(motion.div)<CardProps>`
   
   @media (max-width: 640px) {
     padding: 0.75rem;
+    height: 100%;
+    background: ${props => 
+      props.$color 
+        ? `${props.$color}` 
+        : DEFAULT_COLORS.primary};
+    filter: blur(30px);
+    z-index: -1;
+    opacity: ${props => props.$isHovered ? 0.15 : 0};
+    transform: translate(-50%, -50%) scale(${props => props.$isHovered ? 1 : 0.8});
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  
+  /* Shine effect overlay */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.2) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    z-index: 2;
+    transform: translateX(-100%);
+    transition: transform 0s;
+  }
+  
+  &:hover::before {
+    transform: translateX(100%);
+    transition: transform 1.2s cubic-bezier(0.19, 1, 0.22, 1);
+  }
+  
+  /* Keyboard focus styles */
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px ${props => 
+      props.$color 
+        ? `${props.$color}` 
+        : DEFAULT_COLORS.primary};
+    border-color: ${props => 
+      props.$color 
+        ? `${props.$color}` 
+        : DEFAULT_COLORS.primary};
+  }
+  
+  @media (min-width: 1400px) {
+    padding: 0.9rem 1.25rem;
+    min-height: 60px;
+  }
+  
+  @media (max-width: 640px) {
+    padding: 0.75rem;
     min-height: 50px;
   }
 `;
