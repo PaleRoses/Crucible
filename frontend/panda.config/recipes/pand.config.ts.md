@@ -4,59 +4,59 @@ import { textStyles } from './panda.config/text-styles';
 import { recipes } from './panda.config/recipes';
 
 export default defineConfig({
-  // Basic setup
-  preflight: true,
-  include: ['./src/**/*.{js,jsx,ts,tsx}'],
-  exclude: [],
-  outdir: 'styled-system',
-  jsxFramework: 'react',
+// Basic setup
+preflight: true,
+include: ['./src/**/*.{js,jsx,ts,tsx}'],
+exclude: [],
+outdir: 'styled-system',
+jsxFramework: 'react',
 
-  staticCss: {
-    themes: ['midnight', 'starlight', 'eclipse', 'moonlight', 'nebula']
-  },
-  
-  // Font faces and global styles
-  globalCss: {
-    "@font-face": {
-      fontFamily: "adobe-caslon-pro",
-      fontDisplay: "swap",
-      fontWeight: "200",
-    },
-    "@font-face_1": {
-      fontFamily: "haboro-soft-condensed",
-      fontDisplay: "swap",
-      fontWeight: "200",
-    },
-    "@font-face_2": {
-      fontFamily: "ibm-plex-mono",
-      fontDisplay: "swap",
-      fontWeight: "200",
-    },
-    "@font-face_3": {
-      fontFamily: "adobe-caslon-pro-fallback",
-      src: "local('Georgia')",
-      sizeAdjust: "105%",
-      ascentOverride: "95%",
-      descentOverride: "22%",
-      lineGapOverride: "0%",
-    },
-    "@font-face_4": {
-      fontFamily: "haboro-soft-condensed-fallback",
-      src: "local('Avenir'), local('Helvetica Neue'), local('Helvetica'), local('Arial')",
-      sizeAdjust: "100%",
-      ascentOverride: "90%",
-      descentOverride: "25%",
-      lineGapOverride: "0%",
-    },
-    "@font-face_5": {
-      fontFamily: "ibm-plex-mono-fallback",
-      src: "local('Courier New'), local('Courier'), local('monospace')",
-      sizeAdjust: "105%",
-      ascentOverride: "90%",
-      descentOverride: "25%",
-      lineGapOverride: "0%",
-    },
-  
+staticCss: {
+themes: ['midnight', 'starlight', 'eclipse', 'moonlight', 'nebula']
+},
+
+// Font faces and global styles
+globalCss: {
+"@font-face": {
+fontFamily: "adobe-caslon-pro",
+fontDisplay: "swap",
+fontWeight: "200",
+},
+"@font-face_1": {
+fontFamily: "haboro-soft-condensed",
+fontDisplay: "swap",
+fontWeight: "200",
+},
+"@font-face_2": {
+fontFamily: "ibm-plex-mono",
+fontDisplay: "swap",
+fontWeight: "200",
+},
+"@font-face_3": {
+fontFamily: "adobe-caslon-pro-fallback",
+src: "local('Georgia')",
+sizeAdjust: "105%",
+ascentOverride: "95%",
+descentOverride: "22%",
+lineGapOverride: "0%",
+},
+"@font-face_4": {
+fontFamily: "haboro-soft-condensed-fallback",
+src: "local('Avenir'), local('Helvetica Neue'), local('Helvetica'), local('Arial')",
+sizeAdjust: "100%",
+ascentOverride: "90%",
+descentOverride: "25%",
+lineGapOverride: "0%",
+},
+"@font-face_5": {
+fontFamily: "ibm-plex-mono-fallback",
+src: "local('Courier New'), local('Courier'), local('monospace')",
+sizeAdjust: "105%",
+ascentOverride: "90%",
+descentOverride: "25%",
+lineGapOverride: "0%",
+},
+
     ":root": {
       // Font variables
       "--fonts-loaded": "0",
@@ -64,9 +64,9 @@ export default defineConfig({
         "'haboro-soft-condensed-fallback', 'haboro-soft-condensed', 'Avenir Next', 'Avenir', sans-serif",
       "--font-body":
         "'adobe-caslon-pro-fallback', 'adobe-caslon-pro', 'LTC Caslon', Georgia, serif",
-      "--font-mono": 
+      "--font-mono":
         "'ibm-plex-mono-fallback', 'ibm-plex-mono', 'Consolas', monospace",
-      
+
       // Color variables mapping to tokens - direct reference using token()
       "--color-primary": "token(colors.primary)",
       "--color-secondary": "token(colors.secondary)",
@@ -85,7 +85,7 @@ export default defineConfig({
       "--color-cosmic2": "token(colors.cosmic2)",
       "--color-cosmic3": "token(colors.cosmic3)",
       "--color-cosmic-core": "token(colors.cosmicCore)",
-      
+
       // Transition variables with direct values
       "--transition-default": "0.3s ease",
       "--transition-fast": "0.2s ease",
@@ -208,7 +208,7 @@ export default defineConfig({
       scrollbarColor: "var(--color-border) transparent",
       scrollbarWidth: "thin",
     },
-    
+
     // Layout elements
     ".app-container": {
       position: "relative",
@@ -248,7 +248,7 @@ export default defineConfig({
       paddingRight: "1rem",
       maxWidth: "1200px",
     },
-    
+
     // UI Elements
     "button, .button": {
       fontFamily: "var(--font-heading)",
@@ -273,7 +273,7 @@ export default defineConfig({
         backgroundColor: "var(--color-secondary)",
       },
     },
-    
+
     // Card styles
     ".card": {
       backgroundColor: "var(--color-background-alt)",
@@ -287,7 +287,7 @@ export default defineConfig({
         boxShadow: "var(--shadow-glow)",
       },
     },
-    
+
     // Visualization components
     ".visualization-container": {
       border: "1px solid var(--color-border)",
@@ -297,7 +297,7 @@ export default defineConfig({
       margin: "1rem 0",
       boxShadow: "var(--shadow-medium)",
     },
-    
+
     // Transition classes
     ".fade-enter": { opacity: 0 },
     ".fade-enter-active": {
@@ -309,20 +309,21 @@ export default defineConfig({
       opacity: 0,
       transition: "opacity 300ms ease-out",
     },
-    
+
     // Utility classes
     ".divider": {
       height: "1px",
       backgroundColor: "var(--color-border)",
       margin: "1rem 0",
     },
-  },
 
-  // Theme configuration - essential parts
-  theme: {
-    extend: {
-      tokens: {
-        
+},
+
+// Theme configuration - essential parts
+theme: {
+extend: {
+tokens: {
+
         colors: {
           // Midnight theme
           midnight: {
@@ -339,14 +340,14 @@ export default defineConfig({
             border: { value: 'rgba(160, 142, 97, 0.2)' },
             hover: { value: 'rgba(160, 142, 97, 0.1)' },
             active: { value: 'rgba(160, 142, 97, 0.3)' },
-            
+
             // Fixed cosmic colors
             cosmic1: { value: 'rgba(255, 255, 255, 1)' },
             cosmic2: { value: 'rgba(255, 253, 227, 0.9)' },
             cosmic3: { value: 'rgba(191, 173, 127, 0.8)' },
             cosmicCore: { value: 'rgba(252, 249, 231, 0.8)' },
           },
-          
+
           // Starlight theme
           starlight: {
             primary: { value: '#9e7b2f' },
@@ -367,7 +368,7 @@ export default defineConfig({
             cosmic3: { value: 'rgba(15, 25, 220, 1)' },
             cosmicCore: { value: 'rgba(255, 255, 255, 0.9)' },
           },
-          
+
           // Eclipse theme
           eclipse: {
             primary: { value: '#7d2e2e' },
@@ -388,7 +389,7 @@ export default defineConfig({
             cosmic3: { value: 'rgb(0, 255, 15)' },   // Nearly Black Midnight Blue
             cosmicCore: { value: 'rgba(252, 235, 202, 0.9)' },
           },
-          
+
           // Moonlight theme
           moonlight: {
             primary: { value: '#ccd6e1' },
@@ -409,7 +410,7 @@ export default defineConfig({
             cosmic3: { value: 'rgba(191, 203, 232, 0.6)' }, // Slate 300 at 60% opacity
             cosmicCore: { value: 'rgba(240, 246, 255, 0.95)' },
           },
-          
+
           // Nebula theme
           nebula: {
             primary: { value: '#FF3CA0' },
@@ -431,23 +432,23 @@ export default defineConfig({
             cosmicCore: { value: 'rgba(255, 255, 255, 0.95)' },
           }
         },
-        
+
         // Essential font tokens - properly defined
         fonts: {
-          heading: { 
+          heading: {
             value: "var(--font-heading)",
             description: "Font for headings throughout the application"
           },
-          body: { 
+          body: {
             value: "var(--font-body)",
-            description: "Primary font for body text" 
+            description: "Primary font for body text"
           },
-          mono: { 
+          mono: {
             value: "var(--font-mono)",
-            description: "Monospace font for code and technical content" 
+            description: "Monospace font for code and technical content"
           },
         },
-        
+
         fontSizes: {
           // Existing (if any)
           // ...
@@ -461,17 +462,17 @@ export default defineConfig({
           mobileNavItem: { value: '1.1rem' },
           desktopSubmenuHeader: { value: '1.25rem' },
 
-          
+
 
           sm: { value: '0.875rem' },
           base: { value: '1rem' },
           lg: { value: '1.125rem' },
           xl: { value: '1.25rem' },
           '2xl': { value: '1.5rem' },
-          
+
         },
 
-        
+
 
         fontWeights: {
           thin: { value: '200' },
@@ -480,7 +481,7 @@ export default defineConfig({
           semibold: { value: '600' },
           bold: { value: '700' },
         },
-        
+
         // Essential spacing tokens
         spacing: {
           xs: { value: '0.25rem' },
@@ -509,7 +510,7 @@ export default defineConfig({
           '11': { value: '2.75rem' }, // 44px
           '12': { value: '3rem' }, // 48px
         },
-        
+
         // Basic radius tokens
         radii: {
           sm: { value: '2px' },
@@ -517,7 +518,7 @@ export default defineConfig({
           lg: { value: '8px' },
           full: { value: '9999px' },
         },
-    
+
          // ADDED: Z-Index tokens
          zIndex: {
           hide: { value: -1 },
@@ -575,7 +576,7 @@ export default defineConfig({
             md: { value: '0 4px 8px rgba(10, 11, 24, 0.5)' }, // Dark shadow with slight color
           },
         },
-        
+
         // ADDED: Sizes tokens (Example)
         sizes: {
           navbarHeight: { value: '45px' }, // Example token for navbar height
@@ -590,7 +591,7 @@ export default defineConfig({
       },
       textStyles: textStyles,
 
-      
+
       // Adding standard responsive breakpoints
       breakpoints: {
         sm: '640px',
@@ -602,7 +603,7 @@ export default defineConfig({
       // @ts-ignore
       recipes,
 
-      // Adding custom media queries      
+      // Adding custom media queries
       // Adding keyframe animations
       keyframes: {
         fadeIn: {
@@ -632,38 +633,9 @@ export default defineConfig({
         spin: {
           '0%': { transform: 'rotate(0deg)' },
           '100%': { transform: 'rotate(360deg)' }
-        },
-        navItemHover: {
-          '0%': { transform: 'scale(1)' },
-          '100%': { transform: 'scale(1.05)' }
-        },
-        arrowRotateOpen: {
-          '0%': { transform: 'rotate(0)' },
-          '50%': { transform: 'rotate(180deg) translateY(2px)' },
-          '100%': { transform: 'rotate(180deg) translateY(0)' }
-        },
-        submenuFadeIn: {
-          '0%': { opacity: 0, transform: 'scale(0.99)' },
-          '100%': { opacity: 1, transform: 'scale(1)' }
-        },
-        submenuSlideRight: {
-          '0%': { opacity: 0, transform: 'translateX(40px)' },
-          '100%': { opacity: 1, transform: 'translateX(0)' }
-        },
-        submenuSlideLeft: {
-          '0%': { opacity: 0, transform: 'translateX(-40px)' },
-          '100%': { opacity: 1, transform: 'translateX(0)' }
-        },
-        mobileMenuOpen: {
-          '0%': { opacity: 0, transform: 'translateY(-100%)' },
-          '100%': { opacity: 1, transform: 'translateY(0)' }
-        },
-        mobileMenuClose: {
-          '0%': { opacity: 1, transform: 'translateY(0)' },
-          '100%': { opacity: 0, transform: 'translateY(-100%)' }
         }
       },
-      
+
     },
     // Semantic tokens mapping - FIXED: Now uses theme-agnostic references
     semanticTokens: {
@@ -690,7 +662,7 @@ export default defineConfig({
         border: { value: '{colors.midnight.border}' },
         hover: { value: '{colors.midnight.hover}' },
         active: { value: '{colors.midnight.active}' },
-        
+
         // UI element colors
         link: { value: '{colors.secondary}' },
         cardBackground: { value: '{colors.backgroundAlt}' },
@@ -701,156 +673,157 @@ export default defineConfig({
           light: { value: 'color-mix(in srgb, {colors.text} 5%, transparent)' },
         },
       },
-      
+
       // Shadow semantic tokens
       shadows: {
         glow: { value: '{shadows.midnight.glow}' },
         md: { value: '{shadows.midnight.md}' },
       }
     }
-  },
-  
-  // Theme definitions - FIXED: Added cosmic colors to each theme
-  themes: {
-    midnight: {
-      tokens: {
-        colors: {
-          primary: { value: '{colors.midnight.primary}' },
-          background: { value: '{colors.midnight.background}' },
-          backgroundAlt: { value: '{colors.midnight.backgroundAlt}' },
-          text: { value: '{colors.midnight.text}' },
-          textMuted: { value: '{colors.midnight.textMuted}' },
-          secondary: { value: '{colors.midnight.secondary}' },
-          accent1: { value: '{colors.midnight.accent1}' },
-          accent2: { value: '{colors.midnight.accent2}' },
-          accent3: { value: '{colors.midnight.accent3}' },
-          glow: { value: '{colors.midnight.glow}' },
-          border: { value: '{colors.midnight.border}' },
-          hover: { value: '{colors.midnight.hover}' },
-          active: { value: '{colors.midnight.active}' },
-          // ADDED: Cosmic colors for midnight theme
-          cosmic1: { value: '{colors.midnight.cosmic1}' },
-          cosmic2: { value: '{colors.midnight.cosmic2}' },
-          cosmic3: { value: '{colors.midnight.cosmic3}' },
-          cosmicCore: { value: '{colors.midnight.cosmicCore}' },
-        },
-        // Add shadow tokens for midnight theme
-        shadows: {
-          glow: { value: '{shadows.midnight.glow}' },
-          md: { value: '{shadows.midnight.md}' },
-        }
-      }
-    },
-    starlight: {
-      tokens: {
-        colors: {
-          primary: { value: '{colors.starlight.primary}' },
-          background: { value: '{colors.starlight.background}' },
-          backgroundAlt: { value: '{colors.starlight.backgroundAlt}' },
-          text: { value: '{colors.starlight.text}' },
-          textMuted: { value: '{colors.starlight.textMuted}' },
-          secondary: { value: '{colors.starlight.secondary}' },
-          accent1: { value: '{colors.starlight.accent1}' },
-          accent2: { value: '{colors.starlight.accent2}' },
-          accent3: { value: '{colors.starlight.accent3}' },
-          glow: { value: '{colors.starlight.glow}' },
-          border: { value: '{colors.starlight.border}' },
-          hover: { value: '{colors.starlight.hover}' },
-          active: { value: '{colors.starlight.active}' },
-          // ADDED: Cosmic colors for starlight theme
-          cosmic1: { value: '{colors.starlight.cosmic1}' },
-          cosmic2: { value: '{colors.starlight.cosmic2}' },
-          cosmic3: { value: '{colors.starlight.cosmic3}' },
-          cosmicCore: { value: '{colors.starlight.cosmicCore}' },
-        }
-      }
-    },
-    eclipse: {
-      tokens: {
-        colors: {
-          primary: { value: '{colors.eclipse.primary}' },
-          background: { value: '{colors.eclipse.background}' },
-          backgroundAlt: { value: '{colors.eclipse.backgroundAlt}' },
-          text: { value: '{colors.eclipse.text}' },
-          textMuted: { value: '{colors.eclipse.textMuted}' },
-          secondary: { value: '{colors.eclipse.secondary}' },
-          accent1: { value: '{colors.eclipse.accent1}' },
-          accent2: { value: '{colors.eclipse.accent2}' },
-          accent3: { value: '{colors.eclipse.accent3}' },
-          glow: { value: '{colors.eclipse.glow}' },
-          border: { value: '{colors.eclipse.border}' },
-          hover: { value: '{colors.eclipse.hover}' },
-          active: { value: '{colors.eclipse.active}' },
-          // ADDED: Cosmic colors for eclipse theme
-          cosmic1: { value: '{colors.eclipse.cosmic1}' },
-          cosmic2: { value: '{colors.eclipse.cosmic2}' },
-          cosmic3: { value: '{colors.eclipse.cosmic3}' },
-          cosmicCore: { value: '{colors.eclipse.cosmicCore}' },
-        }
-      }
-    },
-    moonlight: {
-      tokens: {
-        colors: {
-          primary: { value: '{colors.moonlight.primary}' },
-          background: { value: '{colors.moonlight.background}' },
-          backgroundAlt: { value: '{colors.moonlight.backgroundAlt}' },
-          text: { value: '{colors.moonlight.text}' },
-          textMuted: { value: '{colors.moonlight.textMuted}' },
-          secondary: { value: '{colors.moonlight.secondary}' },
-          accent1: { value: '{colors.moonlight.accent1}' },
-          accent2: { value: '{colors.moonlight.accent2}' },
-          accent3: { value: '{colors.moonlight.accent3}' },
-          glow: { value: '{colors.moonlight.glow}' },
-          border: { value: '{colors.moonlight.border}' },
-          hover: { value: '{colors.moonlight.hover}' },
-          active: { value: '{colors.moonlight.active}' },
-          // ADDED: Cosmic colors for moonlight theme
-          cosmic1: { value: '{colors.moonlight.cosmic1}' },
-          cosmic2: { value: '{colors.moonlight.cosmic2}' },
-          cosmic3: { value: '{colors.moonlight.cosmic3}' },
-          cosmicCore: { value: '{colors.moonlight.cosmicCore}' },
-        }
-      }
-    },
-    nebula: {
-      tokens: {
-        colors: {
-          primary: { value: '{colors.nebula.primary}' },
-          background: { value: '{colors.nebula.background}' },
-          backgroundAlt: { value: '{colors.nebula.backgroundAlt}' },
-          text: { value: '{colors.nebula.text}' },
-          textMuted: { value: '{colors.nebula.textMuted}' },
-          secondary: { value: '{colors.nebula.secondary}' },
-          accent1: { value: '{colors.nebula.accent1}' },
-          accent2: { value: '{colors.nebula.accent2}' },
-          accent3: { value: '{colors.nebula.accent3}' },
-          glow: { value: '{colors.nebula.glow}' },
-          border: { value: '{colors.nebula.border}' },
-          hover: { value: '{colors.nebula.hover}' },
-          active: { value: '{colors.nebula.active}' },
-          // ADDED: Cosmic colors for nebula theme
-          cosmic1: { value: '{colors.nebula.cosmic1}' },
-          cosmic2: { value: '{colors.nebula.cosmic2}' },
-          cosmic3: { value: '{colors.nebula.cosmic3}' },
-          cosmicCore: { value: '{colors.nebula.cosmicCore}' },
-        }
-      }
-    }
-  },
-  
-  // Configuration options
-  prefix: "",
-  
-  conditions: {
-    extend: {
-      starlight: "[data-panda-theme=starlight] &, .light &:not([data-panda-theme])",
-      midnight: "[data-panda-theme=midnight] &, .dark &:not([data-panda-theme])",
-      eclipse: "[data-panda-theme=eclipse] &",
-      moonlight: "[data-panda-theme=moonlight] &",
-      nebula: "[data-panda-theme=nebula] &",
-      groupHover: "[role=group]:where(:hover, [data-hover]) &",
-    },
 
-  },
+},
+
+// Theme definitions - FIXED: Added cosmic colors to each theme
+themes: {
+midnight: {
+tokens: {
+colors: {
+primary: { value: '{colors.midnight.primary}' },
+background: { value: '{colors.midnight.background}' },
+backgroundAlt: { value: '{colors.midnight.backgroundAlt}' },
+text: { value: '{colors.midnight.text}' },
+textMuted: { value: '{colors.midnight.textMuted}' },
+secondary: { value: '{colors.midnight.secondary}' },
+accent1: { value: '{colors.midnight.accent1}' },
+accent2: { value: '{colors.midnight.accent2}' },
+accent3: { value: '{colors.midnight.accent3}' },
+glow: { value: '{colors.midnight.glow}' },
+border: { value: '{colors.midnight.border}' },
+hover: { value: '{colors.midnight.hover}' },
+active: { value: '{colors.midnight.active}' },
+// ADDED: Cosmic colors for midnight theme
+cosmic1: { value: '{colors.midnight.cosmic1}' },
+cosmic2: { value: '{colors.midnight.cosmic2}' },
+cosmic3: { value: '{colors.midnight.cosmic3}' },
+cosmicCore: { value: '{colors.midnight.cosmicCore}' },
+},
+// Add shadow tokens for midnight theme
+shadows: {
+glow: { value: '{shadows.midnight.glow}' },
+md: { value: '{shadows.midnight.md}' },
+}
+}
+},
+starlight: {
+tokens: {
+colors: {
+primary: { value: '{colors.starlight.primary}' },
+background: { value: '{colors.starlight.background}' },
+backgroundAlt: { value: '{colors.starlight.backgroundAlt}' },
+text: { value: '{colors.starlight.text}' },
+textMuted: { value: '{colors.starlight.textMuted}' },
+secondary: { value: '{colors.starlight.secondary}' },
+accent1: { value: '{colors.starlight.accent1}' },
+accent2: { value: '{colors.starlight.accent2}' },
+accent3: { value: '{colors.starlight.accent3}' },
+glow: { value: '{colors.starlight.glow}' },
+border: { value: '{colors.starlight.border}' },
+hover: { value: '{colors.starlight.hover}' },
+active: { value: '{colors.starlight.active}' },
+// ADDED: Cosmic colors for starlight theme
+cosmic1: { value: '{colors.starlight.cosmic1}' },
+cosmic2: { value: '{colors.starlight.cosmic2}' },
+cosmic3: { value: '{colors.starlight.cosmic3}' },
+cosmicCore: { value: '{colors.starlight.cosmicCore}' },
+}
+}
+},
+eclipse: {
+tokens: {
+colors: {
+primary: { value: '{colors.eclipse.primary}' },
+background: { value: '{colors.eclipse.background}' },
+backgroundAlt: { value: '{colors.eclipse.backgroundAlt}' },
+text: { value: '{colors.eclipse.text}' },
+textMuted: { value: '{colors.eclipse.textMuted}' },
+secondary: { value: '{colors.eclipse.secondary}' },
+accent1: { value: '{colors.eclipse.accent1}' },
+accent2: { value: '{colors.eclipse.accent2}' },
+accent3: { value: '{colors.eclipse.accent3}' },
+glow: { value: '{colors.eclipse.glow}' },
+border: { value: '{colors.eclipse.border}' },
+hover: { value: '{colors.eclipse.hover}' },
+active: { value: '{colors.eclipse.active}' },
+// ADDED: Cosmic colors for eclipse theme
+cosmic1: { value: '{colors.eclipse.cosmic1}' },
+cosmic2: { value: '{colors.eclipse.cosmic2}' },
+cosmic3: { value: '{colors.eclipse.cosmic3}' },
+cosmicCore: { value: '{colors.eclipse.cosmicCore}' },
+}
+}
+},
+moonlight: {
+tokens: {
+colors: {
+primary: { value: '{colors.moonlight.primary}' },
+background: { value: '{colors.moonlight.background}' },
+backgroundAlt: { value: '{colors.moonlight.backgroundAlt}' },
+text: { value: '{colors.moonlight.text}' },
+textMuted: { value: '{colors.moonlight.textMuted}' },
+secondary: { value: '{colors.moonlight.secondary}' },
+accent1: { value: '{colors.moonlight.accent1}' },
+accent2: { value: '{colors.moonlight.accent2}' },
+accent3: { value: '{colors.moonlight.accent3}' },
+glow: { value: '{colors.moonlight.glow}' },
+border: { value: '{colors.moonlight.border}' },
+hover: { value: '{colors.moonlight.hover}' },
+active: { value: '{colors.moonlight.active}' },
+// ADDED: Cosmic colors for moonlight theme
+cosmic1: { value: '{colors.moonlight.cosmic1}' },
+cosmic2: { value: '{colors.moonlight.cosmic2}' },
+cosmic3: { value: '{colors.moonlight.cosmic3}' },
+cosmicCore: { value: '{colors.moonlight.cosmicCore}' },
+}
+}
+},
+nebula: {
+tokens: {
+colors: {
+primary: { value: '{colors.nebula.primary}' },
+background: { value: '{colors.nebula.background}' },
+backgroundAlt: { value: '{colors.nebula.backgroundAlt}' },
+text: { value: '{colors.nebula.text}' },
+textMuted: { value: '{colors.nebula.textMuted}' },
+secondary: { value: '{colors.nebula.secondary}' },
+accent1: { value: '{colors.nebula.accent1}' },
+accent2: { value: '{colors.nebula.accent2}' },
+accent3: { value: '{colors.nebula.accent3}' },
+glow: { value: '{colors.nebula.glow}' },
+border: { value: '{colors.nebula.border}' },
+hover: { value: '{colors.nebula.hover}' },
+active: { value: '{colors.nebula.active}' },
+// ADDED: Cosmic colors for nebula theme
+cosmic1: { value: '{colors.nebula.cosmic1}' },
+cosmic2: { value: '{colors.nebula.cosmic2}' },
+cosmic3: { value: '{colors.nebula.cosmic3}' },
+cosmicCore: { value: '{colors.nebula.cosmicCore}' },
+}
+}
+}
+},
+
+// Configuration options
+prefix: "",
+
+conditions: {
+extend: {
+starlight: "[data-panda-theme=starlight] &, .light &:not([data-panda-theme])",
+midnight: "[data-panda-theme=midnight] &, .dark &:not([data-panda-theme])",
+eclipse: "[data-panda-theme=eclipse] &",
+moonlight: "[data-panda-theme=moonlight] &",
+nebula: "[data-panda-theme=nebula] &",
+groupHover: "[role=group]:where(:hover, [data-hover]) &",
+},
+
+},
 });

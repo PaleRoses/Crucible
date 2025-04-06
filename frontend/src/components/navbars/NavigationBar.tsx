@@ -1,10 +1,441 @@
 import React, { useState, useCallback, useEffect, useContext, useRef, memo, useMemo } from 'react';
+
 import { motion, AnimatePresence, useAnimation, Variants, MotionStyle } from 'framer-motion';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
 // --- Custom Hooks ---
-// (Hooks: useSubmenuManager, useResponsiveNavigation remain the same)
+
+/**
+ * Hook for handling keyboard navigation in desktop menu items
+ * @param navItemId - ID of the current nav item element
+ * @param submenuId - ID of the submenu associated with this item (if any)
+ * @param hasSubmenu - Whether this item has a submenu
+ * @param isItemActive - Whether the submenu is currently active/open
+ * @param setActiveItemId - Function to set the active submenu ID
+ * @param handleClick - Function to handle item click action
+ * @returns A keydown event handler function
+ */
+function useMenuItemKeyboardNav(
+  navItemId: string,
+  submenuId: string,
+  hasSubmenu: boolean,
+  isItemActive: boolean,
+  setActiveItemId: (id: string | null) => void,
+  handleClick: () => void
+) {
+  return useCallback((e: React.KeyboardEvent) => {
+    const parentNav = (e.target as HTMLElement).closest('[role="menubar"]');
+    if (!parentNav) return;
+    const navItems = Array.from(parentNav.querySelectorAll<HTMLElement>('[role="menuitem"][id^="nav-item-"]'));
+    const currentItemIndex = navItems.findIndex(navItem => navItem.id === navItemId);
+
+    switch (e.key) {
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        handleClick();
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setActiveItemId(null);
+        // Move focus back to the button itself
+        (e.target as HTMLElement).focus();
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        if (hasSubmenu) {
+          if (!isItemActive) {
+            setActiveItemId(navItemId.replace('nav-item-', '')); // Open submenu
+          }
+          // Use timeout to ensure submenu is rendered before focusing
+          setTimeout(() => {
+            const firstSubmenuItem = document.querySelector<HTMLElement>(`#${submenuId} [role="menuitem"]`);
+            firstSubmenuItem?.focus();
+          }, 50);
+        }
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        if (currentItemIndex > 0) {
+          navItems[currentItemIndex - 1]?.focus();
+        } else {
+          navItems[navItems.length - 1]?.focus(); // Wrap around
+        }
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        if (currentItemIndex < navItems.length - 1) {
+          navItems[currentItemIndex + 1]?.focus();
+        } else {
+          navItems[0]?.focus(); // Wrap around
+        }
+        break;
+      case 'Home':
+        e.preventDefault();
+        navItems[0]?.focus();
+        break;
+      case 'End':
+        e.preventDefault();
+        navItems[navItems.length - 1]?.focus();
+        break;
+    }
+  }, [navItemId, submenuId, hasSubmenu, isItemActive, setActiveItemId, handleClick]);
+}
+
+/**
+ * Hook for handling keyboard navigation within a submenu
+ * @param submenuRef - Reference to the submenu container element
+ * @param activeItemId - ID of the currently active/open submenu item
+ * @param setActiveItemId - Function to set/clear the active submenu
+ * @returns void - Sets up event listeners internally
+ */
+function useSubmenuKeyboardNav(
+  submenuRef: React.RefObject<HTMLElement | null>,
+  activeItemId: string | null,
+  setActiveItemId: (id: string | null) => void
+) {
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (!activeItemId || !submenuRef.current) return;
+
+    const focusableElements = Array.from(
+      submenuRef.current.querySelectorAll<HTMLElement>('[role="menuitem"]')
+    );
+    if (focusableElements.length === 0) return;
+
+    const focusedElement = document.activeElement as HTMLElement;
+    let focusedIndex = focusableElements.indexOf(focusedElement);
+
+    switch (e.key) {
+      case 'Escape':
+        e.preventDefault();
+        setActiveItemId(null);
+        // Return focus to the trigger button
+        document.getElementById(`nav-item-${activeItemId}`)?.focus();
+        break;
+      case 'ArrowDown':
+      case 'ArrowRight': // Treat right arrow like down for grid/list
+        e.preventDefault();
+        if (focusedIndex >= 0 && focusedIndex < focusableElements.length - 1) {
+          focusableElements[focusedIndex + 1]?.focus();
+        } else if (focusableElements.length > 0) {
+          focusableElements[0]?.focus(); // Wrap to start
+        }
+        break;
+      case 'ArrowUp':
+      case 'ArrowLeft': // Treat left arrow like up
+        e.preventDefault();
+        if (focusedIndex > 0) {
+          focusableElements[focusedIndex - 1]?.focus();
+        } else if (focusableElements.length > 0) {
+          focusableElements[focusableElements.length - 1]?.focus(); // Wrap to end
+        }
+        break;
+      case 'Home':
+        e.preventDefault();
+        focusableElements[0]?.focus();
+        break;
+      case 'End':
+        e.preventDefault();
+        focusableElements[focusableElements.length - 1]?.focus();
+        break;
+      case 'Tab':
+        // Simplified focus trapping
+        if (focusableElements.length > 0) {
+          const firstElement = focusableElements[0];
+          const lastElement = focusableElements[focusableElements.length - 1];
+          if (e.shiftKey) { // Shift + Tab
+            if (document.activeElement === firstElement) {
+              e.preventDefault();
+              lastElement.focus(); // Wrap to end
+            }
+          } else { // Tab
+            if (document.activeElement === lastElement) {
+              e.preventDefault();
+              firstElement.focus(); // Wrap to start
+            }
+          }
+        } else {
+          e.preventDefault(); // No items, prevent tabbing out
+          document.getElementById(`nav-item-${activeItemId}`)?.focus();
+        }
+        break;
+    }
+  }, [activeItemId, setActiveItemId, submenuRef]);
+
+  // Add/remove keydown listener when submenu is active
+  useEffect(() => {
+    if (activeItemId) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activeItemId, handleKeyDown]);
+}
+
+/**
+ * Hook for handling keyboard navigation in mobile menu items
+ * @param mobileNavItemId - ID of the current mobile nav item
+ * @param mobileSubmenuId - ID of the submenu associated with this item
+ * @param hasSubmenu - Whether this item has a submenu
+ * @param isSubmenuOpen - Whether the submenu is currently open
+ * @param toggleSubmenu - Function to toggle the submenu open/closed
+ * @param toggleMenu - Function to close the entire mobile menu (for navigation)
+ * @returns A keydown event handler function
+ */
+function useMobileMenuItemKeyboardNav(
+  mobileNavItemId: string,
+  mobileSubmenuId: string,
+  hasSubmenu: boolean,
+  isSubmenuOpen: boolean,
+  toggleSubmenu: () => void,
+  toggleMenu: () => void
+) {
+  return useCallback((e: React.KeyboardEvent) => {
+    const parentMenu = (e.target as HTMLElement).closest('[role="menubar"]');
+    if (!parentMenu) return;
+    const menuItems = Array.from(parentMenu.querySelectorAll<HTMLElement>('[role="menuitem"][id^="mobile-nav-item-"]'));
+    const currentIndex = menuItems.findIndex(el => el.id === mobileNavItemId);
+
+    switch (e.key) {
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        toggleSubmenu(); // Open/close submenu or navigate if no submenu
+        break;
+      case 'Escape':
+        e.preventDefault();
+        // If submenu is open, close it. Keep focus on the button.
+        if (isSubmenuOpen) {
+          toggleSubmenu();
+          (e.target as HTMLElement).focus();
+        }
+        // If submenu is closed, the main menu's Escape handler should take over
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        if (isSubmenuOpen && hasSubmenu) {
+          // Focus the first item in the open submenu
+          document.querySelector<HTMLElement>(`#${mobileSubmenuId} [role="menuitem"]`)?.focus();
+        } else if (currentIndex < menuItems.length - 1) {
+          // Focus the next main menu item
+          menuItems[currentIndex + 1]?.focus();
+        } else {
+          // Wrap around to the first item if at the end
+          menuItems[0]?.focus();
+        }
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        if (currentIndex > 0) {
+          // Focus the previous main menu item
+          menuItems[currentIndex - 1]?.focus();
+        } else {
+          // Focus the hamburger button (or logo if available) when at the top
+          const hamburgerButton = document.querySelector<HTMLElement>('[aria-controls="mobile-menu"]');
+          const logoLink = document.querySelector<HTMLElement>('#mobile-menu [role="link"][aria-label="Home"]');
+          (logoLink || hamburgerButton)?.focus();
+        }
+        break;
+      case 'Home':
+        e.preventDefault();
+        menuItems[0]?.focus();
+        break;
+      case 'End':
+        e.preventDefault();
+        menuItems[menuItems.length - 1]?.focus();
+        break;
+    }
+  }, [mobileNavItemId, mobileSubmenuId, hasSubmenu, isSubmenuOpen, toggleSubmenu, toggleMenu]);
+}
+
+/**
+ * Hook for handling keyboard navigation within mobile submenu items
+ * @param mobileNavItemId - ID of the parent mobile nav item
+ * @param parentId - ID of the parent item
+ * @param setIsSubmenuOpen - Function to set the submenu open state
+ * @param handleNavigation - Function to handle navigation
+ * @returns A function that creates a keydown handler for a specific submenu item
+ */
+function useMobileSubmenuKeyboardNav(
+  mobileNavItemId: string,
+  parentId: string,
+  setIsSubmenuOpen: (isOpen: boolean) => void,
+  handleNavigation: (href: string) => void
+) {
+  // Return a function that creates a keydown handler for a specific submenu item
+  return useCallback((subItemId: string, href: string) => {
+    // Return the actual keydown handler
+    return (e: React.KeyboardEvent) => {
+      const parentSubmenu = (e.target as HTMLElement).closest('[role="menu"]');
+      if (!parentSubmenu) return;
+      const submenuItems = Array.from(parentSubmenu.querySelectorAll<HTMLElement>('[role="menuitem"]'));
+      const currentSubIndex = submenuItems.findIndex(si => si.id === `mobile-submenu-item-${parentId}-${subItemId}`);
+
+      switch (e.key) {
+        case 'Enter':
+        case ' ':
+          e.preventDefault();
+          handleNavigation(href); // Navigate and close menu
+          break;
+        case 'Escape':
+          e.preventDefault();
+          setIsSubmenuOpen(false); // Close the submenu
+          document.getElementById(mobileNavItemId)?.focus(); // Focus the parent button
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          if (currentSubIndex > 0) {
+            submenuItems[currentSubIndex - 1]?.focus();
+          } else {
+            // Reached top of submenu, focus the parent button
+            document.getElementById(mobileNavItemId)?.focus();
+          }
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          if (currentSubIndex < submenuItems.length - 1) {
+            submenuItems[currentSubIndex + 1]?.focus();
+          } else {
+            // Reached end of submenu, focus the next main nav item (if exists)
+            const parentMenu = document.getElementById(mobileNavItemId)?.closest('[role="menubar"]');
+            if (parentMenu) {
+              const menuItems = Array.from(parentMenu.querySelectorAll<HTMLElement>('[role="menuitem"][id^="mobile-nav-item-"]'));
+              const parentIndex = menuItems.findIndex(el => el.id === mobileNavItemId);
+              if (parentIndex < menuItems.length - 1) {
+                menuItems[parentIndex + 1]?.focus();
+                setIsSubmenuOpen(false); // Close current submenu when moving to next main item
+              } else {
+                // Wrap to first main item
+                menuItems[0]?.focus();
+                setIsSubmenuOpen(false);
+              }
+            }
+          }
+          break;
+        case 'Tab':
+          // Basic focus trapping within submenu
+          if (submenuItems.length > 0) {
+            const firstElement = submenuItems[0];
+            const lastElement = submenuItems[submenuItems.length - 1];
+            if (e.shiftKey) { // Shift + Tab
+              if (document.activeElement === firstElement) {
+                e.preventDefault();
+                document.getElementById(mobileNavItemId)?.focus(); // Go to parent trigger
+              }
+            } else { // Tab
+              if (document.activeElement === lastElement) {
+                e.preventDefault();
+                // Go to next main item or wrap
+                const parentMenu = document.getElementById(mobileNavItemId)?.closest('[role="menubar"]');
+                if (parentMenu) {
+                  const menuItems = Array.from(parentMenu.querySelectorAll<HTMLElement>('[role="menuitem"][id^="mobile-nav-item-"]'));
+                  const parentIndex = menuItems.findIndex(el => el.id === mobileNavItemId);
+                  if (parentIndex < menuItems.length - 1) {
+                    menuItems[parentIndex + 1]?.focus();
+                  } else {
+                    menuItems[0]?.focus(); // Wrap main menu
+                  }
+                  setIsSubmenuOpen(false); // Close current submenu
+                }
+              }
+            }
+          } else {
+            e.preventDefault(); // Prevent tabbing out if no items
+            document.getElementById(mobileNavItemId)?.focus();
+          }
+          break;
+      }
+    };
+  }, [mobileNavItemId, parentId, setIsSubmenuOpen, handleNavigation]);
+}
+
+/**
+ * Hook for handling modal dialog behavior (focus trapping, escape key, etc.)
+ * @param isOpen - Whether the modal is currently open
+ * @param onClose - Function to close the modal
+ * @param modalId - ID of the modal element
+ * @returns Focus management utilities
+ */
+function useModalBehavior(
+  isOpen: boolean,
+  onClose: () => void,
+  modalId: string
+) {
+  // Set up focus management when modal opens/closes
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose(); // Close the modal
+      }
+      // Basic focus trapping
+      else if (e.key === 'Tab') {
+        const focusableSelector = `#${modalId} [role="menuitem"], #${modalId} [role="link"], #${modalId} button, #${modalId} a`;
+        const focusableElements = Array.from(document.querySelectorAll<HTMLElement>(focusableSelector));
+
+        if (focusableElements.length > 0) {
+          const firstElement = focusableElements[0];
+          const lastElement = focusableElements[focusableElements.length - 1];
+          const currentActive = document.activeElement as HTMLElement;
+
+          if (e.shiftKey) { // Shift + Tab
+            if (currentActive === firstElement) {
+              e.preventDefault();
+              lastElement.focus(); // Wrap to end
+            }
+          } else { // Tab
+            if (currentActive === lastElement) {
+              e.preventDefault();
+              firstElement.focus(); // Wrap to start
+            }
+          }
+        } else {
+          e.preventDefault(); // No focusable items, prevent tabbing out
+        }
+      }
+    };
+
+    // Focus the first item when modal opens
+    setTimeout(() => {
+      // Prioritize logo link, then first menu item
+      const firstFocusableElement = document.querySelector<HTMLElement>(
+        `#${modalId} [role="link"][aria-label="Home"], #${modalId} [role="menuitem"]`
+      );
+      firstFocusableElement?.focus();
+    }, 100); // Delay to allow animation
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose, modalId]);
+}
+
+/**
+ * Hook to determine if a given route is active based on the current path
+ * @returns A function that checks if a given href is active
+ */
+function useIsActiveRoute() {
+  const pathname = usePathname();
+
+  return useCallback((href: string) => {
+    if (!pathname || !href) return false;
+
+    // Handle home explicitly
+    if (href === '/') return pathname === '/';
+
+    // Normalize paths to ensure trailing slashes don't break comparison
+    const normalizedHref = href.endsWith('/') ? href : `${href}/`;
+    const normalizedPathname = pathname.endsWith('/') ? pathname : `${pathname}/`;
+
+    // Check for exact match or if pathname starts with the href (for parent routes)
+    return pathname === href || normalizedPathname.startsWith(normalizedHref);
+  }, [pathname]);
+}
 
 function useSubmenuManager(submenuBehavior: 'hover' | 'click', submenuCloseDelay: number) {
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
@@ -1007,65 +1438,15 @@ const DesktopNavItemComponent = memo(({
     onMouseEnter(); // Propagate event if needed
   }, [onMouseEnter, setActiveItemId, item.id, item.submenu, submenuBehavior]);
 
-  // Handle keyboard interactions
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    const parentNav = (e.target as HTMLElement).closest('[role="menubar"]');
-    if (!parentNav) return;
-    const navItems = Array.from(parentNav.querySelectorAll<HTMLElement>('[role="menuitem"][id^="nav-item-"]'));
-    const currentItemIndex = navItems.findIndex(navItem => navItem.id === navItemId);
-
-    switch (e.key) {
-      case 'Enter':
-      case ' ':
-        e.preventDefault();
-        handleClick();
-        break;
-      case 'Escape':
-        e.preventDefault();
-        setActiveItemId(null);
-        // Optionally move focus back to the button itself if needed
-        (e.target as HTMLElement).focus();
-        break;
-      case 'ArrowDown':
-        e.preventDefault();
-        if (item.submenu && item.submenu.length > 0) {
-          if (!isItemActive) {
-            setActiveItemId(item.id); // Open submenu first
-          }
-          // Use timeout to ensure submenu is rendered before focusing
-          setTimeout(() => {
-            const firstSubmenuItem = document.querySelector<HTMLElement>(`#${submenuId} [role="menuitem"]`);
-            firstSubmenuItem?.focus();
-          }, 50); // Adjust delay if needed
-        }
-        break;
-      case 'ArrowLeft':
-        e.preventDefault();
-        if (currentItemIndex > 0) {
-          navItems[currentItemIndex - 1]?.focus();
-        } else {
-          navItems[navItems.length - 1]?.focus(); // Wrap around
-        }
-        break;
-      case 'ArrowRight':
-        e.preventDefault();
-        if (currentItemIndex < navItems.length - 1) {
-          navItems[currentItemIndex + 1]?.focus();
-        } else {
-          navItems[0]?.focus(); // Wrap around
-        }
-        break;
-      // Add Home/End key support if desired
-      case 'Home':
-         e.preventDefault();
-         navItems[0]?.focus();
-         break;
-      case 'End':
-         e.preventDefault();
-         navItems[navItems.length - 1]?.focus();
-         break;
-    }
-  }, [handleClick, isItemActive, item.id, item.submenu, setActiveItemId, submenuId, navItemId]);
+  // Use the custom keyboard navigation hook
+  const handleKeyDown = useMenuItemKeyboardNav(
+    navItemId,
+    submenuId,
+    Boolean(item.submenu && item.submenu.length > 0),
+    isItemActive,
+    setActiveItemId,
+    handleClick
+  );
 
 
   return (
@@ -1176,97 +1557,8 @@ const GlobalSubmenuComponent = memo(({
     }
   }, [activeItemId, prevItemId, items]);
 
-  // Handle keyboard navigation within the submenu
-   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (!activeItemId || !submenuRef.current) return;
-
-    const focusableElements = Array.from(
-        submenuRef.current.querySelectorAll<HTMLElement>('[role="menuitem"]')
-    );
-    if (focusableElements.length === 0) return;
-
-    const focusedElement = document.activeElement as HTMLElement;
-    let focusedIndex = focusableElements.indexOf(focusedElement);
-
-    // If focus is somehow outside the submenu items, attempt to reset focus
-    if (focusedIndex === -1 && focusableElements.length > 0) {
-       // Maybe focus first element as a fallback?
-       // focusableElements[0]?.focus();
-       // Or just let the event bubble / default browser behavior handle it
-    }
-
-
-    switch (e.key) {
-      case 'Escape':
-        e.preventDefault();
-        setActiveItemId(null);
-        // Return focus to the trigger button
-        document.getElementById(`nav-item-${activeItemId}`)?.focus();
-        break;
-      case 'ArrowDown':
-      case 'ArrowRight': // Treat right arrow like down for grid/list
-        e.preventDefault();
-        if (focusedIndex >= 0 && focusedIndex < focusableElements.length - 1) {
-          focusableElements[focusedIndex + 1]?.focus();
-        } else if (focusableElements.length > 0) {
-          focusableElements[0]?.focus(); // Wrap to start
-        }
-        break;
-      case 'ArrowUp':
-      case 'ArrowLeft': // Treat left arrow like up
-        e.preventDefault();
-        if (focusedIndex > 0) {
-          focusableElements[focusedIndex - 1]?.focus();
-        } else if (focusableElements.length > 0) {
-          // Option 1: Wrap to end
-           focusableElements[focusableElements.length - 1]?.focus();
-          // Option 2: Go back to the trigger button
-          // setActiveItemId(null);
-          // document.getElementById(`nav-item-${activeItemId}`)?.focus();
-        }
-        break;
-      case 'Home':
-        e.preventDefault();
-        focusableElements[0]?.focus();
-        break;
-      case 'End':
-        e.preventDefault();
-        focusableElements[focusableElements.length - 1]?.focus();
-        break;
-      case 'Tab':
-         // Simplified focus trapping
-         if (focusableElements.length > 0) {
-             const firstElement = focusableElements[0];
-             const lastElement = focusableElements[focusableElements.length - 1];
-             if (e.shiftKey) { // Shift + Tab
-                 if (document.activeElement === firstElement) {
-                     e.preventDefault();
-                     lastElement.focus(); // Wrap to end
-                 }
-             } else { // Tab
-                 if (document.activeElement === lastElement) {
-                     e.preventDefault();
-                     firstElement.focus(); // Wrap to start
-                 }
-             }
-             // Allow tabbing between items if not first/last
-         } else {
-             e.preventDefault(); // No items, prevent tabbing out
-             document.getElementById(`nav-item-${activeItemId}`)?.focus();
-         }
-         break;
-    }
-  }, [activeItemId, setActiveItemId]); // Added setActiveItemId dependency
-
-  // Add/remove keydown listener when submenu is active
-  useEffect(() => {
-    if (activeItemId) {
-      document.addEventListener('keydown', handleKeyDown);
-    }
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [activeItemId, handleKeyDown]); // Effect depends on activeItemId and the handler itself
+  // Use our custom submenu keyboard navigation hook
+  useSubmenuKeyboardNav(submenuRef, activeItemId, setActiveItemId);
 
 
   // Handle click on a submenu item
@@ -1402,149 +1694,24 @@ const MobileNavItemComponent = memo(({
   }, [item.submenu, item.href, handleNavigation]); // Added handleNavigation
 
 
-  // Keyboard handling for the main mobile nav item (button)
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    const parentMenu = (e.target as HTMLElement).closest('[role="menubar"]');
-    if (!parentMenu) return;
-    const menuItems = Array.from(parentMenu.querySelectorAll<HTMLElement>('[role="menuitem"][id^="mobile-nav-item-"]'));
-    const currentIndex = menuItems.findIndex(el => el.id === mobileNavItemId);
-
-    switch (e.key) {
-      case 'Enter':
-      case ' ':
-        e.preventDefault();
-        toggleSubmenu(); // Open/close submenu or navigate if no submenu
-        break;
-      case 'Escape':
-        e.preventDefault();
-        // If submenu is open, close it. Keep focus on the button.
-        if (isSubmenuOpen) {
-          setIsSubmenuOpen(false);
-          (e.target as HTMLElement).focus();
-        }
-        // If submenu is closed, the main menu's Escape handler should take over (MobileMenuComponent)
-        break;
-      case 'ArrowDown':
-        e.preventDefault();
-        if (isSubmenuOpen && item.submenu && item.submenu.length > 0) {
-          // Focus the first item in the open submenu
-          document.querySelector<HTMLElement>(`#${mobileSubmenuId} [role="menuitem"]`)?.focus();
-        } else if (currentIndex < menuItems.length - 1) {
-          // Focus the next main menu item
-          menuItems[currentIndex + 1]?.focus();
-        }
-        // Wrap around to the first item if at the end
-        else {
-            menuItems[0]?.focus();
-        }
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        if (currentIndex > 0) {
-          // Focus the previous main menu item
-          menuItems[currentIndex - 1]?.focus();
-        } else {
-          // Focus the hamburger button (or logo if available) when at the top
-          const hamburgerButton = document.querySelector<HTMLElement>('[aria-controls="mobile-menu"]');
-          const logoLink = document.querySelector<HTMLElement>('#mobile-menu [role="link"][aria-label="Home"]');
-          (logoLink || hamburgerButton)?.focus();
-        }
-        break;
-      // Add Home/End support if needed
-       case 'Home':
-           e.preventDefault();
-           menuItems[0]?.focus();
-           break;
-       case 'End':
-           e.preventDefault();
-           menuItems[menuItems.length - 1]?.focus();
-           break;
-    }
-  }, [isSubmenuOpen, toggleSubmenu, mobileNavItemId, item.submenu, toggleMenu]); // Added toggleMenu
+  // Use our custom mobile menu item keyboard navigation hook
+  const handleKeyDown = useMobileMenuItemKeyboardNav(
+    mobileNavItemId,
+    mobileSubmenuId,
+    Boolean(item.submenu && item.submenu.length > 0),
+    isSubmenuOpen,
+    toggleSubmenu,
+    toggleMenu
+  );
 
 
-  // Keyboard handling for items within the mobile submenu
-  const handleSubmenuKeyDown = useCallback((e: React.KeyboardEvent, subItemId: string, href: string) => {
-    const parentSubmenu = (e.target as HTMLElement).closest('[role="menu"]');
-    if (!parentSubmenu) return;
-    const submenuItems = Array.from(parentSubmenu.querySelectorAll<HTMLElement>('[role="menuitem"]'));
-    const currentSubIndex = submenuItems.findIndex(si => si.id === `mobile-submenu-item-${item.id}-${subItemId}`);
-
-    switch (e.key) {
-      case 'Enter':
-      case ' ':
-        e.preventDefault();
-        handleNavigation(href); // Navigate and close menu
-        break;
-      case 'Escape':
-        e.preventDefault();
-        setIsSubmenuOpen(false); // Close the submenu
-        document.getElementById(mobileNavItemId)?.focus(); // Focus the parent button
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        if (currentSubIndex > 0) {
-          submenuItems[currentSubIndex - 1]?.focus();
-        } else {
-          // Reached top of submenu, focus the parent button
-          document.getElementById(mobileNavItemId)?.focus();
-        }
-        break;
-      case 'ArrowDown':
-        e.preventDefault();
-        if (currentSubIndex < submenuItems.length - 1) {
-          submenuItems[currentSubIndex + 1]?.focus();
-        } else {
-          // Reached end of submenu, focus the next main nav item (if exists)
-          const parentMenu = document.getElementById(mobileNavItemId)?.closest('[role="menubar"]');
-          if(parentMenu){
-              const menuItems = Array.from(parentMenu.querySelectorAll<HTMLElement>('[role="menuitem"][id^="mobile-nav-item-"]'));
-              const parentIndex = menuItems.findIndex(el => el.id === mobileNavItemId);
-              if(parentIndex < menuItems.length - 1){
-                  menuItems[parentIndex + 1]?.focus();
-                  setIsSubmenuOpen(false); // Close current submenu when moving to next main item
-              } else {
-                   // Wrap to first main item
-                   menuItems[0]?.focus();
-                   setIsSubmenuOpen(false);
-              }
-          }
-        }
-        break;
-       case 'Tab':
-           // Basic focus trapping within submenu
-           if (submenuItems.length > 0) {
-               const firstElement = submenuItems[0];
-               const lastElement = submenuItems[submenuItems.length - 1];
-               if (e.shiftKey) { // Shift + Tab
-                   if (document.activeElement === firstElement) {
-                       e.preventDefault();
-                       document.getElementById(mobileNavItemId)?.focus(); // Go to parent trigger
-                   }
-               } else { // Tab
-                   if (document.activeElement === lastElement) {
-                       e.preventDefault();
-                       // Go to next main item or wrap
-                        const parentMenu = document.getElementById(mobileNavItemId)?.closest('[role="menubar"]');
-                        if(parentMenu){
-                            const menuItems = Array.from(parentMenu.querySelectorAll<HTMLElement>('[role="menuitem"][id^="mobile-nav-item-"]'));
-                            const parentIndex = menuItems.findIndex(el => el.id === mobileNavItemId);
-                            if(parentIndex < menuItems.length - 1){
-                                menuItems[parentIndex + 1]?.focus();
-                            } else {
-                                menuItems[0]?.focus(); // Wrap main menu
-                            }
-                            setIsSubmenuOpen(false); // Close current submenu
-                        }
-                   }
-               }
-           } else {
-               e.preventDefault(); // Prevent tabbing out if no items
-               document.getElementById(mobileNavItemId)?.focus();
-           }
-           break;
-    }
-  }, [mobileNavItemId, handleNavigation, item.id, item.submenu]); // Dependencies
+  // Create submenu keyboard handler using our fixed hook
+  const createSubmenuKeyHandler = useMobileSubmenuKeyboardNav(
+    mobileNavItemId,
+    item.id,
+    setIsSubmenuOpen,
+    handleNavigation
+  );
 
 
   return (
@@ -1615,7 +1782,7 @@ const MobileNavItemComponent = memo(({
                   onClick={() => handleNavigation(subItem.href)}
                   role="menuitem"
                   tabIndex={0} // Submenu items are focusable
-                  onKeyDown={(e: React.KeyboardEvent) => handleSubmenuKeyDown(e, subItem.id, subItem.href)}
+                  onKeyDown={createSubmenuKeyHandler(subItem.id, subItem.href)}
                   aria-label={subItem.description ? `${subItem.label}: ${subItem.description}` : subItem.label}
                   // Add aria-current if the subitem is the current page
                   aria-current={isSubItemActive ? 'page' : undefined}
@@ -1677,60 +1844,8 @@ const MobileMenuComponent = memo(({
    // Ensure styles are loaded
   if (!styles?.mobileMenu) return null;
 
-  // Effect to handle Escape key press for closing the menu
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        toggleMenu(); // Close the menu
-      }
-      // Basic focus trapping
-      else if (e.key === 'Tab') {
-           const focusableSelector = '#mobile-menu [role="menuitem"], #mobile-menu [role="link"], #mobile-menu button, #mobile-menu a';
-           const focusableElements = Array.from(document.querySelectorAll<HTMLElement>(focusableSelector));
-
-           if (focusableElements.length > 0) {
-               const firstElement = focusableElements[0];
-               const lastElement = focusableElements[focusableElements.length - 1];
-               const currentActive = document.activeElement as HTMLElement;
-
-               if (e.shiftKey) { // Shift + Tab
-                   if (currentActive === firstElement) {
-                       e.preventDefault();
-                       lastElement.focus(); // Wrap to end
-                   }
-               } else { // Tab
-                   if (currentActive === lastElement) {
-                       e.preventDefault();
-                       firstElement.focus(); // Wrap to start
-                   }
-               }
-           } else {
-               e.preventDefault(); // No focusable items, prevent tabbing out
-           }
-       }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, toggleMenu]);
-
-  // Effect to focus the first item when the menu opens
-  useEffect(() => {
-      if (isOpen && isMobileView) {
-          setTimeout(() => {
-              // Prioritize logo link, then first menu item
-              const firstFocusableElement = document.querySelector<HTMLElement>(
-                   '#mobile-menu [role="link"][aria-label="Home"], #mobile-menu [role="menuitem"]'
-              );
-              firstFocusableElement?.focus();
-          }, 100); // Delay to allow animation
-      }
-  }, [isOpen, isMobileView]);
+  // Use our custom modal behavior hook for focus management and keyboard handling
+  useModalBehavior(isOpen && isMobileView, toggleMenu, 'mobile-menu');
 
 
   return (
@@ -1763,8 +1878,18 @@ const MobileMenuComponent = memo(({
                         style={styles.mobileMenu.logoLink}
                         tabIndex={0} // Make focusable
                         aria-label="Home"
-                        onClick={toggleMenu} // Close menu on logo click
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleMenu(); router.push(homeHref || '/'); } }} // Keyboard activation
+                        onClick={(e) => {
+                          e.preventDefault(); // Prevent default to handle navigation manually
+                          toggleMenu(); // Close menu first
+                          router.push(homeHref || '/'); // Navigate using router
+                        }}
+                        onKeyDown={(e) => { 
+                          if (e.key === 'Enter' || e.key === ' ') { 
+                            e.preventDefault(); 
+                            toggleMenu(); 
+                            router.push(homeHref || '/'); 
+                          } 
+                        }} // Keyboard activation
                         role="link" // Explicit role
                         >
                         {logo}
@@ -1864,7 +1989,6 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   textColor = DEFAULT_COLORS.text,
   glowColor = DEFAULT_COLORS.glow,
 }) => {
-  const pathname = usePathname(); // Hook for active route checking
 
   // Merge default and provided icons
   const mergedIconMapping = useMemo(() => ({ ...DEFAULT_ICON_MAPPING, ...iconMapping }), [iconMapping]);
@@ -2030,21 +2154,8 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
     };
   }, [activeItemId, submenuBehavior, setActiveItemId]);
 
-  // Check if a given route href is the currently active path
-  const isActiveRoute = useCallback((href: string) => {
-    if (!pathname || !href) return false; // Add check for href
-
-    // Handle home explicitly
-    if (href === '/') return pathname === '/';
-
-    // Normalize paths to ensure trailing slashes don't break comparison
-    const normalizedHref = href.endsWith('/') ? href : `${href}/`;
-    const normalizedPathname = pathname.endsWith('/') ? pathname : `${pathname}/`;
-
-    // Check for exact match or if pathname starts with the href (for parent routes)
-    return pathname === href || normalizedPathname.startsWith(normalizedHref);
-
-  }, [pathname]);
+  // Use our custom hook for active route matching
+  const isActiveRoute = useIsActiveRoute();
 
   // --- Render ---
   // Avoid rendering server-side or before client-side checks are complete
