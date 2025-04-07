@@ -153,7 +153,7 @@ export default function Layout({
     <div className={css({ display: 'flex', minHeight: '100vh' })}>
       {/* Documentation Sidebar */}
       <LeftSidebar
-        title="Codex"
+        title="CODEX"
         variant="cosmic"
         initiallyExpanded={sidebarExpanded}
         navigationItems={itemsWithHandlers}

@@ -532,7 +532,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         }}>
           <h1 className="sidebar-header-title" style={{
             fontSize: '1.1em',
-            fontWeight: 'medium',
+            fontWeight: '100',
             margin: 0,
             padding: 0,
             opacity: isExpanded ? 1 : 0,

@@ -377,7 +377,6 @@ export const cosmicSidebarHeader = defineRecipe({
       marginLeft: '3',
       fontFamily: 'heading',
       fontWeight: 'normal',
-      letterSpacing: '0.05em',
       color: 'primary',
       whiteSpace: 'nowrap',
       transition: 'opacity 0.3s ease, visibility 0.3s ease',
@@ -714,7 +713,6 @@ export const cosmicSidebarGroup = defineRecipe({
         },
         '& .sidebar-group-heading': {
           color: 'color-mix(in srgb, var(--color-text) 80%, var(--color-primary))',
-          letterSpacing: '0.08em',
         },
       },
     },

@@ -66,7 +66,7 @@ export const MOBILE_NAV_ITEM_CLASS = 'mobile-nav-item';
 export const MOBILE_SUBMENU_ITEM_CLASS = 'mobile-submenu-item';
 export const MOBILE_MENU_BUTTON_CLASS = 'mobile-menu-button';
 
-// --- UPDATED: Animation variants with seamless transitions ---
+// --- UPDATED: Animation variants with enhanced, smoother transitions ---
 export const ANIMATIONS = {
   navItem: {
     idle: { scale: 1 },
@@ -78,26 +78,30 @@ export const ANIMATIONS = {
   },
   submenu: {
     initial: { opacity: 0 },
-    animate: { opacity: 1, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } },
-    exit: { opacity: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } }
+    animate: { opacity: 1, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } },
+    exit: { opacity: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] } }
   },
-  // Enhanced slide animations - slower for smoother transitions
+  // Enhanced slide animations with smoother transitions
   submenuContentSlideRight: {
     initial: { x: -40, opacity: 0 },
     animate: { 
       x: 0, 
       opacity: 1, 
       transition: { 
-        x: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
-        opacity: { duration: 0.4, ease: [0.16, 1, 0.3, 1] }
+        // Longer duration for smoother movement
+        x: { duration: 0.65, ease: [0.25, 0.1, 0.25, 1] }, // Cubic bezier for more natural movement
+        // Slightly faster opacity fade-in for better visibility during slide
+        opacity: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }
       } 
     },
     exit: { 
       x: 40, 
       opacity: 0,
       transition: { 
-        x: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
-        opacity: { duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.1 }
+        // Slightly longer exit for smoother disappearance
+        x: { duration: 0.6, ease: [0.25, 0.1, 0.25, 1] },
+        // Longer fade-out with delay to remain visible during slide
+        opacity: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1], delay: 0.15 }
       } 
     }
   },
@@ -107,46 +111,56 @@ export const ANIMATIONS = {
       x: 0, 
       opacity: 1, 
       transition: { 
-        x: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
-        opacity: { duration: 0.4, ease: [0.16, 1, 0.3, 1] }
+        x: { duration: 0.65, ease: [0.25, 0.1, 0.25, 1] },
+        opacity: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }
       } 
     },
     exit: { 
       x: -40, 
       opacity: 0,
       transition: { 
-        x: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
-        opacity: { duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.1 }
+        x: { duration: 0.6, ease: [0.25, 0.1, 0.25, 1] },
+        opacity: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1], delay: 0.15 }
       } 
     }
   },
-  // Container for staggered children
+  // Container for staggered children with improved timing
   submenuItemsContainer: {
     animate: { 
       transition: { 
-        staggerChildren: 0.05, // Slightly slower stagger
-        delayChildren: 0.15    // Slightly longer delay
+        // More gradual stagger for a flowing effect
+        staggerChildren: 0.07,
+        // Longer delay before children start animating in
+        delayChildren: 0.2
       } 
     }
   },
-  // Individual item stagger animation
+  // Individual item stagger animation with smoother transitions
   submenuItemStagger: {
     initial: { opacity: 0, y: 10 },
     animate: { 
       opacity: 1, 
       y: 0,
-      transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] }
+      transition: { 
+        duration: 0.6, 
+        ease: [0.25, 0.1, 0.25, 1], // More natural cubic bezier curve
+        // Slightly staggered properties for more organic feel
+        opacity: { duration: 0.7 }
+      }
     },
     exit: { 
       opacity: 0,
-      transition: { duration: 0.3, ease: [0.4, 0, 1, 1] }
+      transition: { 
+        duration: 0.45, 
+        ease: [0.4, 0, 0.2, 1] // Smoother exit ease
+      }
     }
   },
   // Original animations maintained for compatibility
   submenuItem: {
     initial: { opacity: 0 },
-    animate: { opacity: 1, transition: { duration: 0.3 } },
-    exit: { opacity: 0, transition: { duration: 0.2 } }
+    animate: { opacity: 1, transition: { duration: 0.4 } },
+    exit: { opacity: 0, transition: { duration: 0.3 } }
   },
   mobileMenu: {
     closed: { opacity: 0, y: '-100%', transition: { duration: 0.12, ease: [0.4, 0, 1, 1] } },

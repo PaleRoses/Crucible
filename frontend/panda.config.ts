@@ -118,7 +118,7 @@ export default defineConfig({
       minHeight: "100vh",
       fontFamily: "var(--font-body)",
       fontWeight: 200,
-      letterSpacing: "0.05em",
+      letterSpacing: "0.1em",
       WebkitFontSmoothing: "antialiased",
       MozOsxFontSmoothing: "grayscale",
       margin: 0,
@@ -130,7 +130,7 @@ export default defineConfig({
     "h1, h2, h3, h4, h5, h6": {
       fontFamily: "var(--font-heading)",
       fontWeight: 200,
-      letterSpacing: "0.1em",
+      letterSpacing: "0.15em",
       lineHeight: 1.2,
       marginBottom: "1rem",
       color: "var(--color-primary)",
@@ -138,7 +138,7 @@ export default defineConfig({
     },
     h1: {
       fontSize: "2.5rem",
-      letterSpacing: "0.14em",
+      letterSpacing: "0.18em",
     },
     h2: {
       fontSize: "2rem",
@@ -181,7 +181,7 @@ export default defineConfig({
       paddingTop: "4rem",
       paddingBottom: "4rem",
     },
-    // Custom scrollbar
+    // Custom scrollbar for elements
     "::-webkit-scrollbar": {
       width: "2px",
       height: "2px",
@@ -193,20 +193,24 @@ export default defineConfig({
       backgroundColor: "var(--color-border)",
       borderRadius: "var(--radius-medium)",
     },
-    "::-webkit-scrollbar-button:vertical:decrement": {
+    // Note: Combined the vertical increment/decrement buttons
+    "::-webkit-scrollbar-button": {
       height: "6px",
       backgroundColor: "transparent",
-      borderBottom: "2px solid var(--color-border)",
     },
-    "::-webkit-scrollbar-button:vertical:increment": {
-      height: "6px",
-      backgroundColor: "transparent",
-      borderTop: "2px solid var(--color-border)",
-    },
-    // Firefox scrollbar styling
+    // Firefox scrollbar styling for elements
     "*": {
       scrollbarColor: "var(--color-border) transparent",
       scrollbarWidth: "thin",
+    },
+    // Override for html/body only
+    "html, body": {
+      scrollbarWidth: "none",
+      msOverflowStyle: "none",
+    },
+    "html::-webkit-scrollbar, body::-webkit-scrollbar": {
+      width: "0",
+      display: "none",
     },
     
     // Layout elements
