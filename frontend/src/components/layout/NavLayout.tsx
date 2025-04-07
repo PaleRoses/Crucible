@@ -312,12 +312,10 @@ const NavLayout: React.FC = () => {
         showItemDescriptions={false}
         iconMapping={iconMapping}
         // Preserve the original color scheme exactly
-        backdropFilter="blur(50px)"
         height="45px"
         submenuBehavior="hover"
         submenuCloseDelay={200}
         hideOnScroll={false} 
-        boxShadow="0 8px 32px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.05), 0 0 12px rgba(191, 173, 127, 0.3)"
         // Enable mobile menu
         mobileBreakpoint={768}
       />

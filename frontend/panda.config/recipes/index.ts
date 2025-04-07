@@ -15,6 +15,24 @@ import { cosmicInputWrapper, cosmicInputField, cosmicInputLabel, cosmicInputAdor
 import { cosmicMenuButton } from './cosmicMenuButton';
 import { cosmicModalOverlay, cosmicModalContent, cosmicModalHeader, cosmicModalBody, cosmicModalFooter, cosmicModal } from './cosmicModal';
 import { cosmicNavItem } from './cosmicNavItem';
+
+import { 
+  cosmicNavigationContainer,
+  cosmicNavigationContent,
+  cosmicNavigationLogo,
+  cosmicNavigationItemsContainer,
+  cosmicNavigationItem,
+  cosmicNavigationSubmenu,
+  cosmicNavigationSubmenuItem,
+  cosmicMobileNavigationContainer,
+  cosmicMobileNavigationHeader,
+  cosmicMobileNavigationItem,
+  cosmicMobileNavigationSubmenu,
+  cosmicMobileMenuButton,
+  cosmicNavigationBar
+} from './cosmicNavigationBar';
+
+
 import { cosmicRadioGroup, cosmicRadioContainer, cosmicRadioInput, cosmicRadioMarker, cosmicRadioLabel, cosmicRadioError, cosmicRadioButton } from './cosmicRadioButton';
 
 import { cosmicPageLayout, cosmicSidebar, cosmicSidebarHeader, cosmicSidebarContent, cosmicSidebarItem, cosmicSidebarNestedItems, cosmicSidebarGroup, cosmicSidebarDivider, cosmicSidebarBadge, cosmicSidebarFooter, cosmicSidebarToggle, cosmicSidebarSearch, cosmicSideBar } from './cosmicSideBar';
@@ -97,6 +115,22 @@ export const recipes = {
 
   // Navigation Item component
   cosmicNavItem: cosmicNavItem,
+
+
+  // Navigation Bar components
+  cosmicNavigationContainer: cosmicNavigationContainer,
+  cosmicNavigationContent: cosmicNavigationContent,
+  cosmicNavigationLogo: cosmicNavigationLogo,
+  cosmicNavigationItemsContainer: cosmicNavigationItemsContainer,
+  cosmicNavigationItem: cosmicNavigationItem,
+  cosmicNavigationSubmenu: cosmicNavigationSubmenu,
+  cosmicNavigationSubmenuItem: cosmicNavigationSubmenuItem,
+  cosmicMobileNavigationContainer: cosmicMobileNavigationContainer,
+  cosmicMobileNavigationHeader: cosmicMobileNavigationHeader,
+  cosmicMobileNavigationItem: cosmicMobileNavigationItem,
+  cosmicMobileNavigationSubmenu: cosmicMobileNavigationSubmenu,
+  cosmicMobileMenuButton: cosmicMobileMenuButton,
+  cosmicNavigationBar: cosmicNavigationBar,
 
   // Radio Button components
   cosmicRadioGroup: cosmicRadioGroup,
