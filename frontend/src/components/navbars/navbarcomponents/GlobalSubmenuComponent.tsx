@@ -50,65 +50,95 @@ const GlobalSubmenuComponent: React.FC<GlobalSubmenuComponentProps> = ({
     <div
       className={DesktopStyles.globalSubmenuRootStyle}
       style={rootStyleDynamic}
-      role="presentation" // Not interactive itself
+      role="presentation"
     >
-      {/* AnimatePresence handles enter/exit animations when activeItem changes */}
-      <AnimatePresence mode="wait">
-        {activeItem && ( // Only render if there's an active submenu
-          <motion.div
-            {...submenuProps} // Spread event handlers (e.g., onMouseLeave)
-            className={DesktopStyles.globalSubmenuContainerStyle}
-            variants={ANIMATIONS.submenu} // Fade/scale animation for the container
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            key={`global-submenu-${activeItem.id}`} // Key ensures recreation on item change
-            layoutId="global-submenu" // Shared layout ID for smoother transition
-            role="menu" // ARIA role for the submenu
-            aria-label={`${activeItem.label} submenu`} // ARIA label
-            aria-labelledby={`nav-item-${activeItem.id}`} // Links to the triggering nav item
-          >
-            {/* Inner container for content animation (sliding) */}
+      {/* Fixed container that is always present but only visible when activeItem exists */}
+      <motion.div
+        {...submenuProps} // Spread event handlers (e.g., onMouseLeave, onMouseEnter, keyboard events)
+        className={DesktopStyles.globalSubmenuContainerStyle}
+        initial={{ opacity: 0 }}
+        animate={activeItem ? { opacity: 1 } : { opacity: 0 }}
+        transition={{ duration: 0.3 }} // Slightly slower animation
+        role="menu"
+        aria-label={activeItem ? `${activeItem.label} submenu` : 'submenu'}
+        aria-labelledby={activeItem ? `nav-item-${activeItem.id}` : undefined}
+      >
+        {/* AnimatePresence for handling content transitions */}
+        <AnimatePresence mode="popLayout" initial={false}>
+          {activeItem && (
             <motion.div
               className={DesktopStyles.globalSubmenuGridStyle}
-              variants={contentAnimationVariant} // Apply slide animation
+              key={`submenu-content-${activeItem.id}`}
+              variants={contentAnimationVariant}
               initial="initial"
               animate="animate"
               exit="exit"
-              key={`submenu-content-${activeItem.id}`} // Key ensures recreation
-              layoutId={`submenu-content-${activeItem.id}`} // Shared layout ID
+              style={{ 
+                position: "relative",
+                display: "flex", 
+                flexDirection: "row", 
+                alignItems: "center",
+                justifyContent: "flex-start",
+                width: "100%"
+              }}
               role="presentation"
             >
               {/* Optional header for the submenu */}
               {activeItem.label && (
-                <div className={DesktopStyles.globalSubmenuHeaderStyle} role="presentation">
-                  <div className={DesktopStyles.globalSubmenuTitleStyle} id={`submenu-header-${activeItem.id}`}>
+                <div 
+                  className={DesktopStyles.globalSubmenuHeaderStyle} 
+                  role="presentation"
+                >
+                  <div 
+                    className={DesktopStyles.globalSubmenuTitleStyle} 
+                    id={`submenu-header-${activeItem.id}`}
+                  >
                     {activeItem.label}
                   </div>
                   {/* Optional description (often taken from the first subitem) */}
                   {activeItem.submenu?.[0]?.description && (
-                    <div className={DesktopStyles.globalSubmenuDescriptionStyle} id={`submenu-description-${activeItem.id}`}>
+                    <div 
+                      className={DesktopStyles.globalSubmenuDescriptionStyle} 
+                      id={`submenu-description-${activeItem.id}`}
+                    >
                       {activeItem.submenu[0].description}
                     </div>
                   )}
                 </div>
               )}
-              {/* Map and render each submenu item */}
-              {activeItem.submenu?.map((subItem) => (
-                <MemoizedSubmenuItem
-                  key={subItem.id}
-                  subItem={subItem}
-                  onClick={() => onSubmenuItemClick(subItem.href)}
-                  parentId={activeItem.id}
-                  // Pass down prop, though MemoizedSubmenuItem currently ignores it
-                  showDescription={false} // Hardcoded to false based on original JSX
-                  iconMapping={iconMapping}
-                />
-              ))}
+
+              {/* Submenu items container with staggered animation - horizontal layout */}
+              <motion.div 
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  flexWrap: "nowrap",
+                  alignItems: "center"
+                }}
+                variants={ANIMATIONS.submenuItemsContainer}
+              >
+                {/* Map and render each submenu item with staggered animation */}
+                {activeItem.submenu?.map((subItem, index) => (
+                  <motion.div
+                    key={subItem.id}
+                    custom={index}
+                    variants={ANIMATIONS.submenuItemStagger}
+                    style={{ display: "inline-block" }}
+                  >
+                    <MemoizedSubmenuItem
+                      subItem={subItem}
+                      onClick={() => onSubmenuItemClick(subItem.href)}
+                      parentId={activeItem.id}
+                      showDescription={false}
+                      iconMapping={iconMapping}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
+      </motion.div>
     </div>
   );
 };

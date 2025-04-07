@@ -66,7 +66,7 @@ export const MOBILE_NAV_ITEM_CLASS = 'mobile-nav-item';
 export const MOBILE_SUBMENU_ITEM_CLASS = 'mobile-submenu-item';
 export const MOBILE_MENU_BUTTON_CLASS = 'mobile-menu-button';
 
-// --- ADDED BACK: Animation variants ---
+// --- UPDATED: Animation variants with seamless transitions ---
 export const ANIMATIONS = {
   navItem: {
     idle: { scale: 1 },
@@ -77,24 +77,76 @@ export const ANIMATIONS = {
     open: { rotate: 180, transition: { duration: 0.15 } }
   },
   submenu: {
-    initial: { opacity: 0, y: -10, scale: 0.98 },
-    animate: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1] } },
-    exit: { opacity: 0, y: -10, scale: 0.98, transition: { duration: 0.15, ease: [0.4, 0, 1, 1] } }
-  },
-  submenuContentSlideRight: {
     initial: { opacity: 0 },
-    animate: { opacity: 1, transition: { duration: 0.2 } },
-    exit: { opacity: 0, transition: { duration: 0.1 } }
+    animate: { opacity: 1, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } },
+    exit: { opacity: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } }
+  },
+  // Enhanced slide animations - slower for smoother transitions
+  submenuContentSlideRight: {
+    initial: { x: -40, opacity: 0 },
+    animate: { 
+      x: 0, 
+      opacity: 1, 
+      transition: { 
+        x: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+        opacity: { duration: 0.4, ease: [0.16, 1, 0.3, 1] }
+      } 
+    },
+    exit: { 
+      x: 40, 
+      opacity: 0,
+      transition: { 
+        x: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+        opacity: { duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.1 }
+      } 
+    }
   },
   submenuContentSlideLeft: {
-    initial: { opacity: 0 },
-    animate: { opacity: 1, transition: { duration: 0.2 } },
-    exit: { opacity: 0, transition: { duration: 0.1 } }
+    initial: { x: 40, opacity: 0 },
+    animate: { 
+      x: 0, 
+      opacity: 1, 
+      transition: { 
+        x: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+        opacity: { duration: 0.4, ease: [0.16, 1, 0.3, 1] }
+      } 
+    },
+    exit: { 
+      x: -40, 
+      opacity: 0,
+      transition: { 
+        x: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+        opacity: { duration: 0.4, ease: [0.16, 1, 0.3, 1], delay: 0.1 }
+      } 
+    }
   },
+  // Container for staggered children
+  submenuItemsContainer: {
+    animate: { 
+      transition: { 
+        staggerChildren: 0.05, // Slightly slower stagger
+        delayChildren: 0.15    // Slightly longer delay
+      } 
+    }
+  },
+  // Individual item stagger animation
+  submenuItemStagger: {
+    initial: { opacity: 0, y: 10 },
+    animate: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] }
+    },
+    exit: { 
+      opacity: 0,
+      transition: { duration: 0.3, ease: [0.4, 0, 1, 1] }
+    }
+  },
+  // Original animations maintained for compatibility
   submenuItem: {
     initial: { opacity: 0 },
-    animate: { opacity: 1, transition: { duration: 0.2 } },
-    exit: { opacity: 0, transition: { duration: 0.1 } }
+    animate: { opacity: 1, transition: { duration: 0.3 } },
+    exit: { opacity: 0, transition: { duration: 0.2 } }
   },
   mobileMenu: {
     closed: { opacity: 0, y: '-100%', transition: { duration: 0.12, ease: [0.4, 0, 1, 1] } },
@@ -112,8 +164,3 @@ export const ANIMATIONS = {
   }
 };
 // --- End Animation variants ---
-
-
-
-// Note: Removed the default export namespace object as it might cause confusion
-// if you are primarily using named imports like `import { NavItem, ANIMATIONS } from '...'`
