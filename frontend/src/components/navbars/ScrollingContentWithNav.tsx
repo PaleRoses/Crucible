@@ -77,6 +77,7 @@ export interface ScrollingContentWithNavProps {
 
 // Outermost container div
 export const containerStyles = css({
+  paddingTop: '2rem',
   position: 'relative',
   width: 'full',
   height: '100vh', // Ensure container takes full viewport height
@@ -129,12 +130,13 @@ export const navListCommonStyles = css({
 export const mobileNavWrapperStyles = css({
   display: { base: 'block', md: 'none' },
   position: 'sticky',
-  top: 0,
+  top: '0',
   bg: 'background',
   borderColor: 'border',
   flexShrink: 0,
   zIndex: 20,
   borderBottom: '1px solid',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
 });
 
 export const mobileNavTriggerStyles = css({
@@ -163,9 +165,11 @@ export const mobileNavDropdownStyles = css({
   borderBottom: '1px solid',
   borderColor: 'border',
   boxShadow: 'lg',
-  maxH: '300px',
-  overflowY: 'auto',
+  height: 'auto',
+  maxH: 'calc(50vh - 60px)', // Limit to half viewport height minus header
+  overflowY: 'hidden', // Prevents scrolling within the dropdown
   zIndex: 19,
+  transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
 });
 
 export const mobileNavListStyles = css({
@@ -176,7 +180,7 @@ export const mobileNavListStyles = css({
 
 // Main Content Area Styles - This container scrolls
 export const mainContainerStyles = css({
-  marginTop: '20',
+  marginTop: '0', // Reduced from 20 to improve mobile navbar positioning
   display: 'flex',
   flexDirection: { base: 'column', md: 'row' }, // Row layout on desktop for side-by-side content and nav
   flex: '1', // Allow this container to grow and fill remaining space
@@ -330,10 +334,10 @@ export const lineTrackStyles = css({
 
 export const lineIndicatorStyles = css({
   position: 'absolute',
-  left: '1.5',
-  width: '4px',
+  left: '0',
+  width: '5px',
   bg: 'primary',
-  borderRadius: '6px 0px 0px 7px',
+  borderRadius: '0 3px 3px 0',
   boxShadow: '0 0 6px var(--colors-primary)',
   transitionProperty: 'top, height, opacity, transform',
   transitionDuration: 'normal',
@@ -408,7 +412,7 @@ export const sectionParagraphStyles = css({
 // Styles applied to the <section> wrapper for each child
 export const sectionStyles = css({
   // scrollMarginTop is now applied dynamically via inline style
-  mb: '16',
+  mb: '12',
   zIndex: -10,
   paddingLeft: '2rem',
   paddingRight: '5rem',
@@ -527,6 +531,9 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
   const mobileNavRef = useRef<HTMLDivElement>(null); // Ref for sticky mobile nav height calculation
   const mobileNavToggleRef = useRef<HTMLButtonElement>(null);
   const firstMobileNavItemRef = useRef<HTMLButtonElement>(null);
+  // Touch gesture refs
+  const touchStartRef = useRef<number | null>(null);
+  const touchMoveRef = useRef<number | null>(null);
 
   // --- State ---
   const [internalActiveSection, setInternalActiveSection] = useState<string | null>(
@@ -538,6 +545,8 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   // Total scroll offset (external offsetTop + internal sticky elements)
   const [scrollOffset, setScrollOffset] = useState(offsetTop);
+  // Touch gesture state
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
 
   // --- Calculate Total Scroll Offset ---
   const calculateAndSetScrollOffset = useCallback(() => {
@@ -949,8 +958,58 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
               role="menu"
               aria-orientation="vertical"
               aria-label={navTitle}
+              style={dropdownStyle}
             >
-              <ul className={mobileNavListStyles}>
+              <div className={css({ padding: '2', textAlign: 'center', fontSize: 'xs', color: 'textMuted' })}>
+                Swipe up to dismiss
+              </div>
+              <ul 
+                className={mobileNavListStyles}
+                onTouchStart={(e) => {
+                  touchStartRef.current = e.touches[0].clientY;
+                  touchMoveRef.current = e.touches[0].clientY;
+                }}
+                onTouchMove={(e) => {
+                  if (!touchStartRef.current) return;
+                  
+                  const currentY = e.touches[0].clientY;
+                  const startY = touchStartRef.current;
+                  touchMoveRef.current = currentY;
+                  
+                  // Only respond to upward swipes (startY > currentY means swiping up)
+                  if (startY > currentY) {
+                    const distance = startY - currentY;
+                    // Apply a transform based on the swipe distance, but cap it
+                    const translateY = Math.min(distance * 0.5, 100);
+                    setDropdownStyle({
+                      transform: `translateY(-${translateY}px)`,
+                      opacity: 1 - (translateY / 150), // Fade out as it moves up
+                    });
+                  }
+                }}
+                onTouchEnd={() => {
+                  if (!touchStartRef.current || !touchMoveRef.current) {
+                    touchStartRef.current = null;
+                    touchMoveRef.current = null;
+                    setDropdownStyle({});
+                    return;
+                  }
+                  
+                  const startY = touchStartRef.current;
+                  const endY = touchMoveRef.current;
+                  const threshold = 50; // Minimum distance to consider it a swipe
+                  
+                  // If it was an upward swipe of sufficient distance
+                  if (startY - endY > threshold) {
+                    setIsMobileNavOpen(false);
+                  }
+                  
+                  // Reset regardless of outcome
+                  touchStartRef.current = null;
+                  touchMoveRef.current = null;
+                  setDropdownStyle({});
+                }}
+              >
                 {sections.map((section, index) => {
                   const isActive = activeSection === section.id;
                   return (

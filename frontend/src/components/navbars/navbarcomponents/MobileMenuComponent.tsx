@@ -22,12 +22,12 @@ interface MobileMenuComponentProps {
   mobileTitle?: string;
   /** Action items to render at the bottom */
   actionItems?: React.ReactNode;
+  closeMenuIcon?: string; // Changed to string | undefined
 }
 
 /**
  * Memoized component for rendering the entire mobile menu overlay.
- * Renders action items (passed via props) at the bottom.
- * Fixed missing logo/header rendering.
+ * Restored centered logo with title below it and fixed TypeScript issues.
  */
 const MobileMenuComponent: React.FC<MobileMenuComponentProps> = ({
   isOpen,
@@ -41,16 +41,13 @@ const MobileMenuComponent: React.FC<MobileMenuComponentProps> = ({
   mobileHeader,
   mobileTitle = 'Menu',
   actionItems = null,
+  closeMenuIcon = 'close', // Default close icon as string
 }) => {
   const router = useRouter();
   const modalId = "mobile-menu";
   const triggerButtonSelector = `.${MOBILE_MENU_BUTTON_CLASS}`;
 
   useModalBehavior(isOpen && isMobileView, toggleMenu, modalId, triggerButtonSelector);
-
-  const titleContainerDynamicStyle: React.CSSProperties = {
-    marginBottom: mobileHeader ? '0.75rem' : 0,
-  };
 
   return (
     <AnimatePresence>
@@ -66,17 +63,16 @@ const MobileMenuComponent: React.FC<MobileMenuComponentProps> = ({
           aria-modal="true"
           aria-label={mobileTitle || "Mobile Navigation Menu"}
         >
-          {/* Header section */}
+          {/* Header section - Centered logo above title with spacing, button at top right */}
           <div className={MobileStyles.mobileMenuHeaderStyle}>
-            {/* --- FIXED: Restored Logo Rendering --- */}
+            {/* Centered Logo */}
             {logo && (
               <div className={MobileStyles.mobileMenuLogoContainerStyle}>
                 <Link href={homeHref} passHref legacyBehavior>
                   <a
                     className={MobileStyles.mobileMenuLogoLinkStyle}
-                    tabIndex={0} // Make focusable
+                    tabIndex={0}
                     aria-label="Home"
-                    // Navigate and close menu on click/Enter/Space
                     onClick={(e) => { e.preventDefault(); toggleMenu(); router.push(homeHref); }}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleMenu(); router.push(homeHref); } }}
                     role="link"
@@ -86,20 +82,29 @@ const MobileMenuComponent: React.FC<MobileMenuComponentProps> = ({
                 </Link>
               </div>
             )}
-            {/* --- FIXED: Restored Title Rendering --- */}
+            
+            {/* Title Below Logo (with increased spacing due to container margin) */}
             {mobileTitle && (
-              <div className={MobileStyles.mobileMenuTitleContainerStyle} style={titleContainerDynamicStyle}>
-                 <div className={MobileStyles.mobileMenuTitleTextStyle}>{mobileTitle}</div>
+              <div className={MobileStyles.mobileMenuTitleContainerStyle}>
+                <div className={MobileStyles.mobileMenuTitleTextStyle}>{mobileTitle}</div>
               </div>
             )}
-            {/* Optional Custom Header Content */}
-            {mobileHeader && (
-              <div className={MobileStyles.mobileMenuHeaderTextStyle}>{mobileHeader}</div>
-            )}
+            
+            {/* Close Button (Now absolutely positioned at top right) */}
+            <button
+              className={MobileStyles.menuCloseButtonStyle}
+              onClick={toggleMenu}
+              aria-label="Close navigation menu"
+              tabIndex={0}
+            >
+              {getIconComponent(closeMenuIcon, iconMapping, 'close')}
+            </button>
           </div>
-
-          {/* Scrollable content area (if needed) */}
-          {/* <div style={{ overflowY: 'auto', flexGrow: 1 }}> */}
+          
+          {/* Optional Custom Header Content */}
+          {mobileHeader && (
+            <div className={MobileStyles.mobileMenuHeaderTextStyle}>{mobileHeader}</div>
+          )}
 
           {/* Container for the main navigation items */}
           <motion.div
@@ -121,14 +126,9 @@ const MobileMenuComponent: React.FC<MobileMenuComponentProps> = ({
           {/* Mobile Action Items Container */}
           {actionItems && (
             <div className={MobileStyles.mobileMenuActionsContainerStyle}>
-              {/* Styles defined in MobileNavigation.styles.ts */}
               {actionItems}
             </div>
           )}
-
-          {/* </div> */}
-          {/* End scrollable area */}
-
         </motion.div>
       )}
     </AnimatePresence>

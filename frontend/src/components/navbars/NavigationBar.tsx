@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, memo } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { cx } from '../../../styled-system/css'; // Assuming this path is correct relative to the component file
+import { cx } from '../../../styled-system/css';
 
 // --- Import Custom Hooks ---
 import { useDesktopNavigation } from './navbarhooks/useDesktopNavigation';
@@ -10,24 +10,23 @@ import { useIsActiveRoute } from './navbarhooks/useIsActiveRoute';
 import { useResponsiveNavigation } from './navbarhooks/useResponsiveHook';
 
 // --- Import Types and Constants ---
-// Import the updated props type (without mobileActionItems)
 import { NavigationBarProps } from './navbarhooks/navigation';
 import { DEFAULT_NAV_ITEMS, DEFAULT_ICON_MAPPING, getIconComponent } from './navbarhooks/IconUtils';
 import { MOBILE_MENU_BUTTON_CLASS } from './navbarhooks/navigation';
 
-// --- Import Extracted Styles ---
+// --- Import Styles ---
 import * as DesktopStyles from './navbarstyles/DeskTopNavigation.styles';
 import * as MobileStyles from './navbarstyles/MobileNavigation.styles';
 
-// --- Import Extracted Sub-Components ---
+// --- Import Sub-Components ---
 import DesktopNavItemComponent from './navbarcomponents/DesktopNavItemComponent';
 import GlobalSubmenuComponent from './navbarcomponents/GlobalSubmenuComponent';
 import MobileMenuComponent from './navbarcomponents/MobileMenuComponent';
 
 /**
- * The main NavigationBar component (Refactored for Option 3).
- * Passes the same `actionItems` to both desktop and mobile views.
- * Fixed missing props issue.
+ * The main NavigationBar component with sidebar support and transparent buttons.
+ * Fixed TypeScript issue with closeMenuIcon.
+ * Added clickable logo in mobile view.
  */
 const NavigationBar: React.FC<NavigationBarProps> = ({
   // --- Content Configuration Props ---
@@ -35,13 +34,13 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   logo = null,
   homeHref = '/',
   ariaLabel = "Main Navigation",
-  showItemDescriptions = false, // Prop is defined and passed down
+  showItemDescriptions = false,
   iconMapping = {},
   mobileHeader = null,
-  mobileTitle = 'Menu',
+  mobileTitle = 'Crescent',
   mobileMenuIcon,
   closeMenuIcon,
-  actionItems = null, // Single prop for action items
+  actionItems = null,
 
   // --- Layout & Dimensions Props ---
   height = '45px',
@@ -63,6 +62,9 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
 }) => {
   const router = useRouter();
   const mergedIconMapping = useMemo(() => ({ ...DEFAULT_ICON_MAPPING, ...iconMapping }), [iconMapping]);
+  
+  // Extract icon name string from closeMenuIcon if it's provided
+  const closeMenuIconName = typeof closeMenuIcon === 'string' ? closeMenuIcon : 'close';
 
   const {
     isClient,
@@ -137,7 +139,6 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
             {/* Desktop Nav Items Container */}
             <div className={DesktopStyles.navBarItemsContainerStyle} style={navBarItemsContainerStyleInline} role="menubar" aria-label="Main Menu">
               {items.map((item) => (
-                // --- FIXED: Added missing props ---
                 <DesktopNavItemComponent
                   key={item.id}
                   item={item}
@@ -157,7 +158,6 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
 
       {/* --- Desktop Global Submenu (Rendered outside nav) --- */}
       {!isMobileView && (
-        // --- FIXED: Added missing props ---
         <GlobalSubmenuComponent
           activeItem={activeItem}
           submenuProps={getSubmenuProps()}
@@ -169,11 +169,63 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
         />
       )}
 
-      {/* --- Mobile Navigation Rendering (Conditional) --- */}
+      {/* --- Mobile Navigation Bar (Conditional) --- */}
       {isMobileView && (
-        <button className={cx(MobileStyles.mobileButtonStyle, MOBILE_MENU_BUTTON_CLASS)} onClick={toggleMobileMenu} aria-expanded={isMobileMenuOpen} aria-controls="mobile-menu" aria-label={`${isMobileMenuOpen ? 'Close' : 'Open'} navigation menu`} data-state={isMobileMenuOpen ? 'open' : 'closed'} data-visible={visible} >
-          {isMobileMenuOpen ? getIconComponent(closeMenuIcon, mergedIconMapping, 'close') : getIconComponent(mobileMenuIcon, mergedIconMapping, 'menu')}
-        </button>
+        <div 
+          className={MobileStyles.mobileNavbarStyle}
+          data-visible={visible}
+        >
+          {/* Left side - Reserved for sidebar button */}
+          <div className={MobileStyles.mobileNavbarLeftStyle}>
+            {/* This space is intentionally left empty for the sidebar button */}
+          </div>
+          
+          {/* Center - Logo or Title - Now Clickable */}
+          <div className={MobileStyles.mobileNavbarCenterStyle}>
+            {logo ? (
+              <Link href={homeHref} passHref legacyBehavior>
+                <a
+                  className={MobileStyles.mobileNavbarLogoLinkStyle}
+                  tabIndex={0}
+                  aria-label="Navigate to Home Page"
+                  role="link"
+                  onClick={(e) => (e.target as HTMLElement).blur()}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (e.target as HTMLElement).click(); } }}
+                >
+                  {logo}
+                </a>
+              </Link>
+            ) : (
+              <div className={MobileStyles.mobileNavbarTitleStyle}>
+                {mobileTitle || null}
+              </div>
+            )}
+          </div>
+          
+          {/* Right side - Menu Button */}
+          <div className={MobileStyles.mobileNavbarRightStyle}>
+            <button 
+              className={cx(MobileStyles.mobileButtonStyle, MOBILE_MENU_BUTTON_CLASS)} 
+              onClick={toggleMobileMenu} 
+              aria-expanded={isMobileMenuOpen} 
+              aria-controls="mobile-menu" 
+              aria-label={`${isMobileMenuOpen ? 'Close' : 'Open'} navigation menu`} 
+              data-state={isMobileMenuOpen ? 'open' : 'closed'} 
+            >
+              {isMobileMenuOpen 
+                ? getIconComponent(closeMenuIconName, mergedIconMapping, 'close') 
+                : getIconComponent(mobileMenuIcon, mergedIconMapping, 'menu')
+              }
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Container for main content area */}
+      {isMobileView && (
+        <div className={MobileStyles.mainContentStyle} id="main-content-container">
+          {/* Your main content would go here */}
+        </div>
       )}
 
       {/* --- Mobile Menu Overlay Component --- */}
@@ -188,7 +240,8 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
         homeHref={homeHref}
         mobileHeader={mobileHeader}
         mobileTitle={mobileTitle}
-        actionItems={actionItems} // Pass the standard actionItems prop directly
+        actionItems={actionItems}
+        closeMenuIcon={closeMenuIconName} // Fixed: Pass string instead of ReactNode
       />
     </>
   );

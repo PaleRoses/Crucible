@@ -1,97 +1,197 @@
-import { css } from '../../../../styled-system/css'; // Ensure this path is correct
+// Style for the mobile navbar logo/title link 
+export const mobileNavbarLogoLinkStyle = css({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: 'primary',
+  cursor: 'pointer',
+  transform: 'scale(1.2)', // Scale up slightly (20%)
+  transition: 'transform 0.2s ease',
+  height: '100%',
+  _focusVisible: {
+    outline: '2px solid',
+    outlineColor: 'primary',
+    outlineOffset: '1px',
+  }
+});import { css } from '../../../../styled-system/css'; // Ensure this path is correct
 
 // --- Panda CSS Style Definitions (Mobile) ---
 
-// Style for the mobile menu toggle button (hamburger/close icon)
-export const mobileButtonStyle = css({
-  position: 'fixed', // Keep in viewport
-  top: '2.5', // Use theme spacing token (e.g., 10px)
-  left: '2.5', // Use theme spacing token
-  width: '45px', // Fixed size
-  height: '45px', // Fixed size
-  display: 'flex', // Use flex for centering icon
+// Style for the mobile navbar with sidebar awareness
+export const mobileNavbarStyle = css({
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '50px', // CHANGED: Reduced height from 60px to 50px
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  padding: '0',
+  bgColor: 'background',
+  borderBottom: '1px solid',
+  borderColor: 'border',
+  zIndex: 100,
+  backdropFilter: 'blur(8px)',
+});
+
+// Left area of navbar - reserved for sidebar button or other controls
+export const mobileNavbarLeftStyle = css({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'flex-start',
+  width: '60px',
+  height: '100%',
+  paddingLeft: '2',
+});
+
+// Center area of navbar - for logo/title
+export const mobileNavbarCenterStyle = css({
+  display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  bgColor: 'transparent', // No background
-  color: 'text', // Use theme token
+  flexGrow: 1,
+  height: '100%',
+});
+
+// Style for the title/logo in the center area
+export const mobileNavbarTitleStyle = css({
+  fontFamily: 'heading',
+  fontSize: 'lg',
+  fontWeight: 'medium',
+  color: 'primary',
+  textAlign: 'center',
+});
+
+// Right area of navbar - for menu button
+export const mobileNavbarRightStyle = css({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'flex-end',
+  width: '60px',  // Fixed width for consistency with left
+  height: '100%',
+  paddingRight: '2',
+});
+
+// Style for the mobile menu toggle button (hamburger/close icon)
+// MODIFIED: Removed background color
+export const mobileButtonStyle = css({
+  position: 'relative',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '45px',
+  height: '45px',
+  bgColor: 'transparent', // CHANGED: Removed background color
+  color: 'text',
   border: 'none',
-  borderRadius: 'md', // Use theme token (e.g., 4px)
-  fontSize: 'xl', // Use theme token (e.g., 1.5rem for icon size)
-  padding: '2', // Use theme spacing token (e.g., 0.5rem)
+  borderRadius: '50%',
+  fontSize: 'xl',
+  padding: '2',
   cursor: 'pointer',
-  zIndex: 'popover', // Use theme z-index token (e.g., 201, above navbar but below modal)
-  opacity: 1,
-  transform: 'translateY(0)',
-  transition: 'opacity 0.3s ease, transform 0.3s ease, color 0.3s ease',
-  // Change color when menu is open
+  transition: 'color 0.3s ease',
   '&[data-state="open"]': {
-    color: 'primary', // Use theme token
-  },
-  // Hide button if navbar is hidden (via hide-on-scroll)
-  '&[data-visible="false"]': {
-    display: 'none', // Use display:none instead of opacity/transform for clarity
-    opacity: 0,
-    transform: 'translateY(-100%)',
+    color: 'primary',
   },
   _hover: {
     color: 'primary',
   },
-  _focusVisible: { // Keyboard focus style
+  _focusVisible: {
     outline: '2px solid',
     outlineColor: 'primary',
     outlineOffset: '2px',
   },
 });
 
+export const menuCloseButtonStyle = css({
+  position: 'absolute', // CHANGED: Changed to absolute positioning
+  top: '15px', // CHANGED: Position at top
+  right: '15px', // CHANGED: Position at right
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '45px',
+  height: '45px',
+  bgColor: 'transparent', // No background
+  color: 'primary', // Using primary color
+  border: 'none',
+  borderRadius: '50%',
+  fontSize: 'xl',
+  padding: '2',
+  cursor: 'pointer',
+  transition: 'color 0.3s ease',
+  _hover: {
+    color: 'text',
+  },
+  _focusVisible: {
+    outline: '2px solid',
+    outlineColor: 'primary',
+    outlineOffset: '2px',
+  },
+});
+
+// Main content container - pushes content below the navbar
+export const mainContentStyle = css({
+  paddingTop: '50px',  // CHANGED: Match new reduced navbar height
+  width: '100%',
+  display: 'flex',
+  flexDirection: 'column',
+});
+
 // Style for the main mobile menu container (full screen overlay)
 export const mobileMenuContainerStyle = css({
-  position: 'fixed', // Cover viewport
+  position: 'fixed',
   top: 0,
   left: 0,
   width: '100%',
   height: '100%',
-  bgColor: 'background', // Use theme token
-  zIndex: 'modal', // Use theme z-index token (e.g., 200, highest)
-  overflowY: 'hidden', // Prevent scrolling of the main container
+  bgColor: 'background',
+  zIndex: 102,
+  overflowY: 'hidden',
   overflowX: 'hidden',
   display: 'flex',
-  flexDirection: 'column', // Stack header and items vertically
-  boxShadow: '0 2px 10px rgba(0, 0, 0, 0.3)', // Or use theme shadow token
-  backdropFilter: 'blur(8px)', // Background blur effect
+  flexDirection: 'column',
+  boxShadow: '0 2px 10px rgba(0, 0, 0, 0.3)',
+  backdropFilter: 'blur(8px)',
 });
 
 // Style for the header section within the mobile menu (Logo, Title, Optional Header Text)
 export const mobileMenuHeaderStyle = css({
   display: 'flex',
+  flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  flexDirection: 'column', // Center items vertically in the header
   width: '100%',
-  padding: '4', // Use theme spacing token (e.g., 1rem)
-  marginBottom: '0', // Reset margin, spacing handled by padding/borders
-  position: 'sticky', // Keep header visible when scrolling items
-  top: 0, // Stick to the top of the menu container
-  bgColor: 'background', // Ensure background for sticky behavior
-  zIndex: 'sticky', // Use theme z-index token (e.g., 10)
-  borderBottom: '0px solid', // Add a border below the header area
-  borderColor: 'primary', // Use theme's primary color token for emphasis
-  flexShrink: 0, // Prevent header from shrinking if content overflows
+  padding: '4',
+  paddingTop: '60px', // CHANGED: Adjusted to match new navbar height
+  marginBottom: '1',
+  position: 'relative', // Position relative for children positioning
+  bgColor: 'background',
+  zIndex: 'sticky',
+  borderColor: 'border',
+  flexShrink: 0,
 });
 
 // Container specifically for the logo within the mobile menu header
+// MODIFIED: Updated to center the logo and maintain space between logo and title
 export const mobileMenuLogoContainerStyle = css({
   display: 'flex',
   alignItems: 'center',
-  justifyContent: 'center',
-  marginBottom: '3', // Add space below logo if title/header follows (theme token 0.75rem)
+  justifyContent: 'center', // CHANGED: Center the logo horizontally
+  marginBottom: '4', // Keep the spacing between logo and title
+  width: '100%',
 });
 
 // Style for the logo link within the mobile menu header
 export const mobileMenuLogoLinkStyle = css({
   display: 'flex',
   alignItems: 'center',
+  justifyContent: 'center',
+  paddingBottom: '3', // Use theme token for bottom padding
   color: 'primary', // Use theme token
   cursor: 'pointer',
+  transform: 'scale(3)', // ADDED: Scale up the logo by 30%
+  transition: 'transform 0.2s ease',
   _focusVisible: { // Keyboard focus style
     outline: '2px solid',
     outlineColor: 'primary',
@@ -104,16 +204,14 @@ export const mobileMenuTitleContainerStyle = css({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  // marginBottom applied dynamically via inline style if mobileHeader exists
 });
 
 // Style for the main title text in the mobile header
 export const mobileMenuTitleTextStyle = css({
-  fontFamily: 'heading', // Use theme token
-  color: 'primary', // Use theme token
-  fontSize: '1.4rem', // Or use theme token
-  paddingBottom: '2', // Add space below title text (theme token 0.5rem)
-  fontWeight: 'light', // Use theme token or 'normal'
+  fontFamily: 'heading',
+  color: 'primary',
+  fontSize: '1.4rem',
+  fontWeight: 'light',
   textAlign: 'center',
   margin: 0,
   textTransform: 'uppercase',
