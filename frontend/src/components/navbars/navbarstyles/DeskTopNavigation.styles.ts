@@ -5,6 +5,8 @@ import { css } from '../../../../styled-system/css'; // Ensure this path is corr
 // Base style for the entire navigation bar container (Shared but primarily desktop layout)
 export const navBarBaseStyle = css({
   position: 'fixed', // Stick to the top
+  paddingLeft: '2',
+  paddingRight: '5',
   top: 0,
   left: 0,
   width: '100%',
@@ -28,6 +30,7 @@ export const navBarBaseStyle = css({
 
 // Style for the inner content container (limits width, centers items) (Shared)
 export const navBarContentStyle = css({
+
   display: 'flex', // Use Flexbox to arrange logo, nav items, and actions container
   alignItems: 'center', // Vertically center items in the navbar
   width: '100%',
@@ -258,7 +261,7 @@ export const globalSubmenuTitleStyle = css({
   fontFamily: 'heading',
   color: 'primary',
   fontSize: '1.1rem',
-  letterSpacing: '0.15em',
+  letterSpacing: '0.1em',
   textTransform: 'uppercase',
   marginBottom: '2',
   textAlign: 'left',

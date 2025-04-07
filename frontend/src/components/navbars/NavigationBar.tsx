@@ -92,11 +92,8 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
     backdropFilter: backdropFilter,
   };
   const navBarContentStyleInline: React.CSSProperties = {
-     maxWidth: maxWidth === 'full' ? '100%' : maxWidth === 'none' ? 'none' : `var(--sizes-container-${maxWidth}, 1200px)`,
      paddingTop: `var(--spacing-${{ none: '0', xs: '1', sm: '2', md: '3', lg: '4', xl: '5', '2xl': '6' }[verticalPadding] || '3'})`,
      paddingBottom: `var(--spacing-${{ none: '0', xs: '1', sm: '2', md: '3', lg: '4', xl: '5', '2xl': '6' }[verticalPadding] || '3'})`,
-     paddingLeft: `var(--spacing-${horizontalPadding || '6'})`,
-     paddingRight: `var(--spacing-${horizontalPadding || '6'})`,
   };
   const navBarItemsContainerStyleInline: React.CSSProperties = {
      gap: `var(--spacing-${{ none: '0', xs: '2', sm: '3', md: '4', lg: '6', xl: '8' }[itemGap] || '4'})`,
