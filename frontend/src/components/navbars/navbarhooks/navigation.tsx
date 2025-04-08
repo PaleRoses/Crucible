@@ -34,6 +34,8 @@ export interface NavigationBarProps {
   closeMenuIcon?: React.ReactNode | string;
   /** Action items for the navbar (used in desktop right and mobile menu bottom) */
   actionItems?: React.ReactNode;
+  /** Action items for the left side of the mobile navbar */
+  leftActionItems?: React.ReactNode;
 
 
   // Layout & Dimensions

@@ -8,6 +8,8 @@ import Background from '../components/layout/StarBackground';
 import NavLayout from '../components/layout/NavLayout';
 import { ThemeProvider, ThemeScript } from './styles/themes/ThemeContext';
 import { ThemeSelector } from '../components/ui/ThemeSelector';
+// Import the SidebarProvider
+import { SidebarProvider } from '@/contexts/SideBarContext';
 
 // Separate critical styles into distinct sections
 const criticalStyles = `
@@ -210,37 +212,39 @@ export default function RootLayout({ children }: RootLayoutProps) {
       </head>
       <body>
         <StyledComponentsRegistry>
-          {/* Theme provider manages theme state */}
           <ThemeProvider>
-            {/* Loading overlay that shows until content is ready */}
-            <div className={`loading-overlay ${contentReady ? 'content-hidden' : 'content-visible'}`}>
-              {/* You can add a loading spinner here if desired */}
-              <div className="loading-spinner"></div>
-            </div>
-            
-            <div className="relative min-h-screen">
-              {/* Background remains outside of transition effects */}
-              <Background />
-              
-              {/* NavLayout completely isolated from transition effects */}
-              <div className="persistent-element">
-                <NavLayout />
+            {/* Add SidebarProvider to wrap the entire application */}
+            <SidebarProvider>
+              {/* Loading overlay that shows until content is ready */}
+              <div className={`loading-overlay ${contentReady ? 'content-hidden' : 'content-visible'}`}>
+                {/* You can add a loading spinner here if desired */}
+                <div className="loading-spinner"></div>
               </div>
               
-              {/* ThemeSelector also needs to be persistent */}
-              <div className="persistent-element">
+              <div className="relative min-h-screen">
+                {/* Background remains outside of transition effects */}
+                <Background />
+                
+                {/* NavLayout completely isolated from transition effects */}
+                <div className="persistent-element">
+                  <NavLayout />
+                </div>
+                
+                {/* ThemeSelector also needs to be persistent */}
+                <div className="persistent-element">
+                </div>
+                
+                {/* Only the main content area transitions */}
+                <div 
+                  ref={contentRef}
+                  className={`main-content ${contentReady ? 'content-visible' : 'content-hidden'} ${isChangingRoute ? 'transitioning' : ''}`}
+                >
+                  <main className="pt-[100px]">
+                    {children}
+                  </main>
+                </div>
               </div>
-              
-              {/* Only the main content area transitions */}
-              <div 
-                ref={contentRef}
-                className={`main-content ${contentReady ? 'content-visible' : 'content-hidden'} ${isChangingRoute ? 'transitioning' : ''}`}
-              >
-                <main className="pt-[100px]">
-                  {children}
-                </main>
-              </div>
-            </div>
+            </SidebarProvider>
           </ThemeProvider>
         </StyledComponentsRegistry>
       </body>

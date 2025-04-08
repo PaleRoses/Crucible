@@ -353,8 +353,11 @@ export const cosmicSidebarHeader = defineRecipe({
   description: 'Header section of the sidebar',
   base: {
     display: 'flex',
+    color: 'primary',
+    fontWeight: '200',
+    fontSize: '1.1rem',
+    paddingLeft: '12px',
     alignItems: 'center',
-    padding: '4',
     height: '60px',
     borderBottom: '1px solid',
     borderColor: 'border',
@@ -364,6 +367,7 @@ export const cosmicSidebarHeader = defineRecipe({
     // Logo/icon container
     '& .sidebar-header-logo': {
       flexShrink: 0,
+      fontWeight: '300',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -376,7 +380,9 @@ export const cosmicSidebarHeader = defineRecipe({
     '& .sidebar-header-title': {
       marginLeft: '3',
       fontFamily: 'heading',
-      fontWeight: 'normal',
+      fontSize: '1.1rem',
+      paddingLeft: '1',
+      fontWeight: '300',
       color: 'primary',
       whiteSpace: 'nowrap',
       transition: 'opacity 0.3s ease, visibility 0.3s ease',
@@ -898,6 +904,7 @@ export const cosmicSidebarToggle = defineRecipe({
     height: '28px',
     gap: '4px',
     borderRadius: 'md',
+    border: 'none',
     backgroundColor: 'transparent',
     color: 'secondary',
     cursor: 'pointer',
@@ -967,13 +974,13 @@ export const cosmicSidebarToggle = defineRecipe({
         // Base styles already define standard
       },
       elevated: {
-        backgroundColor: 'backgroundAlt',
         boxShadow: '0 0 4px rgba(0, 0, 0, 0.1)',
       },
       minimal: {
         backgroundColor: 'transparent',
       },
       cosmic: {
+        border: 'none',
         '& span': {
           boxShadow: '0 0 3px var(--color-glow)',
         },
@@ -1072,7 +1079,6 @@ export const cosmicSidebarToggle = defineRecipe({
           left: '10px',
           transform: 'none',
           position: 'fixed', // Stay fixed on mobile even when sidebar slides away
-          backgroundColor: 'backgroundAlt',
           borderRadius: 'full',
           width: '36px',
           height: '36px',

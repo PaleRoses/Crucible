@@ -1,7 +1,6 @@
-import React, { useCallback, useMemo, memo } from 'react';
-import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import React, { memo, useCallback, useMemo } from 'react';
 import { cx } from '../../../styled-system/css';
 
 // --- Import Custom Hooks ---
@@ -10,9 +9,8 @@ import { useIsActiveRoute } from './navbarhooks/useIsActiveRoute';
 import { useResponsiveNavigation } from './navbarhooks/useResponsiveHook';
 
 // --- Import Types and Constants ---
-import { NavigationBarProps } from './navbarhooks/navigation';
-import { DEFAULT_NAV_ITEMS, DEFAULT_ICON_MAPPING, getIconComponent } from './navbarhooks/IconUtils';
-import { MOBILE_MENU_BUTTON_CLASS } from './navbarhooks/navigation';
+import { DEFAULT_ICON_MAPPING, DEFAULT_NAV_ITEMS, getIconComponent } from './navbarhooks/IconUtils';
+import { MOBILE_MENU_BUTTON_CLASS, NavigationBarProps } from './navbarhooks/navigation';
 
 // --- Import Styles ---
 import * as DesktopStyles from './navbarstyles/DeskTopNavigation.styles';
@@ -27,6 +25,7 @@ import MobileMenuComponent from './navbarcomponents/MobileMenuComponent';
  * The main NavigationBar component with sidebar support and transparent buttons.
  * Fixed TypeScript issue with closeMenuIcon.
  * Added clickable logo in mobile view.
+ * Added leftActionItems prop for customizing the left side of mobile navbar.
  */
 const NavigationBar: React.FC<NavigationBarProps> = ({
   // --- Content Configuration Props ---
@@ -41,6 +40,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   mobileMenuIcon,
   closeMenuIcon,
   actionItems = null,
+  leftActionItems = null, // NEW: Added prop for left side actions
 
   // --- Layout & Dimensions Props ---
   height = '45px',
@@ -175,9 +175,9 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
           className={MobileStyles.mobileNavbarStyle}
           data-visible={visible}
         >
-          {/* Left side - Reserved for sidebar button */}
+          {/* Left side - Now customizable through leftActionItems prop */}
           <div className={MobileStyles.mobileNavbarLeftStyle}>
-            {/* This space is intentionally left empty for the sidebar button */}
+            {leftActionItems}
           </div>
           
           {/* Center - Logo or Title - Now Clickable */}

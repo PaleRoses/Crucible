@@ -1,17 +1,17 @@
+import { motion, useAnimation, useInView } from 'framer-motion';
 import React, {
-  useRef,
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
   RefObject,
   createContext,
+  createRef,
+  useCallback,
   useContext,
-  createRef
+  useEffect,
+  useMemo,
+  useRef,
+  useState
 } from 'react';
-import { motion, useInView, useAnimation } from 'framer-motion';
-import styled, { css } from 'styled-components';
 import { FixedSizeList as List } from 'react-window';
+import styled, { css } from 'styled-components';
 
 // =============================================================================
 // DESIGN SYSTEM & THEME CONSTANTS

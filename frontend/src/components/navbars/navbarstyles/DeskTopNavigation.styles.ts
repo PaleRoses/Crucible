@@ -34,6 +34,7 @@ export const navBarContentStyle = css({
   display: 'flex', // Use Flexbox to arrange logo, nav items, and actions container
   alignItems: 'center', // Vertically center items in the navbar
   width: '100%',
+  maxWidth: '1800px', // *** ADDED: Limits the maximum width of the content area ***
   margin: '0 auto', // Center the container horizontally if maxWidth is applied
   position: 'relative', // Needed for potential absolute positioning needs later
   // maxWidth, padding are handled by inline style based on props
