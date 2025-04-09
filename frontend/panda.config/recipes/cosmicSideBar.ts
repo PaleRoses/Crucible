@@ -399,6 +399,7 @@ export const cosmicSidebarContent = defineRecipe({
     display: 'flex',
     flexDirection: 'column',
     overflowY: 'auto',
+    fontFamily: 'heading',
     overflowX: 'hidden',
     padding: '2',
 
@@ -424,6 +425,7 @@ export const cosmicSidebarItem = defineRecipe({
     display: 'flex',
     alignItems: 'center',
     padding: '1',
+    fontFamily: 'heading',
     marginBottom: '0.5',
     borderRadius: 'md',
     color: 'textMuted',
@@ -446,6 +448,7 @@ export const cosmicSidebarItem = defineRecipe({
     // Text label
     '& .sidebar-item-text': {
       whiteSpace: 'nowrap',
+      fontFamily: 'heading',
       transition: 'opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease',
       transitionDelay: '0.05s',
     },
