@@ -1,9 +1,6 @@
-// index.ts - Barrel export file for all sidebar hooks and types
+// frontend/src/components/navbars/leftsidebar/hooks/index.ts
 
-// Export all types
-export * from '../types/types';
-
-// Export all hooks
+// Re-export all hooks from this barrel file
 export { default as useMobileKeyboardNavigation } from './useMobileKeyboardNavigation';
 export { default as useSidebarResponsive } from './useSidebarResponsive';
 export { default as useSidebarPersistence } from './useSidebarPersistence';
@@ -12,3 +9,16 @@ export { default as useContentPushing } from './useContentPushing';
 export { default as useDesktopKeyboardNavigation } from './useDesktopKeyboardNavigation';
 export { default as useMobileInteractions } from './useMobileInteractions';
 export { default as useSidebarToggle } from './useSidebarToggle';
+export { default as useMobileSidebarToggle } from './useMobileSidebarToggle';
+
+// Re-export types and interfaces
+export type { 
+  DepthOption,
+  NavigationItem,
+  SidebarSection,
+  SidebarItems,
+  LeftSidebarProps,
+  UseSidebarToggleProps,
+  UseSidebarToggleResult,
+  MobileStyles
+} from '../types/types';
