@@ -229,7 +229,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       maxHeight: `calc(100vh - ${headerTopOffset})`,
       bgColor: 'background',
       zIndex: 101,
-      overflowY: 'auto',
+      // Change overflowY from 'auto' to 'hidden'
+      overflowY: 'hidden', // <--- THIS HIDES THE SCROLLBAR
       display: 'flex',
       flexDirection: 'column',
       boxShadow: 'lg',
@@ -244,11 +245,12 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         opacity: 1,
         visibility: 'visible',
       },
-      scrollbarWidth: 'thin',
-      '&::-webkit-scrollbar': { width: '6px' },
-      '&::-webkit-scrollbar-thumb': { backgroundColor: 'border', borderRadius: '3px' }
+      // Remove scrollbar-specific styling as it's no longer needed
+      // scrollbarWidth: 'thin',                          // <-- REMOVED
+      // '&::-webkit-scrollbar': { width: '6px' },        // <-- REMOVED
+      // '&::-webkit-scrollbar-thumb': { ... }            // <-- REMOVED
     }),
-    
+
     // Overlay background
     overlay: css({
       position: 'fixed',
