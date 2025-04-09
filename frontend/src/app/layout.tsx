@@ -1,19 +1,21 @@
 // app/layout.tsx - SERVER COMPONENT
-
-import type { Metadata } from 'next';
-// Adjust paths as needed
+import type { Metadata, Viewport } from 'next'; // Add Viewport import
 import { ThemeScript } from './styles/themes/ThemeContext';
-import ClientLayout from '@/components/layout/ClientLayout'; // Use the new client wrapper
+import ClientLayout from '@/components/layout/ClientLayout';
 import '../../styled-system/css';
 import './styles/global.css';
 
-// Metadata Export (Stays here)
+// Metadata Export (without themeColor)
 export const metadata: Metadata = {
-  themeColor: 'var(--color-background)',
   // Add other metadata like title, description
 };
 
-// Critical Styles (Stays here)
+// Add a separate viewport export
+export const viewport: Viewport = {
+  themeColor: 'var(--color-background)',
+};
+
+// Critical Styles (unchanged)
 const criticalStyles = `
   /* ... your critical styles ... */
   .loading-overlay { background-color: var(--color-background); /* ... other styles */ }
