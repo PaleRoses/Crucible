@@ -2,10 +2,10 @@
 
 import React, { useCallback, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { css } from '../../../../styled-system/css';
-import { cosmicSidebarToggle } from '../../../../styled-system/recipes';
+// Removed direct css import as it's now handled in the styles file
+import { cosmicSidebarToggle } from '../../../../styled-system/recipes'; // Adjust path if needed
 
-// Import from index file
+// Import hooks
 import { 
   LeftSidebarProps,
   useMobileKeyboardNavigation,
@@ -16,16 +16,18 @@ import {
   useDesktopKeyboardNavigation,
   useMobileInteractions,
   useSidebarToggle
-} from './hooks/index';
+} from './hooks/index'; // Adjust path if needed
 
-// Import the layout components
-import DesktopSidebarLayout from './components/DesktopSidebarLayout';
-import MobileSidebarLayout from './components/MobileSidebarLayout';
+// Import layout components
+import DesktopSidebarLayout from './components/DesktopSidebarLayout'; // Adjust path if needed
+import MobileSidebarLayout from './components/MobileSidebarLayout'; // Adjust path if needed
+
+// Import the separated styles
+import { mobileStyles, desktopStyles } from './styles/sidebarStyles'; // Adjust path if needed
 
 /**
  * LeftSidebar Component
- * 
- * A responsive and customizable sidebar component with mobile and desktop modes.
+ * * A responsive and customizable sidebar component with mobile and desktop modes.
  */
 const LeftSidebar: React.FC<LeftSidebarProps> = ({
   // Default prop values
@@ -42,8 +44,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   contentSelector = '#mainContent',
   expandedWidth = '240px',
   collapsedWidth = '60px',
-  transitionDuration = 300,
-  headerTopOffset = '50px',
+  transitionDuration = 300, // Keep transitionDuration prop for logic, styles use their own constant
+  headerTopOffset = '50px', // Keep headerTopOffset prop for logic, styles use their own constant
   compact = true,
   onToggleExternal = null,
   externalToggleRef = null,
@@ -124,7 +126,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
     return (
       <button
         data-sidebar-external-toggle="true"
-        className={cosmicSidebarToggle({
+        className={cosmicSidebarToggle({ // This uses a recipe, keep it here
           variant: variant === 'cosmic' ? 'cosmic' : 'standard',
           size: compact ? 'sm' : 'md',
           border: 'none',
@@ -145,7 +147,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         aria-label={isDrawerOpen ? 'Close navigation menu' : 'Open navigation menu'}
         aria-expanded={isDrawerOpen}
         aria-controls="mobile-dropdown-menu"
-        style={{
+        style={{ // Keep inline styles for dynamic/simple overrides or specific element needs
           cursor: 'pointer',
           zIndex: 110,
           border: 'none',
@@ -157,7 +159,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         <span></span>
       </button>
     );
-  }, [isDrawerOpen, compact, variant, toggleSidebar, closeDrawer]);
+  }, [isDrawerOpen, compact, variant, toggleSidebar, closeDrawer]); // Dependencies remain
   
   // Update external toggle ref with our component
   useEffect(() => {
@@ -183,7 +185,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
     contentSelector,
     expandedWidth,
     collapsedWidth,
-    transitionDuration
+    transitionDuration // Pass transitionDuration prop here for JS logic
   );
   
   // Desktop sidebar reference for keyboard navigation
@@ -214,230 +216,9 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   );
 
   // ========================================
-  // Style Definitions
+  // Style Definitions are now imported
   // ========================================
-  
-  // --- Mobile Styles ---
-  
-  const mobileStyles = {
-    // Dropdown container
-    dropdown: css({
-      position: 'fixed',
-      top: headerTopOffset,
-      left: 0,
-      width: '100%',
-      height: `calc(100vh - ${headerTopOffset})`,
-      maxHeight: `calc(100vh - ${headerTopOffset})`,
-      bgColor: 'background',
-      zIndex: 101,
-      overflowY: 'auto',
-      display: 'flex',
-      flexDirection: 'column',
-      boxShadow: 'lg',
-      borderRight: '1px solid',
-      borderColor: 'border.default',
-      transform: 'translateX(-100%)',
-      opacity: 0.95,
-      visibility: 'hidden',
-      transition: `transform ${transitionDuration}ms ease, opacity ${transitionDuration}ms ease, visibility ${transitionDuration}ms ease`,
-      '&[data-open="true"]': {
-        transform: 'translateX(0)',
-        opacity: 1,
-        visibility: 'visible',
-      },
-      scrollbarWidth: 'thin',
-      '&::-webkit-scrollbar': { width: '6px' },
-      '&::-webkit-scrollbar-thumb': { backgroundColor: 'border.subtle', borderRadius: '3px' }
-    }),
-    
-    // Overlay background
-    overlay: css({
-      position: 'fixed',
-      inset: 0,
-      zIndex: 100,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      transition: `opacity ${transitionDuration}ms ease, visibility ${transitionDuration}ms ease`,
-      visibility: 'hidden',
-      opacity: 0,
-      top: headerTopOffset,
-      '&[data-open="true"]': {
-        visibility: 'visible',
-        opacity: 1,
-      }
-    }),
-    
-    // Header section
-    header: css({
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '100%',
-      padding: 'spacing.4',
-      paddingTop: 'spacing.4',
-      bgColor: 'background',
-      borderBottom: '1px solid',
-      borderColor: 'border.default',
-      position: 'relative',
-      flexShrink: 0,
-    }),
-    
-    // Title text
-    title: css({
-      fontFamily: 'heading',
-      color: 'primary',
-      fontSize: 'lg',
-      fontWeight: 'thin',
-      textAlign: 'center',
-      margin: 0,
-    }),
-    
-    // Navigation container
-    navContainer: css({
-      display: 'flex',
-      flexDirection: 'column',
-      width: '100%',
-      padding: '0',
-      margin: '0',
-      overflowY: 'auto',
-      flexGrow: 1,
-      WebkitOverflowScrolling: 'touch',
-    }),
-    
-    // Navigation item
-    navItem: css({
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      width: '100%',
-      padding: 'spacing.3 spacing.4',
-      fontFamily: 'body',
-      fontSize: 'md',
-      fontWeight: 'medium',
-      color: 'text.secondary',
-      bgColor: 'transparent',
-      border: 'none',
-      borderBottom: '1px solid',
-      borderColor: 'border',
-      cursor: 'pointer',
-      textAlign: 'left',
-      position: 'relative',
-      zIndex: 2,
-      touchAction: 'manipulation',
-      transition: 'background-color 0.2s ease, color 0.2s ease',
-      '&[data-active="true"]': {
-        color: 'accent.text',
-        fontWeight: 'semibold',
-      },
-      _hover: {
-        bgColor: 'background.hover',
-        color: 'text.primary',
-      },
-      _focusVisible: {
-        outline: '2px solid',
-        outlineColor: 'accent.solid',
-        outlineOffset: '-2px',
-        bgColor: 'background.hover',
-        color: 'text.primary',
-      }
-    }),
-    
-    // Content wrapper for nav item
-    navItemContent: css({
-      display: 'flex',
-      alignItems: 'center',
-      gap: 'spacing.3',
-      flexGrow: 1,
-      minWidth: 0,
-      pointerEvents: 'auto',
-      '& > span': {
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-      }
-    }),
-    
-    // Expand icon for collapsible sections
-    expandIcon: css({
-      transition: 'transform 0.2s ease',
-      zIndex: 3,
-      pointerEvents: 'auto',
-      flexShrink: 0,
-      color: 'text.subtle',
-      '&[data-expanded="true"]': {
-        transform: 'rotate(180deg)',
-      },
-      '& > svg': {
-        width: '1rem',
-        height: '1rem',
-      }
-    }),
-    
-    // Container for nested items
-    nestedItemsContainer: css({
-      display: 'flex',
-      flexDirection: 'column',
-      width: '100%',
-      gap: '0',
-      padding: 'spacing.1 0 spacing.1 calc(token(spacing.4) + token(spacing.3) + 1rem)',
-      bgColor: 'background.subtle',
-      borderBottom: '1px solid',
-      borderColor: 'border.subtle',
-    }),
-    
-    // Nested item
-    nestedItem: css({
-      display: 'flex',
-      alignItems: 'center',
-      padding: 'spacing.2 spacing.4',
-      fontSize: 'sm',
-      fontWeight: 'regular',
-      color: 'text.secondary',
-      opacity: 0.95,
-      border: 'none',
-      bgColor: 'transparent',
-      width: '100%',
-      textAlign: 'left',
-      cursor: 'pointer',
-      position: 'relative',
-      zIndex: 2,
-      transition: 'background-color 0.2s ease, color 0.2s ease',
-      '&[data-active="true"]': {
-        color: 'accent.text',
-        fontWeight: 'medium',
-      },
-      _hover: {
-        bgColor: 'background.hover',
-        color: 'text.primary',
-      },
-      _focusVisible: {
-        outline: '2px solid',
-        outlineColor: 'accent.solid',
-        outlineOffset: '-2px',
-        bgColor: 'background.hover',
-        color: 'text.primary',
-      },
-      '& > span': {
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-      }
-    }),
-    
-    // Footer section
-    footer: css({
-      padding: 'spacing.4',
-      marginTop: 'auto',
-      paddingTop: 'spacing.4',
-      borderTop: '1px solid',
-      borderColor: 'border.default',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      gap: 'spacing.4',
-      flexShrink: 0,
-      bgColor: 'transparent',
-    }),
-  };
+  // const mobileStyles = { ... }; // REMOVED FROM HERE
 
   // Component Return
   return (
@@ -458,10 +239,12 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
           className={className}
           expandedWidth={expandedWidth}
           collapsedWidth={collapsedWidth}
-          transitionDuration={transitionDuration}
-          headerTopOffset={headerTopOffset}
+          transitionDuration={transitionDuration} // Pass prop
+          headerTopOffset={headerTopOffset} // Pass prop
           footerContent={footerContent}
           toggleSidebar={toggleSidebar}
+          // Pass desktopStyles (DesktopSidebarLayout needs to be updated to accept/use this)
+          desktopStyles={desktopStyles} 
         />
       )}
       {isHydrated && isMobile && (
@@ -473,10 +256,12 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
           processedNavItems={processedNavItems}
           expandedItems={expandedItems}
           footerContent={footerContent}
-          mobileStyles={mobileStyles}
+          mobileStyles={mobileStyles} // Pass imported mobileStyles
           toggleSidebar={toggleSidebar}
           toggleItemExpansion={toggleItemExpansion}
           handleNavigation={handleNavigation}
+          // Pass headerTopOffset if MobileSidebarLayout needs it directly
+          // headerTopOffset={headerTopOffset} 
         />
       )}
       {!isHydrated && null}
