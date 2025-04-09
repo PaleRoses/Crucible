@@ -4,7 +4,7 @@ import React, { useRef, useEffect } from 'react';
 import LeftSidebar from '@/components/navbars/leftsidebar/LeftSideBar';
 import { css } from '../../../../styled-system/css';
 import usePersistedState from '@/hooks/usePersistedState';
-import sidebarItems from '../../../components/navbars/navbardata/sidebarItems';
+import sidebarItems from '../../../components/navbars/leftsidebar/sidebarItems';
 // Import sidebar context hook
 import { useSidebar } from '@/contexts/SideBarContext';
 

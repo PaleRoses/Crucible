@@ -4,22 +4,22 @@ import React, { memo, useCallback, useMemo } from 'react';
 import { cx } from '../../../styled-system/css';
 
 // --- Import Custom Hooks ---
-import { useDesktopNavigation } from './navbarhooks/useDesktopNavigation';
-import { useIsActiveRoute } from './navbarhooks/useIsActiveRoute';
-import { useResponsiveNavigation } from './navbarhooks/useResponsiveHook';
+import { useDesktopNavigation } from '@/components/navbars/navigationbar/navbarhooks/useDesktopNavigation';
+import { useIsActiveRoute } from '@/components/navbars/navigationbar/navbarhooks/useIsActiveRoute';
+import { useResponsiveNavigation } from '@/components/navbars/navigationbar/navbarhooks/useResponsiveHook';
 
 // --- Import Types and Constants ---
-import { DEFAULT_ICON_MAPPING, DEFAULT_NAV_ITEMS, getIconComponent } from './navbarhooks/IconUtils';
-import { MOBILE_MENU_BUTTON_CLASS, NavigationBarProps } from './navbarhooks/navigation';
+import { DEFAULT_ICON_MAPPING, DEFAULT_NAV_ITEMS, getIconComponent } from '@/components/navbars/navigationbar/navbarhooks/IconUtils';
+import { MOBILE_MENU_BUTTON_CLASS, NavigationBarProps } from '@/components/navbars/navigationbar/navbarhooks/navigation';
 
 // --- Import Styles ---
-import * as DesktopStyles from './navbarstyles/DeskTopNavigation.styles';
-import * as MobileStyles from './navbarstyles/MobileNavigation.styles';
+import * as DesktopStyles from '@/components/navbars/navbarstyles/DeskTopNavigation.styles';
+import * as MobileStyles from '@/components/navbars/navbarstyles/MobileNavigation.styles';
 
 // --- Import Sub-Components ---
-import DesktopNavItemComponent from './navbarcomponents/DesktopNavItemComponent';
-import GlobalSubmenuComponent from './navbarcomponents/GlobalSubmenuComponent';
-import MobileMenuComponent from './navbarcomponents/MobileMenuComponent';
+import DesktopNavItemComponent from '@/components/navbars/navbarcomponents/DesktopNavItemComponent';
+import GlobalSubmenuComponent from '@/components/navbars/navbarcomponents/GlobalSubmenuComponent';
+import MobileMenuComponent from '@/components/navbars/navbarcomponents/MobileMenuComponent';
 
 /**
  * The main NavigationBar component with sidebar support and transparent buttons.

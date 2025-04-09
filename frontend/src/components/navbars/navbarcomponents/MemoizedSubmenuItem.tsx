@@ -1,10 +1,10 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { cx } from '../../../../styled-system/css'; // Adjusted path: assuming components dir is one level down
-import { SubmenuItem } from '../navbarhooks/navigation'; // Adjusted path
-import { ANIMATIONS, DESKTOP_SUBMENU_ITEM_CLASS } from '../navbarhooks/navigation'; // Adjusted path
-import { getIconComponent } from '../navbarhooks/IconUtils'; // Adjusted path
-import * as DesktopStyles from '../navbarstyles/DeskTopNavigation.styles'; // Adjusted path
+import { SubmenuItem } from '../navigationbar/navbarhooks/navigation'; // Adjusted path
+import { ANIMATIONS, DESKTOP_SUBMENU_ITEM_CLASS } from '../navigationbar/navbarhooks/navigation'; // Adjusted path
+import { getIconComponent } from '../navigationbar/navbarhooks/IconUtils'; // Adjusted path
+import * as DesktopStyles from '@/components/navbars/navbarstyles/DeskTopNavigation.styles'; // Adjusted path
 
 interface MemoizedSubmenuItemProps {
   subItem: SubmenuItem;

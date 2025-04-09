@@ -2,11 +2,11 @@ import React, { useState, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import { cx } from '../../../../styled-system/css'; // Adjusted path
-import { NavItem } from '../navbarhooks/navigation'; // Adjusted path
-import { ANIMATIONS, MOBILE_NAV_ITEM_CLASS, MOBILE_SUBMENU_ITEM_CLASS } from '../navbarhooks/navigation'; // Adjusted path
-import { getIconComponent } from '../navbarhooks/IconUtils'; // Adjusted path
+import { NavItem } from '../navigationbar/navbarhooks/navigation'; // Adjusted path
+import { ANIMATIONS, MOBILE_NAV_ITEM_CLASS, MOBILE_SUBMENU_ITEM_CLASS } from '../navigationbar/navbarhooks/navigation'; // Adjusted path
+import { getIconComponent } from '../navigationbar/navbarhooks/IconUtils'; // Adjusted path
 import * as MobileStyles from '../navbarstyles/MobileNavigation.styles'; // Adjusted path
-import { useMobileMenuItemKeyboardNav, useMobileSubmenuKeyboardNav } from '../navbarhooks/useMobileMenuKeyboardNav'; // Adjusted path
+import { useMobileMenuItemKeyboardNav, useMobileSubmenuKeyboardNav } from '../navigationbar/navbarhooks/useMobileMenuKeyboardNav'; // Adjusted path
 
 interface MobileNavItemComponentProps {
   item: NavItem;

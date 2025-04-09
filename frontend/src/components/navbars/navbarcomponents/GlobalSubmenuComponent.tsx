@@ -2,11 +2,11 @@ import React, { memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Updated Imports using '@/' assumed to map to 'src/' ---
-import { NavItem } from '@/components/navbars/navbarhooks/navigation'; // Already using alias
-import { ANIMATIONS } from '@/components/navbars/navbarhooks/navigation'; // Changed from ../
-import { getIconComponent } from '@/components/navbars/navbarhooks/IconUtils'; // Changed from ../
+import { NavItem } from '@/components/navbars/navigationbar/navbarhooks/navigation'; // Already using alias
+import { ANIMATIONS } from '@/components/navbars/navigationbar/navbarhooks/navigation'; // Changed from ../
+import { getIconComponent } from '@/components/navbars/navigationbar/navbarhooks/IconUtils'; // Changed from ../
 import * as DesktopStyles from '@/components/navbars/navbarstyles/DeskTopNavigation.styles'; // Changed from ../
-import { useDesktopNavigation } from '@/components/navbars/navbarhooks/useDesktopNavigation'; // Changed from ../
+import { useDesktopNavigation } from '@/components/navbars/navigationbar/navbarhooks/useDesktopNavigation'; // Changed from ../
 // --- Local import remains relative ---
 import MemoizedSubmenuItem from './MemoizedSubmenuItem'; // Import sibling component
 

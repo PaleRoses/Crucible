@@ -8,7 +8,8 @@
  * - Sticky side navigation (desktop) and collapsible top navigation (mobile)
  * - Automatic section detection using Intersection Observer
  * - Smooth scrolling between sections
- * - Support for custom section headers
+ * - Support for custom section headers and footers
+ * - Support for cards, buttons, and custom elements in section footers
  * - Flexible content rendering through props or data
  * 
  * Color theme uses 5 standardized colors:
@@ -18,6 +19,34 @@
  * - background: Main background color
  * - glow: Hover state color
  * - border: Border color for separators
+ * 
+ * Usage example with footer elements:
+ * 
+ * ```jsx
+ * const sections = [
+ *   {
+ *     id: 'section1',
+ *     title: 'Getting Started',
+ *     content: ['This is the first paragraph.', 'This is the second paragraph.'],
+ *     footerElement: {
+ *       type: 'button',
+ *       buttonText: 'Learn More',
+ *       buttonHref: '/documentation'
+ *     }
+ *   },
+ *   {
+ *     id: 'section2',
+ *     title: 'Advanced Features',
+ *     content: ['Advanced content goes here.'],
+ *     footerElement: {
+ *       type: 'card',
+ *       content: ['Important note about these features.']
+ *     }
+ *   }
+ * ];
+ * 
+ * <ScrollingContentWithNav sections={sections} />
+ * ```
  */
 
 import React, { useState, useRef, useEffect, useCallback, ReactNode, useMemo } from 'react';
@@ -40,6 +69,15 @@ export interface Section {
     content?: string[]; // For text content in cards
     src?: string; // For image sources
     code?: string; // For code blocks
+    bgColor?: string; // Optional background color (should use theme colors)
+  };
+  footerElement?: {
+    type: 'card' | 'button' | 'custom';
+    content?: string[]; // For text content in cards
+    buttonText?: string; // For button text
+    buttonHref?: string; // For button href
+    buttonOnClick?: () => void; // For button onClick handler
+    customContent?: React.ReactNode; // For custom content
     bgColor?: string; // Optional background color (should use theme colors)
   };
   // Optional custom component to render instead of default content
@@ -361,6 +399,47 @@ export const headerElementStyles = css({
   overflow: 'hidden',
 });
 
+// Section footer element styles
+export const footerElementStyles = css({
+  mt: '6',
+  mb: '6',
+  width: 'full',
+  borderRadius: 'md',
+  overflow: 'hidden',
+});
+
+// Footer card styles
+export const footerCardStyles = css({
+  p: '4',
+  border: '1px solid',
+  borderColor: 'border',
+  borderRadius: 'md',
+  boxShadow: 'sm',
+  bg: 'background',
+});
+
+// Footer button styles
+export const footerButtonStyles = css({
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  px: '4',
+  py: '2',
+  borderRadius: 'md',
+  fontSize: 'sm',
+  fontWeight: 'medium',
+  bg: 'primary',
+  color: 'background',
+  cursor: 'pointer',
+  _hover: {
+    opacity: 0.9,
+  },
+  _focus: {
+    outline: 'none',
+    boxShadow: '0 0 0 3px rgba(var(--colors-primary-rgb), 0.4)',
+  },
+});
+
 export const headerImageStyles = css({
   width: 'full',
   maxHeight: '240px',
@@ -424,13 +503,34 @@ export const sectionStyles = css({
   },
 });
 
+// --- Common Wrapper and Utilities ---
+interface WrapperProps {
+  children: React.ReactNode;
+  className: string;
+}
+
+// Common wrapper component for both header and footer elements
+const ElementWrapper: React.FC<WrapperProps> = ({ children, className }) => (
+  <div className={className}>
+    {children}
+  </div>
+);
+
+// Common paragraph rendering function
+const renderParagraphs = (content?: string[]) => {
+  return content?.map((text, index) => (
+    <p key={index} style={{ 
+      marginBottom: index < (content.length - 1) ? '1rem' : 0,
+      color: 'var(--colors-text)',
+    }}>
+      {text}
+    </p>
+  ));
+};
+
 // --- Section Header Component ---
 interface SectionHeaderProps {
   headerElement: NonNullable<Section['headerElement']>;
-}
-
-interface HeaderWrapperProps {
-  children: React.ReactNode;
 }
 
 const SectionHeader: React.FC<SectionHeaderProps> = ({ headerElement }) => {
@@ -439,62 +539,99 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({ headerElement }) => {
   // Custom background color if provided
   const customStyles = headerElement.bgColor ? { backgroundColor: headerElement.bgColor } : {};
   
-  // Common paragraph rendering function
-  const renderParagraphs = (content?: string[]) => {
-    return content?.map((text, index) => (
-      <p key={index} style={{ 
-        marginBottom: index < (content.length - 1) ? '1rem' : 0,
-        color: 'var(--colors-text)',
-      }}>
-        {text}
-      </p>
-    ));
-  };
-
-  // Common wrapper
-  const HeaderWrapper: React.FC<HeaderWrapperProps> = ({ children }) => (
-    <div className={headerElementStyles}>
-      {children}
-    </div>
-  );
-  
   switch (type) {
     case 'image':
       return (
-        <HeaderWrapper>
+        <ElementWrapper className={headerElementStyles}>
           <img 
             src={headerElement.src || ''} 
             alt="Section header" 
             className={headerImageStyles} 
           />
-        </HeaderWrapper>
+        </ElementWrapper>
       );
       
     case 'card':
       return (
-        <HeaderWrapper>
+        <ElementWrapper className={headerElementStyles}>
           <div className={headerCardStyles} style={customStyles}>
             {renderParagraphs(headerElement.content)}
           </div>
-        </HeaderWrapper>
+        </ElementWrapper>
       );
       
     case 'code':
       return (
-        <HeaderWrapper>
+        <ElementWrapper className={headerElementStyles}>
           <pre className={headerCodeStyles} style={customStyles}>
             <code>{headerElement.code}</code>
           </pre>
-        </HeaderWrapper>
+        </ElementWrapper>
       );
       
     case 'text':
       return (
-        <HeaderWrapper>
+        <ElementWrapper className={headerElementStyles}>
           <div className={headerTextStyles} style={customStyles}>
             {renderParagraphs(headerElement.content)}
           </div>
-        </HeaderWrapper>
+        </ElementWrapper>
+      );
+      
+    default:
+      return null;
+  }
+};
+
+// --- Section Footer Component ---
+interface SectionFooterProps {
+  footerElement: NonNullable<Section['footerElement']>;
+}
+
+const SectionFooter: React.FC<SectionFooterProps> = ({ footerElement }) => {
+  const { type } = footerElement;
+  
+  // Custom background color if provided
+  const customStyles = footerElement.bgColor ? { backgroundColor: footerElement.bgColor } : {};
+  
+  switch (type) {
+    case 'card':
+      return (
+        <ElementWrapper className={footerElementStyles}>
+          <div className={footerCardStyles} style={customStyles}>
+            {renderParagraphs(footerElement.content)}
+          </div>
+        </ElementWrapper>
+      );
+      
+    case 'button':
+      return (
+        <ElementWrapper className={footerElementStyles}>
+          {footerElement.buttonHref ? (
+            <a 
+              href={footerElement.buttonHref} 
+              className={footerButtonStyles}
+              onClick={footerElement.buttonOnClick}
+            >
+              {footerElement.buttonText || 'Learn More'}
+            </a>
+          ) : (
+            <button 
+              className={footerButtonStyles} 
+              onClick={footerElement.buttonOnClick}
+              style={customStyles}
+            >
+              {footerElement.buttonText || 'Learn More'}
+            </button>
+          )}
+        </ElementWrapper>
+      );
+      
+    case 'custom':
+      return (
+        <ElementWrapper className={footerElementStyles}>
+          {footerElement.customContent}
+        </ElementWrapper>
       );
       
     default:
@@ -870,6 +1007,10 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
               <SectionHeader headerElement={section.headerElement} />
             )}
             {child}
+            {/* Render the optional footer element if it exists */}
+            {section.footerElement && (
+              <SectionFooter footerElement={section.footerElement} />
+            )}
           </section>
         );
       });
@@ -919,6 +1060,11 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
                 </p>
               ))}
             </>
+          )}
+          
+          {/* Render the optional footer element if it exists */}
+          {section.footerElement && (
+            <SectionFooter footerElement={section.footerElement} />
           )}
         </section>
       );
@@ -1109,7 +1255,7 @@ export default ScrollingContentWithNav;
  *    - Used composition to build more complex styles from basic ones
  * 
  * 3. Component Structure:
- *    - Added helper components and functions in SectionHeader
+ *    - Added helper components and functions for SectionHeader and SectionFooter
  *    - Simplified repetitive rendering logic
  *    - Added comprehensive documentation
  * 
@@ -1117,4 +1263,29 @@ export default ScrollingContentWithNav;
  *    - Consolidated similar styles across mobile and desktop navigation
  *    - Standardized padding and spacing patterns
  *    - Improved style organization and naming for better maintainability
+ * 
+ * 5. Enhanced Flexibility:
+ *    - Added support for footer elements below each section
+ *    - Footer elements can be cards, buttons, or custom components
+ *    - Example usage:
+ *      ```jsx
+ *      // Add a card with notes in the footer
+ *      footerElement: {
+ *        type: 'card',
+ *        content: ['Note: This feature requires admin privileges.']
+ *      }
+ *      
+ *      // Add an action button in the footer
+ *      footerElement: {
+ *        type: 'button',
+ *        buttonText: 'Configure Settings',
+ *        buttonOnClick: () => openSettingsModal()
+ *      }
+ *      
+ *      // Add completely custom content in the footer
+ *      footerElement: {
+ *        type: 'custom',
+ *        customContent: <MyCustomComponent />
+ *      }
+ *      ```
  */

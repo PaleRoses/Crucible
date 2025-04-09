@@ -2,11 +2,11 @@ import React, { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { NavItem } from '../navbarhooks/navigation'; // Adjusted path
-import { ANIMATIONS, MOBILE_MENU_BUTTON_CLASS } from '../navbarhooks/navigation'; // Adjusted path
-import { getIconComponent } from '../navbarhooks/IconUtils'; // Adjusted path
+import { NavItem } from '../navigationbar/navbarhooks/navigation'; // Adjusted path
+import { ANIMATIONS, MOBILE_MENU_BUTTON_CLASS } from '../navigationbar/navbarhooks/navigation'; // Adjusted path
+import { getIconComponent } from '../navigationbar/navbarhooks/IconUtils'; // Adjusted path
 import * as MobileStyles from '../navbarstyles/MobileNavigation.styles'; // Adjusted path
-import { useModalBehavior } from '../navbarhooks/useModalBehavior'; // Adjusted path
+import { useModalBehavior } from '../navigationbar/navbarhooks/useModalBehavior'; // Adjusted path
 import MobileNavItemComponent from './MobileNavItemComponent'; // Import sibling
 
 interface MobileMenuComponentProps {

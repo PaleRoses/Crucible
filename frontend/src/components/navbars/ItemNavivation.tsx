@@ -212,14 +212,21 @@ const ANIMATIONS = {
 
 const Container = styled.div`
   width: 90%;
-  max-width: 95vw;
+  max-width: min(95vw, 1800px);
   margin: 0 auto;
   padding: 1.5rem 1rem;
   margin-left: 2.5%;
   margin-right: 5%;
   
   @media (min-width: 1400px) {
-    max-width: 90vw;
+    max-width: min(90vw, 1800px);
+  }
+  
+  @media (max-width: 640px) {
+    width: 95%;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 1rem 0.5rem;
   }
 `;
 
@@ -228,6 +235,12 @@ const TitleContainer = styled.div`
   margin-top: 2.5rem;
   text-align: left;
   margin-bottom: 2.5rem;
+  
+  @media (max-width: 640px) {
+    margin-left: 0.5rem;
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
 `;
 
 const Title = styled.h2`
@@ -264,8 +277,10 @@ const GridContainer = styled(motion.div)<GridContainerProps>`
   }
   
   @media (max-width: 640px) {
-    grid-template-columns: repeat(${props => props.$mobileColumns}, 1fr);
+    grid-template-columns: repeat(${props => props.$mobileColumns}, minmax(120px, 1fr));
     gap: ${props => props.$gapSize * 0.75}rem;
+    margin: 0 auto;
+    width: 100%;
   }
 `;
 
@@ -358,63 +373,19 @@ const Card = styled(motion.div)<CardProps>`
   
   @media (max-width: 640px) {
     padding: 0.75rem;
-    height: 100%;
-    background: ${props => 
-      props.$color 
-        ? `${props.$color}` 
-        : DEFAULT_COLORS.primary};
-    filter: blur(30px);
-    z-index: -1;
-    opacity: ${props => props.$isHovered ? 0.15 : 0};
-    transform: translate(-50%, -50%) scale(${props => props.$isHovered ? 1 : 0.8});
-    transition: opacity 0.5s ease, transform 0.5s ease;
-  }
-  
-  /* Shine effect overlay */
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      to right,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.2) 50%,
-      rgba(255, 255, 255, 0) 100%
-    );
-    z-index: 2;
-    transform: translateX(-100%);
-    transition: transform 0s;
-  }
-  
-  &:hover::before {
-    transform: translateX(100%);
-    transition: transform 1.2s cubic-bezier(0.19, 1, 0.22, 1);
-  }
-  
-  /* Keyboard focus styles */
-  &:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 2px ${props => 
-      props.$color 
-        ? `${props.$color}` 
-        : DEFAULT_COLORS.primary};
-    border-color: ${props => 
-      props.$color 
-        ? `${props.$color}` 
-        : DEFAULT_COLORS.primary};
-  }
-  
-  @media (min-width: 1400px) {
-    padding: 0.9rem 1.25rem;
-    min-height: 60px;
-  }
-  
-  @media (max-width: 640px) {
-    padding: 0.75rem;
     min-height: 50px;
+    opacity: 1;
+    background: ${props => props.$transparent 
+      ? 'rgba(0, 0, 0, 0.02)' 
+      : DEFAULT_COLORS.secondary};
+    border-width: 0.2px;
+    box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
+    
+    /* Add subtle glow effect by default on mobile */
+    &::after {
+      opacity: 0.05;
+      transform: translate(-50%, -50%) scale(0.9);
+    }
   }
 `;
 
@@ -509,6 +480,18 @@ const Description = styled(motion.div)<{ $color?: string }>`
   @media (min-width: 1400px) {
     font-size: 0.75rem;
   }
+  
+  @media (max-width: 640px) {
+    /* Show partial description by default on mobile */
+    opacity: 0.7;
+    max-height: 40px;
+    margin-top: 0.25rem;
+    font-size: 0.65rem;
+    
+    ${Card}:active & {
+      opacity: 1;
+    }
+  }
 `;
 
 // ==========================================================
@@ -555,12 +538,29 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
   
   // Handle item click
   const handleClick = useCallback(() => {
-    if (onItemClick) {
-      onItemClick(item);
-    } else if (item.href) {
-      router.push(item.href);
+    // Add a touch feedback for mobile
+    const isTouchDevice = window.matchMedia('(max-width: 640px)').matches;
+    
+    if (isTouchDevice) {
+      setIsHovered(true);
+      // Add a small delay for touch feedback
+      setTimeout(() => {
+        if (onItemClick) {
+          onItemClick(item);
+        } else if (item.href) {
+          router.push(item.href);
+        }
+        // Reset hover state after navigation
+        setTimeout(() => setIsHovered(false), 100);
+      }, 150);
+    } else {
+      if (onItemClick) {
+        onItemClick(item);
+      } else if (item.href) {
+        router.push(item.href);
+      }
     }
-  }, [item, onItemClick, router]);
+  }, [item, onItemClick, router, setIsHovered]);
   
   return (
     <motion.div
@@ -668,8 +668,30 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
       
       // Initialize refs array with the correct length
       itemRefs.current = itemRefs.current.slice(0, items.length);
+      
+      // Add class to handle touch devices
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      if (isTouchDevice) {
+        containerRef.current.classList.add('touch-device');
+      }
     }
-  }, [items.length]);
+    
+    // Add resize event listener to handle orientation changes on mobile
+    const handleResize = () => {
+      if (gridControls && initialAnimation) {
+        // Reset animation on resize for smoother transitions
+        gridControls.set("hidden");
+        setTimeout(() => {
+          gridControls.start("visible");
+        }, 100);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [items.length, gridControls, initialAnimation]);
   
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
