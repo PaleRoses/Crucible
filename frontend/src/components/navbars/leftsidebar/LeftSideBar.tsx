@@ -298,6 +298,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       display: 'flex',
       flexDirection: 'column',
       width: '100%',
+      alignItems: 'center',
       padding: '0',
       margin: '0',
       overflowY: 'hiiden',
