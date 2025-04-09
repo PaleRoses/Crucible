@@ -1,11 +1,14 @@
 import React, { memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { NavItem } from '../navbarhooks/navigation'; // Adjusted path
-import { ANIMATIONS } from '../navbarhooks/navigation'; // Adjusted path
-import { getIconComponent } from '../navbarhooks/IconUtils'; // Adjusted path
-import * as DesktopStyles from '../navbarstyles/DeskTopNavigation.styles'; // Adjusted path
+
+// --- Updated Imports using '@/' assumed to map to 'src/' ---
+import { NavItem } from '@/components/navbars/navbarhooks/navigation'; // Already using alias
+import { ANIMATIONS } from '@/components/navbars/navbarhooks/navigation'; // Changed from ../
+import { getIconComponent } from '@/components/navbars/navbarhooks/IconUtils'; // Changed from ../
+import * as DesktopStyles from '@/components/navbars/navbarstyles/DeskTopNavigation.styles'; // Changed from ../
+import { useDesktopNavigation } from '@/components/navbars/navbarhooks/useDesktopNavigation'; // Changed from ../
+// --- Local import remains relative ---
 import MemoizedSubmenuItem from './MemoizedSubmenuItem'; // Import sibling component
-import { useDesktopNavigation } from '../navbarhooks/useDesktopNavigation'; // Adjusted path
 
 interface GlobalSubmenuComponentProps {
   activeItem: NavItem | null; // The NavItem whose submenu is currently active, or null
@@ -73,10 +76,10 @@ const GlobalSubmenuComponent: React.FC<GlobalSubmenuComponentProps> = ({
               initial="initial"
               animate="animate"
               exit="exit"
-              style={{ 
+              style={{
                 position: "relative",
-                display: "flex", 
-                flexDirection: "row", 
+                display: "flex",
+                flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "flex-start",
                 width: "100%"
@@ -85,20 +88,20 @@ const GlobalSubmenuComponent: React.FC<GlobalSubmenuComponentProps> = ({
             >
               {/* Optional header for the submenu */}
               {activeItem.label && (
-                <div 
-                  className={DesktopStyles.globalSubmenuHeaderStyle} 
+                <div
+                  className={DesktopStyles.globalSubmenuHeaderStyle}
                   role="presentation"
                 >
-                  <div 
-                    className={DesktopStyles.globalSubmenuTitleStyle} 
+                  <div
+                    className={DesktopStyles.globalSubmenuTitleStyle}
                     id={`submenu-header-${activeItem.id}`}
                   >
                     {activeItem.label}
                   </div>
                   {/* Optional description (often taken from the first subitem) */}
                   {activeItem.submenu?.[0]?.description && (
-                    <div 
-                      className={DesktopStyles.globalSubmenuDescriptionStyle} 
+                    <div
+                      className={DesktopStyles.globalSubmenuDescriptionStyle}
                       id={`submenu-description-${activeItem.id}`}
                     >
                       {activeItem.submenu[0].description}
@@ -108,7 +111,7 @@ const GlobalSubmenuComponent: React.FC<GlobalSubmenuComponentProps> = ({
               )}
 
               {/* Submenu items container with staggered animation - horizontal layout */}
-              <motion.div 
+              <motion.div
                 style={{
                   display: "flex",
                   flexDirection: "row",
@@ -129,7 +132,7 @@ const GlobalSubmenuComponent: React.FC<GlobalSubmenuComponentProps> = ({
                       subItem={subItem}
                       onClick={() => onSubmenuItemClick(subItem.href)}
                       parentId={activeItem.id}
-                      showDescription={false}
+                      showDescription={false} // Kept as false based on original code comment/props
                       iconMapping={iconMapping}
                     />
                   </motion.div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect } from 'react';
-import LeftSidebar from '@/components/navbars/LeftSidebar';
+import LeftSidebar from '@/components/navbars/leftsidebar/LeftSideBar';
 import { css } from '../../../../styled-system/css';
 import usePersistedState from '@/hooks/usePersistedState';
 import sidebarItems from '../../../components/navbars/navbardata/sidebarItems';
