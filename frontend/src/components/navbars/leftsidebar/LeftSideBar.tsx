@@ -230,11 +230,11 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       bgColor: 'background',
       zIndex: 101,
       // Change overflowY from 'auto' to 'hidden'
-      overflowY: 'hidden', // <--- THIS HIDES THE SCROLLBAR
+      overflowY: 'hidden', // 
       display: 'flex',
       flexDirection: 'column',
       boxShadow: 'lg',
-      borderRight: '1px solid',
+      borderRight: 'none',
       borderColor: 'border',
       transform: 'translateX(-100%)',
       opacity: 0.95,
@@ -275,6 +275,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       width: '100%',
       padding: '4',
       paddingTop: '4',
+      fontSize: 'lg',
       bgColor: 'background',
       borderBottom: '1px solid',
       borderColor: 'border',
@@ -286,7 +287,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
     title: css({
       fontFamily: 'heading',
       color: 'primary',
-      fontSize: 'lg',
+      fontSize: '1.5rem',
       fontWeight: 'thin',
       textAlign: 'center', // Title is already centered
       margin: 0,
@@ -299,7 +300,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       width: '100%',
       padding: '0',
       margin: '0',
-      overflowY: 'auto',
+      overflowY: 'hiiden',
       flexGrow: 1,
       WebkitOverflowScrolling: 'touch',
     }),
@@ -425,7 +426,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       }
     }),
     
-    // NEW: Text styles for main navigation items
     itemText: css({
       fontFamily: 'heading',
       fontSize: 'md',
