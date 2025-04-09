@@ -121,42 +121,46 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   });
   
   // Mobile toggle button component
-  const MobileToggleButton = useCallback(() => {
-    return (
-      <button
-        data-sidebar-external-toggle="true"
-        className={cosmicSidebarToggle({
-          variant: variant === 'cosmic' ? 'cosmic' : 'standard',
-          size: compact ? 'sm' : 'md',
-          border: 'none',
-          isMobile: true
-        })}
-        data-expanded={isDrawerOpen}
-        onClick={(e) => {
-          e.stopPropagation();
-          
-          // If drawer is open, only CLOSE it (not toggle)
-          if (isDrawerOpen) {
-            closeDrawer();
-          } else {
-            // Normal toggle behavior when closed
-            toggleSidebar();
-          }
-        }}
-        aria-label={isDrawerOpen ? 'Close navigation menu' : 'Open navigation menu'}
-        aria-expanded={isDrawerOpen}
-        aria-controls="mobile-dropdown-menu"
-        style={{
-          cursor: 'pointer',
-          zIndex: 110,
-          border: 'none',
-          background: 'transparent'
-        }}
-      >
-        <span></span><span></span><span></span>
-      </button>
-    );
-  }, [isDrawerOpen, compact, variant, toggleSidebar, closeDrawer]);
+  // MobileToggleButton fixed implementation
+const MobileToggleButton = useCallback(() => {
+  return (
+    <button
+      data-sidebar-external-toggle="true"
+      className={cosmicSidebarToggle({
+        variant: variant === 'cosmic' ? 'cosmic' : 'standard',
+        size: compact ? 'sm' : 'md',
+        border: 'none',
+        isMobile: true
+      })}
+      data-expanded={isDrawerOpen}
+      onClick={(e) => {
+        e.preventDefault(); // Use preventDefault instead of stopPropagation
+        e.stopPropagation();
+        
+        // Always use toggleSidebar to ensure consistent behavior after reload
+        toggleSidebar();
+        
+        // Remove the conditional logic that was causing the issue:
+        // if (isDrawerOpen) {
+        //   closeDrawer();
+        // } else {
+        //   toggleSidebar();
+        // }
+      }}
+      aria-label={isDrawerOpen ? 'Close navigation menu' : 'Open navigation menu'}
+      aria-expanded={isDrawerOpen}
+      aria-controls="mobile-dropdown-menu"
+      style={{
+        cursor: 'pointer',
+        zIndex: 110,
+        border: 'none',
+        background: 'transparent'
+      }}
+    >
+      <span></span><span></span><span></span>
+    </button>
+  );
+}, [isDrawerOpen, compact, variant, toggleSidebar]);
   
   // Update external toggle ref with our component
   useEffect(() => {
