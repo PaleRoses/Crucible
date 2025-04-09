@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationItem } from '../types/types';
+import { NavigationItem } from '../hooks/index';
 import { cosmicSidebarBadge } from '../../../../../styled-system/recipes';
 
 interface MobileNavItemProps {
@@ -14,6 +14,8 @@ interface MobileNavItemProps {
   expandIconClass: string;
   nestedItemsContainerClass: string;
   nestedItemClass: string;
+  itemTextClass: string; // Added new text style class
+  nestedItemTextClass: string; // Added new text style class
 }
 
 export const MobileNavItem: React.FC<MobileNavItemProps> = ({
@@ -28,6 +30,8 @@ export const MobileNavItem: React.FC<MobileNavItemProps> = ({
   expandIconClass,
   nestedItemsContainerClass,
   nestedItemClass,
+  itemTextClass, // New prop
+  nestedItemTextClass, // New prop
 }) => {
   // Skip level 1 headers in mobile view
   if (item.level === 1) return null;
@@ -79,7 +83,8 @@ export const MobileNavItem: React.FC<MobileNavItemProps> = ({
               {item.icon}
             </div>
           )}
-          <span>{item.label}</span>
+          {/* Apply text class directly to the span */}
+          <span className={itemTextClass} data-active={item.isActive}>{item.label}</span>
         </div>
         
         {/* Badge and Expand Icon */}
@@ -157,7 +162,8 @@ export const MobileNavItem: React.FC<MobileNavItemProps> = ({
                   {child.icon}
                 </div>
               )}
-              <span>{child.label}</span>
+              {/* Apply nested item text class directly to the span with data-active attribute */}
+              <span className={nestedItemTextClass} data-active={child.isActive}>{child.label}</span>
               {child.badge && (
                 <div
                   className={cosmicSidebarBadge({ variant: 'danger', size: 'sm' })}
@@ -185,6 +191,8 @@ interface MobileNavigationProps {
     expandIcon: string;
     nestedItemsContainer: string;
     nestedItem: string;
+    itemText: string; // Added new text style
+    nestedItemText: string; // Added new text style
   };
 }
 
@@ -211,6 +219,8 @@ export const renderMobileNavigation = ({
         expandIconClass={mobileStyles.expandIcon}
         nestedItemsContainerClass={mobileStyles.nestedItemsContainer}
         nestedItemClass={mobileStyles.nestedItem}
+        itemTextClass={mobileStyles.itemText} // Pass new text style
+        nestedItemTextClass={mobileStyles.nestedItemText} // Pass new text style
       />
     );
   });

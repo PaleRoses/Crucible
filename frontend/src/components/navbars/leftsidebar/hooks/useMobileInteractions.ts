@@ -188,7 +188,10 @@ const useMobileInteractions = (
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose, enabled]);
   
-  return { containerRef, overlayRef };
+  return { 
+    containerRef: containerRef as React.RefObject<HTMLDivElement | null>, 
+    overlayRef: overlayRef as React.RefObject<HTMLDivElement | null> 
+  };
 };
 
 export default useMobileInteractions;

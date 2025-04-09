@@ -4,7 +4,7 @@
 export * from '../types/types';
 
 // Export all hooks
-export { useMobileKeyboardNavigation} from './useMobileKeyboardNavigation';
+export { default as useMobileKeyboardNavigation } from './useMobileKeyboardNavigation';
 export { default as useSidebarResponsive } from './useSidebarResponsive';
 export { default as useSidebarPersistence } from './useSidebarPersistence';
 export { default as useSidebarNavigation } from './useSidebarNavigation';

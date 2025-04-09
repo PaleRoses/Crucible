@@ -4,15 +4,18 @@ import { renderMobileNavigation } from './MobileNavigation';
 
 interface MobileSidebarLayoutProps {
   // Refs
-  mobileMenuRef: React.RefObject<HTMLDivElement>;
-  overlayRef: React.RefObject<HTMLDivElement>;
+  mobileMenuRef: React.RefObject<HTMLDivElement | null>;
+  overlayRef: React.RefObject<HTMLDivElement | null>;
+  
   // State
   isDrawerOpen: boolean;
+  
   // Content
   title: string;
   processedNavItems: NavigationItem[];
   expandedItems: string[];
   footerContent: React.ReactNode | null;
+  
   // Styles
   mobileStyles: {
     dropdown: string;
@@ -26,7 +29,10 @@ interface MobileSidebarLayoutProps {
     nestedItemsContainer: string;
     nestedItem: string;
     footer: string;
+    itemText: string; // Added new text style
+    nestedItemText: string; // Added new text style
   };
+  
   // Behavior
   toggleSidebar: () => void;
   toggleItemExpansion: (itemId: string) => void;
@@ -61,7 +67,7 @@ const MobileSidebarLayout: React.FC<MobileSidebarLayoutProps> = ({
         }}
         aria-hidden="true"
       />
-
+      
       {/* Dropdown Container */}
       <div
         id="mobile-dropdown-menu"
@@ -79,7 +85,7 @@ const MobileSidebarLayout: React.FC<MobileSidebarLayoutProps> = ({
         <div className={mobileStyles.header}>
           <h2 className={mobileStyles.title}>{title}</h2>
         </div>
-
+        
         {/* Navigation */}
         <nav className={mobileStyles.navContainer} aria-label="Site navigation">
           {renderMobileNavigation({
@@ -87,10 +93,10 @@ const MobileSidebarLayout: React.FC<MobileSidebarLayoutProps> = ({
             expandedItems,
             toggleItemExpansion,
             handleNavigation,
-            mobileStyles
+            mobileStyles, // Pass all styles including the new text styles
           })}
         </nav>
-
+        
         {/* Footer */}
         {footerContent && <div className={mobileStyles.footer}>{footerContent}</div>}
       </div>

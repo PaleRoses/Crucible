@@ -1,11 +1,20 @@
+// useMobileKeyboardNavigation.ts
 import { useEffect } from 'react';
 
 /**
  * Hook for mobile menu keyboard navigation
- * Handles arrow key navigation, character search, and escape to close
+ * 
+ * Adds keyboard navigation support for mobile menus, including arrow navigation,
+ * character search, and escape handling.
+ * 
+ * @param menuRef - Reference to the mobile menu element
+ * @param isOpen - Whether the mobile menu is currently open
+ * @param onClose - Function to close the mobile menu
+ * @param expandedItems - Array of IDs for expanded nested menu items
+ * @param toggleItemExpansion - Function to toggle expansion of nested menu items
  */
-export const useMobileKeyboardNavigation = (
-  menuRef: React.RefObject<HTMLElement>,
+const useMobileKeyboardNavigation = (
+  menuRef: React.RefObject<HTMLElement | null>,
   isOpen: boolean,
   onClose: () => void,
   expandedItems: string[],
@@ -136,3 +145,5 @@ export const useMobileKeyboardNavigation = (
     };
   }, [isOpen, menuRef, onClose, expandedItems, toggleItemExpansion]);
 };
+
+export default useMobileKeyboardNavigation;

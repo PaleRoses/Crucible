@@ -1,4 +1,3 @@
-// types.ts
 import React from 'react';
 
 export type DepthOption = "1" | "2" | "3";
@@ -7,11 +6,12 @@ export interface NavigationItem {
   label: string;
   icon?: React.ReactNode;
   isActive?: boolean;
-  level?: number; 
+  level?: number;
+  
   href?: string;
   onClick?: () => void;
   badge?: number | string;
-  children?: NavigationItem[]; 
+  children?: NavigationItem[];
 }
 
 export interface SidebarSection {
@@ -30,25 +30,30 @@ export interface LeftSidebarProps {
   // Appearance
   variant?: 'standard' | 'elevated' | 'minimal' | 'cosmic';
   size?: string;
+  
   // Content
   title?: string;
   logo?: React.ReactNode;
   navigationItems?: NavigationItem[];
   sidebarItems?: SidebarItems;
   footerContent?: React.ReactNode;
+  
   // Behavior
   initiallyExpanded?: boolean;
   onToggle?: (isExpanded: boolean) => void;
+  
   // Content pushing (desktop)
   pushContent?: boolean;
   contentSelector?: string;
   expandedWidth?: string;
   collapsedWidth?: string;
   transitionDuration?: number;
+  
   // Layout & Styling
   headerTopOffset?: string;
   compact?: boolean;
   className?: string;
+  
   // External toggle handling (mobile)
   onToggleExternal?: (isExpanded: boolean) => void;
   externalToggleRef?: React.RefObject<{
@@ -74,4 +79,21 @@ export interface UseSidebarToggleProps {
 export interface UseSidebarToggleResult {
   toggleSidebar: () => void;
   closeDrawer: () => void;
+}
+
+// Add interface for mobile styles to ensure consistency
+export interface MobileStyles {
+  dropdown: string;
+  overlay: string;
+  header: string;
+  title: string;
+  navContainer: string;
+  navItem: string;
+  navItemContent: string;
+  expandIcon: string;
+  nestedItemsContainer: string;
+  nestedItem: string;
+  footer: string;
+  itemText: string; // Added new text style
+  nestedItemText: string; // Added new text style
 }

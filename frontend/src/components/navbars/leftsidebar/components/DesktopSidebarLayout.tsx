@@ -5,6 +5,7 @@ import {
   cosmicSidebarContent,
   cosmicSidebarFooter,
   cosmicSidebarToggle,
+  cosmicSidebarGroup,
 } from '../../../../../styled-system/recipes';
 import { css, cx } from '../../../../../styled-system/css';
 import { NavigationItem } from '../hooks/index';
@@ -12,7 +13,7 @@ import { renderGroupedNavigationItems, renderFlatNavigationItems } from './Deskt
 
 interface DesktopSidebarLayoutProps {
   // Refs
-  sidebarRef: React.RefObject<HTMLElement>;
+  sidebarRef: React.RefObject<HTMLElement | null>;
   // State
   isHydrated: boolean;
   isExpanded: boolean;
@@ -31,7 +32,7 @@ interface DesktopSidebarLayoutProps {
   collapsedWidth: string;
   transitionDuration: number;
   headerTopOffset: string;
-  footerContent: React.ReactNode;
+  footerContent: React.ReactNode | null;
   // Behavior
   toggleSidebar: () => void;
 }

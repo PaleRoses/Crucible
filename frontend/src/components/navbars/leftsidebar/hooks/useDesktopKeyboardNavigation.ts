@@ -1,6 +1,7 @@
 // useDesktopKeyboardNavigation.ts
 import { useEffect } from 'react';
 
+
 /**
  * Hook to manage desktop sidebar keyboard navigation
  * 
@@ -17,7 +18,7 @@ import { useEffect } from 'react';
  */
 const useDesktopKeyboardNavigation = (
   isExpanded: boolean,
-  sidebarRef: React.RefObject<HTMLElement>,
+  sidebarRef: React.RefObject<HTMLElement | null>,
   expandedItems: string[],
   toggleItemExpansion: (itemId: string) => void
 ) => {
