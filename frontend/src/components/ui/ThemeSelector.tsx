@@ -184,6 +184,7 @@ export function ThemeSelector() {
         onClick={toggleDropdown}
         disabled={isThemeLoading}
         className={css({
+          paddingTop: '60px',
           display: 'flex',
           alignItems: 'center',
           gap: 'sm',
