@@ -57,7 +57,63 @@ const DesktopSidebarLayout: React.FC<DesktopSidebarLayoutProps> = ({
   footerContent,
   toggleSidebar,
 }) => {
-  // Styles
+  // Enhanced tab-like border style
+  const enhancedSidebarStyle = css({
+    position: 'relative',
+    backgroundColor: 'transparent',
+    
+    // Tab-like border effect with shadow extending to the left
+    "&::after": {
+      content: '""',
+      position: 'absolute',
+      top: '0',
+      right: '-1px',
+      bottom: '0',
+      width: '4px',
+      borderRadius: '0 6px 6px 0',
+      backgroundColor: 'var(--color-primary)',
+      boxShadow: '0 0 8px 1px var(--color-primary), -4px 0 10px -4px var(--color-primary)',
+      opacity: 0.9,
+      zIndex: 1,
+    },
+    
+    // Custom styles for active items
+    "& [data-active='true']": {
+      position: 'relative',
+      "&::after": {
+        content: '""',
+        position: 'absolute',
+        right: '0',
+        top: '20%',
+        height: '60%',
+        width: '4px',
+        backgroundColor: 'var(--color-primary)',
+        boxShadow: '0 0 8px 1px var(--color-primary), -4px 0 10px -4px var(--color-primary)',
+        borderRadius: '2px 0 0 2px',
+        zIndex: 2,
+      }
+    },
+    
+    // Hover styles for navigation items
+    "& [role='button']:hover:not([data-active='true'])": {
+      "&::after": {
+        content: '""',
+        position: 'absolute',
+        right: '0',
+        top: '30%', // Slightly smaller than active items
+        height: '40%', // Smaller than active items
+        width: '3px', // Slightly thinner than active items
+        backgroundColor: 'var(--color-primary)',
+        opacity: 0.7, // More transparent than active items
+        boxShadow: '0 0 6px 0px var(--color-primary), -2px 0 8px -4px var(--color-primary)',
+        borderRadius: '2px 0 0 2px',
+        zIndex: 2,
+        transition: 'all 0.2s ease-in-out',
+      }
+    }
+  });
+
+  // Navigation styles
   const desktopNavStyle = css({
     overflowY: 'auto',
     flexGrow: 1,
@@ -66,9 +122,18 @@ const DesktopSidebarLayout: React.FC<DesktopSidebarLayoutProps> = ({
     '&::-webkit-scrollbar': {
       width: '6px',
     },
+    '&::-webkit-scrollbar-track': {
+      backgroundColor: 'transparent',
+    },
     '&::-webkit-scrollbar-thumb': {
       backgroundColor: 'border.subtle',
       borderRadius: '3px',
+    },
+    
+    // Style for navigation items to ensure proper hover effect
+    '& [role="button"]': {
+      position: 'relative',
+      transition: 'all 0.2s ease-in-out',
     }
   });
 
@@ -80,6 +145,7 @@ const DesktopSidebarLayout: React.FC<DesktopSidebarLayoutProps> = ({
       ref={sidebarRef}
       className={cx(
         cosmicSidebar({ variant, initiallyExpanded }), 
+        enhancedSidebarStyle, // Apply our enhanced styling
         className
       )}
       data-expanded={isHydrated ? isExpanded : initiallyExpanded}
@@ -97,6 +163,7 @@ const DesktopSidebarLayout: React.FC<DesktopSidebarLayoutProps> = ({
         left: 0,
         height: '100vh',
         zIndex: 50,
+        borderRight: 'none', // Remove default border if present
       }}
     >
       {/* Header */}

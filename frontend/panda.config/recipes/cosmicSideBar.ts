@@ -217,7 +217,7 @@ export const cosmicSidebar = defineRecipe({
     boxShadow: '0 0 15px var(--color-glow)',
 
     // Default width values (can be overridden with CSS custom properties)
-    '--sidebar-collapsed-width': '60px',
+    '--sidebar-collapsed-width': '40px',
     '--sidebar-expanded-width': '240px',
     '--transition-default': '0.3s ease',
 
@@ -319,12 +319,10 @@ export const cosmicSidebar = defineRecipe({
         },
 
         '& .sidebar-header': {
-          borderBottom: '1px solid',
           borderColor: 'color-mix(in srgb, var(--color-border) 70%, var(--color-primary))',
         },
 
         '& .sidebar-footer': {
-          borderTop: '1px solid',
           borderColor: 'color-mix(in srgb, var(--color-border) 70%, var(--color-primary))',
         },
       },
@@ -359,7 +357,6 @@ export const cosmicSidebarHeader = defineRecipe({
     paddingLeft: '12px',
     alignItems: 'center',
     height: '60px',
-    borderBottom: '1px solid',
     borderColor: 'border',
     overflow: 'hidden',
     position: 'relative',
@@ -490,7 +487,6 @@ export const cosmicSidebarItem = defineRecipe({
         width: '6px',
         height: '6px',
         borderRight: '2px solid',
-        borderBottom: '2px solid',
         borderColor: 'currentColor',
         transformOrigin: 'center',
         transition: 'transform 0.3s ease',
@@ -693,7 +689,6 @@ export const cosmicSidebarGroup = defineRecipe({
     '&::after': {
       content: '""',
       display: 'block',
-      height: '1px',
       backgroundColor: 'border',
       margin: '2 0',
       opacity: '0.5',
@@ -855,7 +850,6 @@ export const cosmicSidebarFooter = defineRecipe({
     display: 'flex',
     flexDirection: 'column',
     padding: '4',
-    borderTop: '1px solid',
     borderColor: 'border',
 
     // Footer content will typically be hidden when collapsed
@@ -1065,11 +1059,9 @@ export const cosmicSidebarToggle = defineRecipe({
         border: 'none',
       },
       thin: {
-        border: '1px solid',
         borderColor: 'border',
       },
       thick: {
-        border: '2px solid',
         borderColor: 'border',
       },
     },
