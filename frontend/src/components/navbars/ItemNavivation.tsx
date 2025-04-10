@@ -10,7 +10,7 @@ import { css, cx } from "../../../styled-system/css"; // PandaCSS import
 // ==========================================================
 
 /**
- * Animation variants with improved transitions and effects
+ * Animation variants with improved transitions and mobile optimizations
  */
 const ANIMATIONS = {
   grid: {
@@ -24,6 +24,16 @@ const ANIMATIONS = {
         delayChildren: 0.15,
         duration: 0.7,
         ease: [0.25, 0.1, 0.25, 1.0] 
+      }
+    },
+    // New mobile variant with reduced animation complexity
+    visibleMobile: {
+      opacity: 1,
+      transition: { 
+        staggerChildren: 0.03, // Much faster stagger for mobile
+        delayChildren: 0.1,
+        duration: 0.5,
+        ease: "easeOut"
       }
     }
   },
@@ -49,6 +59,18 @@ const ANIMATIONS = {
         rotateX: { duration: 0.5, ease: [0.19, 1, 0.22, 1] }
       }
     },
+    // New simplified mobile variant
+    visibleMobile: {
+      y: 0, 
+      opacity: 1,
+      scale: 1,
+      rotateX: '0deg',
+      transition: { 
+        duration: 0.2, // Faster duration for mobile
+        ease: "easeOut", // Simpler easing function
+        opacity: { duration: 0.2, ease: "easeOut" }
+      }
+    },
     hover: {
       y: -6, // Slightly more pronounced lift
       scale: 1.04,
@@ -59,6 +81,15 @@ const ANIMATIONS = {
         y: { type: "spring", stiffness: 300, damping: 15 }, // Spring physics for natural movement
         scale: { duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }, // Elastic ease for scale
         boxShadow: { duration: 0.4, ease: "easeOut" }
+      }
+    },
+    // Simpler hover for mobile
+    hoverMobile: {
+      y: -2, // Reduced lift
+      scale: 1.02, // Reduced scale
+      transition: { 
+        duration: 0.3,
+        ease: "easeOut" // Simpler easing
       }
     },
     tap: {
@@ -253,13 +284,15 @@ const subtitleStyle = css({
   lineHeight: '1.6'
 });
 
-// Grid container style
+  // Mobile optimized grid container style
 const gridContainerStyle = css({
   display: 'grid',
   gridTemplateColumns: 'repeat(1, minmax(120px, 1fr))', // Default for smallest screens
   gap: '1.5rem',
   width: '100%',
   maxWidth: '100%',
+  willChange: 'transform', // Hardware acceleration hint for smoother animations
+  transform: 'translateZ(0)', // Force GPU rendering
   
   '@media (min-width: 640px)': {
     gridTemplateColumns: 'repeat(1, minmax(min(250px, 30vw), 1fr))',
@@ -282,7 +315,7 @@ const gridContainerStyle = css({
   }
 });
 
-// Enhanced card style with better transitions
+// Enhanced card style with better transitions and mobile optimizations
 const cardStyle = css({
   position: 'relative',
   backgroundColor: 'transparent',
@@ -302,7 +335,9 @@ const cardStyle = css({
   borderStyle: 'solid',
   borderColor: 'primary',
   boxShadow: 'rgba(0, 0, 0, 0.05) 0px 2px 6px 0px, rgba(27, 31, 35, 0.08) 0px 0px 0px 1px',
-  willChange: 'transform, box-shadow, border-color', // Optimizes animations for these properties
+  willChange: 'transform, opacity', // Optimize for these properties only
+  transform: 'translateZ(0)', // Force GPU rendering
+  backfaceVisibility: 'hidden', // Prevent flickering on some mobile browsers
   
   // Modified to have tab-like left border
   borderLeftWidth: '4px',
@@ -381,9 +416,10 @@ const goldenTabStyle = css({
 // New tab glow container
 const tabGlowContainerStyle = css({
   position: 'absolute',
-  left: '0',
+  left: '0px', // Match the golden tab position
   top: '0',
-  width: '10px',
+  width: '20px',
+  borderRadius: '0 12px px 0',
   height: '100%',
   overflow: 'hidden',
   zIndex: '0',
@@ -396,7 +432,7 @@ const tabGlowStyle = css({
   top: '0',
   width: '10px',
   height: '100%',
-  background: 'primary',
+  background: 'var(--colors-primary)', // Solid color
   filter: 'blur(8px)',
   opacity: '0.3',
   zIndex: '-1',
@@ -426,7 +462,7 @@ const iconContainerStyle = css({
   }
 });
 
-// Enhanced glow effect style - more dynamic
+// Enhanced glow effect style - more dynamic (fixed gradient)
 const glowEffectStyle = css({
   position: 'absolute',
   top: '50%',
@@ -437,17 +473,17 @@ const glowEffectStyle = css({
   borderRadius: '50%',
   filter: 'blur(15px)',
   zIndex: '1',
-  background: 'radial-gradient(circle, var(--colors-glow) 0%, transparent 70%)', // Gradient for better glow
+  background: 'var(--colors-glow)', // Solid color instead of gradient
 });
 
-// Shine effect style - for the diagonal shine animation
+// Shine effect style - for the diagonal shine animation (fixed gradient)
 const shineEffectStyle = css({
   position: 'absolute',
   top: '-50%',
   left: '-100%',
   width: '60%',
   height: '200%',
-  background: 'linear-gradient(to right, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%)',
+  background: 'rgba(255, 255, 255, 0.1)', // Solid color instead of gradient
   transform: 'rotate(25deg)', // Diagonal angle
   zIndex: '1',
   pointerEvents: 'none', // Ensure it doesn't interfere with interactions
@@ -529,6 +565,36 @@ export interface ItemNavigationProps {
 }
 
 // ==========================================================
+// CUSTOM HOOKS
+// ==========================================================
+
+/**
+ * Mobile detection hook - properly placed within component structure
+ * Detects if the current viewport is mobile sized
+ */
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.matchMedia('(max-width: 768px)').matches);
+    };
+    
+    // Initial check
+    checkIfMobile();
+    
+    // Add event listener for resize
+    window.addEventListener('resize', checkIfMobile);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
+  
+  return isMobile;
+};
+
 // ITEM COMPONENT - ENHANCED
 // ==========================================================
 
@@ -539,6 +605,8 @@ interface ItemProps {
   animationStagger: number;
   transparentCards: boolean;
   isFocused?: boolean;
+  isMobile: boolean; // Add isMobile as a prop instead of using the hook
+  isScrolling: boolean; // Add scrolling state for mobile optimization
 }
 
 // Enhanced Item component with better animations and interactivity
@@ -548,7 +616,9 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
   index, 
   animationStagger,
   transparentCards,
-  isFocused
+  isFocused,
+  isMobile, // Use the passed prop instead of the hook
+  isScrolling
 }, ref) => {
   const [isHovered, setIsHovered] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -557,12 +627,13 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
   
   // Calculate staggered animation delay
   const animationDelay = useMemo(() => {
-    return index * animationStagger;
-  }, [index, animationStagger]);
+    // Reduce animation delay for mobile to prevent flickering during scrolling
+    return isMobile ? index * (animationStagger / 2) : index * animationStagger;
+  }, [index, animationStagger, isMobile]);
   
   // Handle mouse movement for dynamic effects
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!itemRef.current) return;
+    if (isMobile || !itemRef.current) return; // Skip on mobile for better performance
     
     const rect = itemRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left; // x position within the element
@@ -573,7 +644,7 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
     const normalizedY = y / rect.height;
     
     setMousePosition({ x: normalizedX, y: normalizedY });
-  }, []);
+  }, [isMobile]);
   
   // Handle hover events
   const handleMouseEnter = useCallback(() => {
@@ -587,9 +658,7 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
   // Handle item click
   const handleClick = useCallback(() => {
     // Add a touch feedback for mobile
-    const isTouchDevice = window.matchMedia('(max-width: 640px)').matches;
-    
-    if (isTouchDevice) {
+    if (isMobile) {
       setIsHovered(true);
       // Add a small delay for touch feedback
       setTimeout(() => {
@@ -599,8 +668,8 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
           router.push(item.href);
         }
         // Reset hover state after navigation
-        setTimeout(() => setIsHovered(false), 100);
-      }, 150);
+        setTimeout(() => setIsHovered(false), 50); // Reduced timeout for mobile
+      }, 100); // Reduced timeout for mobile
     } else {
       if (onItemClick) {
         onItemClick(item);
@@ -608,36 +677,51 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
         router.push(item.href);
       }
     }
-  }, [item, onItemClick, router]);
+  }, [item, onItemClick, router, isMobile]);
   
   // Calculate dynamic tab height based on mouse position
   const tabHeight = useMemo(() => {
     if (!isHovered) return '20%';
+    
+    // Simplified calculation for mobile
+    if (isMobile) return '60%';
+    
     // Make the tab height respond to mouse Y position - limited effect to preserve design
     const baseHeight = 60; // Base height percentage
     const variableHeight = 10; // Reduced additional height based on mouse position
     return `${baseHeight + (mousePosition.y * variableHeight)}%`;
-  }, [isHovered, mousePosition.y]);
+  }, [isHovered, mousePosition.y, isMobile]);
   
   // Calculate dynamic tab position based on mouse position
   const tabTop = useMemo(() => {
     if (!isHovered) return '40%';
+    
+    // Simplified calculation for mobile
+    if (isMobile) return '20%';
+    
     // Center the tab around the mouse Y position, with constraints
     const position = Math.max(15, Math.min(85 - parseFloat(tabHeight), mousePosition.y * 100));
     return `${position}%`;
-  }, [isHovered, mousePosition.y, tabHeight]);
+  }, [isHovered, mousePosition.y, tabHeight, isMobile]);
   
   return (
     <motion.div
       ref={ref as React.RefObject<HTMLDivElement>}
       variants={ANIMATIONS.item}
       initial="hidden"
-      animate="visible"
-      whileHover="hover"
+      animate={isMobile ? (isScrolling ? "visibleMobile" : "visibleMobile") : "visible"} // Use mobile specific animations
+      whileHover={isMobile ? "hoverMobile" : "hover"} // Use mobile specific hover
       whileTap="tap"
       custom={animationDelay}
       transition={{
         delay: animationDelay,
+      }}
+      style={{
+        // Hardware acceleration hints for smoother animation
+        transform: "translateZ(0)",
+        backfaceVisibility: "hidden",
+        // Disable animations during scroll on mobile for better performance
+        transitionDuration: isScrolling && isMobile ? "0s" : undefined
       }}
     >
       <div
@@ -801,6 +885,12 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
   // State to track the currently focused item index
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
   
+  // State to track if the items are currently being scrolled
+  const [isScrolling, setIsScrolling] = useState(false);
+  
+  // Detect if we're on mobile
+  const isMobile = useIsMobile();
+  
   // Framer Motion controls
   const gridControls = useAnimation();
   
@@ -828,11 +918,12 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
     // Start animation when component mounts, unless reduced motion is preferred
     if (initialAnimation && !prefersReducedMotion) {
       setTimeout(() => {
-        gridControls.start('visible');
+        // Use different animation variant for mobile
+        gridControls.start(isMobile ? "visibleMobile" : "visible");
       }, 100);
     } else {
       // If reduced motion is preferred, immediately show the content
-      gridControls.set('visible');
+      gridControls.set(isMobile ? "visibleMobile" : "visible");
     }
     
     // Add resize event listener to handle orientation changes on mobile
@@ -841,16 +932,31 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
         // Reset animation on resize for smoother transitions
         gridControls.set("hidden");
         setTimeout(() => {
-          gridControls.start("visible");
+          gridControls.start(isMobile ? "visibleMobile" : "visible");
         }, 100);
       }
     };
     
+    // Add scroll event listener to detect scrolling
+    const handleScroll = () => {
+      if (!isScrolling) {
+        setIsScrolling(true);
+        // After scrolling stops, re-enable animations with a delay
+        const scrollTimer = setTimeout(() => {
+          setIsScrolling(false);
+        }, 200);
+        return () => clearTimeout(scrollTimer);
+      }
+    };
+    
     window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
     return () => {
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleScroll);
     };
-  }, [initialAnimation, gridControls, items.length, reducedMotion]);
+  }, [initialAnimation, gridControls, items.length, reducedMotion, isMobile, isScrolling]);
   
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -916,10 +1022,18 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
       <motion.div
         className={gridContainerStyle}
         variants={ANIMATIONS.grid}
-        initial={initialAnimation ? "hidden" : "visible"}
+        initial={initialAnimation ? "hidden" : (isMobile ? "visibleMobile" : "visible")}
         animate={gridControls}
         aria-labelledby={title ? "navigation-title" : undefined}
         aria-describedby={subtitle && showSubtitle ? "navigation-subtitle" : undefined}
+        style={{
+          // Add performance optimizations
+          willChange: "transform, opacity",
+          transform: "translateZ(0)",
+          backfaceVisibility: "hidden",
+          // Disable animations during scroll on mobile for better performance
+          animationDuration: isScrolling && isMobile ? "0s" : undefined
+        }}
       >
         {memoizedItems.map((item, index) => (
           <Item
@@ -927,8 +1041,10 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
             item={item}
             onItemClick={onItemClick}
             index={index}
-            animationStagger={animationStagger}
+            animationStagger={isMobile ? animationStagger / 3 : animationStagger} // Reduced stagger for mobile
             transparentCards={transparentCards}
+            isMobile={isMobile} // Pass the isMobile state from the hook
+            isScrolling={isScrolling} // Pass the scrolling state
             ref={(el: HTMLElement | null) => {
               // Store the element reference in the refs array
               if (el) {

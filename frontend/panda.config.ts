@@ -2,6 +2,7 @@
 import { defineConfig } from "@pandacss/dev";
 import { textStyles } from './panda.config/text-styles';
 import { recipes } from './panda.config/recipes';
+import { defineUtility } from '@pandacss/dev';
 
 export default defineConfig({
   // Basic setup
@@ -10,52 +11,15 @@ export default defineConfig({
   exclude: [],
   outdir: 'styled-system',
   jsxFramework: 'react',
+  minify: true, // Enable minification for smaller CSS bundles
 
   staticCss: {
     themes: ['midnight', 'starlight', 'eclipse', 'moonlight', 'nebula']
   },
   
-  // Font faces and global styles
+
+  // Global styles
   globalCss: {
-    "@font-face": {
-      fontFamily: "adobe-caslon-pro",
-      fontDisplay: "swap",
-      fontWeight: "200",
-    },
-    "@font-face_1": {
-      fontFamily: "haboro-soft-condensed",
-      fontDisplay: "swap",
-      fontWeight: "200",
-    },
-    "@font-face_2": {
-      fontFamily: "ibm-plex-mono",
-      fontDisplay: "swap",
-      fontWeight: "200",
-    },
-    "@font-face_3": {
-      fontFamily: "adobe-caslon-pro-fallback",
-      src: "local('Georgia')",
-      sizeAdjust: "105%",
-      ascentOverride: "95%",
-      descentOverride: "22%",
-      lineGapOverride: "0%",
-    },
-    "@font-face_4": {
-      fontFamily: "haboro-soft-condensed-fallback",
-      src: "local('Avenir'), local('Helvetica Neue'), local('Helvetica'), local('Arial')",
-      sizeAdjust: "100%",
-      ascentOverride: "90%",
-      descentOverride: "25%",
-      lineGapOverride: "0%",
-    },
-    "@font-face_5": {
-      fontFamily: "ibm-plex-mono-fallback",
-      src: "local('Courier New'), local('Courier'), local('monospace')",
-      sizeAdjust: "105%",
-      ascentOverride: "90%",
-      descentOverride: "25%",
-      lineGapOverride: "0%",
-    },
   
     ":root": {
       // Font variables
@@ -87,10 +51,11 @@ export default defineConfig({
       "--color-cosmic-core": "token(colors.cosmicCore)",
       
       // Transition variables with direct values
-      "--transition-default": "0.3s ease",
-      "--transition-fast": "0.2s ease",
-      "--transition-medium": "0.3s ease",
-      "--transition-slow": "0.5s ease",
+      // Using token references for transitions instead of hardcoded values
+      "--transition-default": "token(durations.default) token(easings.default)",
+      "--transition-fast": "token(durations.fast) token(easings.default)",
+      "--transition-medium": "token(durations.medium) token(easings.default)",
+      "--transition-slow": "token(durations.slow) token(easings.default)",
       // Shadow definitions - now using direct values
       "--shadow-glow": "token(colors.glow) 0 0 15px 1px",
       "--shadow-medium": "0 4px 8px token(colors.border)",
@@ -101,6 +66,11 @@ export default defineConfig({
     "html.fonts-loaded:root": {
       "--fonts-loaded": "1",
     },
+    // Box sizing for predictable layout behavior
+    "*, *::before, *::after": {
+      boxSizing: "border-box",
+    },
+    
     // Base styles
     html: {
       scrollBehavior: "smooth",
@@ -325,6 +295,59 @@ export default defineConfig({
   // Theme configuration - essential parts
   theme: {
     extend: {
+      globalFontface: [
+        {
+          fontFamily: "adobe-caslon-pro",
+          fontDisplay: "swap",
+          fontWeight: "200",
+          fontStyle: "normal",
+          // src is required by Panda config, but Typekit handles actual loading via index.html link
+  src: "url('/fonts-loaded-by-typekit/adobe-caslon-pro.woff2') format('woff2')"
+        },
+        {
+          fontFamily: "haboro-soft-condensed",
+          fontDisplay: "swap",
+          fontWeight: "200",
+          fontStyle: "normal",
+          // src is required by Panda config, but Typekit handles actual loading via index.html link
+  src: "url('/fonts-loaded-by-typekit/adobe-caslon-pro.woff2') format('woff2')"
+        },
+        {
+          fontFamily: "ibm-plex-mono",
+          fontDisplay: "swap",
+          fontWeight: "200",
+          fontStyle: "normal",
+         // src is required by Panda config, but Typekit handles actual loading via index.html link
+  src: "url('/fonts-loaded-by-typekit/adobe-caslon-pro.woff2') format('woff2')"
+        },
+        {
+          fontFamily: "adobe-caslon-pro-fallback",
+          src: "local('Georgia')",
+          sizeAdjust: "105%",
+          ascentOverride: "95%",
+          descentOverride: "22%",
+          lineGapOverride: "0%",
+          fontStyle: "normal"
+        },
+        {
+          fontFamily: "haboro-soft-condensed-fallback",
+          src: "local('Avenir'), local('Helvetica Neue'), local('Helvetica'), local('Arial')",
+          sizeAdjust: "100%",
+          ascentOverride: "90%",
+          descentOverride: "25%",
+          lineGapOverride: "0%",
+          fontStyle: "normal"
+        },
+        {
+          fontFamily: "ibm-plex-mono-fallback",
+          src: "local('Courier New'), local('Courier'), local('monospace')",
+          sizeAdjust: "105%",
+          ascentOverride: "90%",
+          descentOverride: "25%",
+          lineGapOverride: "0%",
+          fontStyle: "normal"
+        },
+    ],
       tokens: {
         
         colors: {
@@ -848,13 +871,159 @@ export default defineConfig({
   
   conditions: {
     extend: {
-      starlight: "[data-panda-theme=starlight] &, .light &:not([data-panda-theme])",
-      midnight: "[data-panda-theme=midnight] &, .dark &:not([data-panda-theme])",
+      // Simplified theme conditions to avoid potential specificity conflicts
+      starlight: "[data-panda-theme=starlight] &",
+      midnight: "[data-panda-theme=midnight] &",
       eclipse: "[data-panda-theme=eclipse] &",
       moonlight: "[data-panda-theme=moonlight] &",
       nebula: "[data-panda-theme=nebula] &",
+      // Light/dark mode fallbacks can be handled separately if needed
+      light: ".light &",
+      dark: ".dark &",
       groupHover: "[role=group]:where(:hover, [data-hover]) &",
     },
-
   },
+  // --- Add your utilities here ---
+  utilities: {
+    // Wrap each utility definition with defineUtility
+    srOnly: defineUtility({
+      // className: "sr-only", // className is often inferred, but can be specified
+      values: { type: 'boolean' }, // Use type: 'boolean' for simpler boolean utilities
+      transform(value) {
+        if (value === true) {
+          return {
+            position: "absolute",
+            width: "1px",
+            height: "1px",
+            padding: "0",
+            margin: "-1px",
+            overflow: "hidden",
+            clip: "rect(0, 0, 0, 0)",
+            whiteSpace: "nowrap",
+            borderWidth: "0"
+          };
+        }
+        // It's good practice to return an empty object if the condition isn't met
+        return {};
+      }
+    }), // End of srOnly definition
+
+    textTruncate: defineUtility({
+      // className: "text-truncate",
+      values: { type: 'boolean' },
+      transform(value) {
+        if (value === true) {
+          return {
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap"
+          };
+        }
+        return {};
+      }
+    }), // End of textTruncate definition
+
+    focusRing: defineUtility({
+      // className: "focus-ring",
+      values: { type: 'boolean' },
+      // Ensure TransformArgs is imported if needed, or rely on inference
+      transform(value, { token }) { // Access token function via the second argument
+        if (value === true) {
+          return {
+            outline: `2px solid ${token('colors.primary')}`, // Use template literal or token reference
+            // outline: '2px solid {colors.primary}', // Alternative token reference syntax
+            outlineOffset: "2px",
+            // Optionally add default focus removal if applying directly via focus state
+            // '&:focus': {
+            //   outline: 'none', // Remove default browser outline if needed
+            // }
+          };
+        }
+        return {};
+      }
+    }), // End of focusRing definition
+
+   // --- Corrected Gradient Border Utility ---
+   gradientBorder: defineUtility({
+    className: 'gradient-border',
+    // description: 'Applies a gradient border using a masked pseudo-element',
+    values: { type: 'string' },
+    transform(value: string, { token }) { // Destructure token helper
+
+      // Ensure the token exists in your theme. If 'spacing.0.5' isn't defined,
+      // you'll get a Panda build error, which is better than a runtime issue.
+      // Or, define a variable here like: const defaultWidth = token('spacing.0.5') || '2px';
+      // But relying on defined tokens is cleaner.
+      const defaultBorderWidth = token('spacing.0.5'); // Get the token value (e.g., '2px')
+
+      return {
+        position: 'relative',
+        zIndex: 0,
+        '--gradient-border-background-image': value,
+
+        // Use the retrieved token value as the fallback for the CSS variable
+        '--after-inset':
+          `calc(var(--gradient-border-width, ${defaultBorderWidth}) + var(--gradient-border-offset, 0px))`, // FIXED: token() has only 1 arg
+
+        '&::after': {
+          content: '""',
+          display: 'block',
+          position: 'absolute',
+          inset: 'calc(var(--after-inset) * -1)',
+          pointerEvents: 'none',
+
+          // Use the retrieved token value as the fallback for the CSS variable here too
+          padding: `var(--gradient-border-width, ${defaultBorderWidth})`, // FIXED: token() has only 1 arg
+
+          borderRadius: 'var(--gradient-border-radius, inherit)',
+          backgroundImage: 'var(--gradient-border-background-image)',
+          mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          maskComposite: 'exclude',
+          WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+          WebkitMaskComposite: 'xor',
+          backgroundSize: 'cover',
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center',
+          zIndex: -1,
+        },
+      }
+    },
+  }), // --- End of corrected gradientBorder ---
+
+  // Keep the other gradient utilities (gradientBorderWidth, etc.) as they were
+  gradientBorderWidth: defineUtility({
+      // ... (no changes needed here) ...
+      className: 'gradient-border-w',
+      // description: 'Sets the width of the gradient border',
+      values: 'spacing',
+      transform(value: string) {
+        return { '--gradient-border-width': value };
+      },
+  }),
+
+  gradientBorderOffset: defineUtility({
+      // ... (no changes needed here) ...
+       className: 'gradient-border-offset',
+       // description: 'Sets an offset for the gradient border from the element edge',
+       values: 'spacing', // Or { type: 'string' }
+       transform(value: string) {
+         return { '--gradient-border-offset': value };
+       },
+  }),
+
+  gradientBorderRadius: defineUtility({
+      // ... (no changes needed here) ...
+      className: 'gradient-border-r',
+      // description: "Adjusts the border radius of the gradient border pseudo-element (defaults to parent's radius)",
+      values: 'radii', // Or { type: 'string' } if you need 'inherit' explicitly
+      transform(value: string) {
+        return { '--gradient-border-radius': value };
+      },
+  }),
+    // --- End of NEW Gradient Border Utilities ---
+  }
+
+
+  // --- End of utilities ---
+
 });
