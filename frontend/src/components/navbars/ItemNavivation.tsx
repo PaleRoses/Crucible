@@ -119,19 +119,18 @@ const ANIMATIONS = {
     }
   },
   
+  // Updated glow animation to work with the new pseudo-element approach
   glow: {
     initial: { 
-      opacity: 0.2,
-      scale: 0.8
+      opacity: 0,
+      scale: 0.6
     },
     hover: { 
-      opacity: 0.6,
-      scale: 1.1,
+      opacity: 1,
+      scale: 1,
       transition: { 
-        duration: 2.5, 
-        ease: "easeInOut",
-        repeat: Infinity,
-        repeatType: "reverse" as const // Type assertion to fix the error
+        opacity: { duration: 0.8, ease: [0.19, 1, 0.22, 1] },
+        scale: { duration: 0.9, ease: [0.34, 1.56, 0.64, 1] }
       } 
     }
   },
@@ -151,21 +150,15 @@ const ANIMATIONS = {
     }
   },
   
-  // Enhanced shine effect - diagonal sweep animation
+  // Removed the shine effect animation completely
   shine: {
     initial: {
       opacity: 0,
-      x: '-100%',
     },
     hover: {
-      opacity: 0.3, // Fixed value for opacity
-      x: '200%', // Move further for complete exit
+      opacity: 0, // Keep it invisible
       transition: {
-        duration: 1.8,
-        ease: "easeInOut",
-        repeat: Infinity,
-        repeatDelay: 2, // Wait between sweeps
-        repeatType: "loop" as const
+        duration: 0.1,
       },
     },
   },
@@ -189,21 +182,19 @@ const ANIMATIONS = {
     }
   },
   
-  // New animation for tab glow
+  // Simplified tab glow animation - no pulsing, single color
   tabGlow: {
     initial: {
-      opacity: 0.3,
+      opacity: 0.2,
       width: '100%',
       height: '100%',
     },
     hover: {
-      opacity: 0.7, // Fixed value instead of array to avoid type issues
-      width: '110%', // Fixed value instead of array
-      height: '110%', // Fixed value instead of array
+      opacity: 0.4, // Fixed opacity, no animation
+      width: '100%',
+      height: '100%',
       transition: {
-        opacity: { duration: 2, ease: "easeInOut", repeat: Infinity, repeatType: "reverse" as const },
-        width: { duration: 2.5, ease: "easeInOut", repeat: Infinity, repeatType: "reverse" as const },
-        height: { duration: 2.5, ease: "easeInOut", repeat: Infinity, repeatType: "reverse" as const }
+        opacity: { duration: 0.3, ease: "easeOut" },
       }
     }
   },
@@ -418,8 +409,8 @@ const tabGlowContainerStyle = css({
   position: 'absolute',
   left: '0px', // Match the golden tab position
   top: '0',
+  borderRadius: '8px',
   width: '20px',
-  borderRadius: '0 12px px 0',
   height: '100%',
   overflow: 'hidden',
   zIndex: '0',
@@ -462,18 +453,27 @@ const iconContainerStyle = css({
   }
 });
 
-// Enhanced glow effect style - more dynamic (fixed gradient)
+// Completely redesigned glow effect with explicit positioning
 const glowEffectStyle = css({
   position: 'absolute',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  width: '40px',
-  height: '40px',
-  borderRadius: '50%',
-  filter: 'blur(15px)',
-  zIndex: '1',
-  background: 'var(--colors-glow)', // Solid color instead of gradient
+  inset: '0', // Covers the entire card
+  width: '100%',
+  height: '100%',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  pointerEvents: 'none',
+  zIndex: '10',
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    width: '50%',
+    height: '50%',
+    borderRadius: '50%',
+    filter: 'blur(20px)',
+    background: 'currentColor',
+    opacity: '0.4',
+  }
 });
 
 // Shine effect style - for the diagonal shine animation (fixed gradient)
@@ -749,6 +749,21 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
           }
         }}
       >
+        {/* Centered glow effect for the entire card */}
+        <AnimatePresence>
+          {isHovered && (
+            <motion.div
+              className={glowEffectStyle}
+              style={{ color: item.color || 'var(--colors-primary)' }}
+              variants={ANIMATIONS.glow}
+              initial="initial"
+              animate="hover"
+              exit="initial"
+              aria-hidden="true"
+            />
+          )}
+        </AnimatePresence>
+        
         {/* Enhanced golden tab indicator that responds to mouse position */}
         <motion.div 
           className={goldenTabStyle}
@@ -775,45 +790,17 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
           />
         </div>
         
-        {/* Diagonal shine effect */}
-        <AnimatePresence>
-          {isHovered && (
-            <motion.div
-              className={shineEffectStyle}
-              variants={ANIMATIONS.shine}
-              initial="initial"
-              animate="hover"
-              exit="initial"
-              aria-hidden="true"
-            />
-          )}
-        </AnimatePresence>
+        {/* Removed diagonal shine effect */}
         
         {item.icon && (
-          <>
-            <motion.div 
-              className={iconContainerStyle}
-              style={{ color: item.color || 'var(--colors-primary)' }}
-              variants={ANIMATIONS.icon}
-              aria-hidden="true"
-            >
-              {item.icon}
-            </motion.div>
-            
-            <AnimatePresence>
-              {isHovered && (
-                <motion.div
-                  className={glowEffectStyle}
-                  style={{ background: item.color || 'var(--colors-glow)' }}
-                  variants={ANIMATIONS.glow}
-                  initial="initial"
-                  animate="hover"
-                  exit="initial"
-                  aria-hidden="true"
-                />
-              )}
-            </AnimatePresence>
-          </>
+          <motion.div 
+            className={iconContainerStyle}
+            style={{ color: item.color || 'var(--colors-primary)' }}
+            variants={ANIMATIONS.icon}
+            aria-hidden="true"
+          >
+            {item.icon}
+          </motion.div>
         )}
         
         <div className={textContainerStyle}>
