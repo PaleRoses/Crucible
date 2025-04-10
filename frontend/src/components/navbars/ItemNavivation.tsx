@@ -1,98 +1,9 @@
 'use client';
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { motion, useAnimation } from 'framer-motion';
-import styled from 'styled-components';
 import { useRouter } from 'next/navigation';
-
-// ==========================================================
-// TYPES & INTERFACES
-// ==========================================================
-
-/**
- * Navigation item interface
- */
-export interface NavigationItem {
-  id: string;
-  label: string;
-  href: string;
-  icon?: React.ReactNode;
-  description?: string;
-  color?: string;
-}
-
-/**
- * Color theme interface
- */
-export interface Colors {
-  primary: string;    // Main accent color
-  secondary: string;  // Background color
-  tertiary: string;   // Border color
-  text: string;       // Text color
-  textSecondary: string; // Secondary text color (for descriptions)
-  glow: string;       // Glow effect color
-}
-
-/**
- * Default color scheme
- */
-const DEFAULT_COLORS: Colors = {
-  primary: 'var(--color-primary)',
-  secondary: 'var(--color-secondary)',
-  tertiary: 'var(--color-primary)',
-  text: 'var(--color-text)',
-  textSecondary: 'var(--color-text)',
-  glow: 'var(--color-glow)',
-};
-
-/**
- * Props for the ItemNavigation component
- * 
- * @property {NavigationItem[]} items - Array of navigation items to display
- * @property {string} [title] - Optional title displayed above the navigation grid
- * @property {string} [subtitle] - Optional subtitle/description displayed below the title
- * @property {number} [columns=3] - Number of columns in the grid on desktop
- * @property {number} [mobileColumns=1] - Number of columns in the grid on mobile devices
- * @property {number} [tabletColumns=2] - Number of columns in the grid on tablet devices
- * @property {number} [gapSize=1.5] - Gap size between grid items in rem units
- * @property {boolean} [initialAnimation=true] - Whether to animate items on initial render
- * @property {number} [animationStagger=0.05] - Delay between each item's animation in seconds
- * @property {Function} [onItemClick] - Optional callback function when an item is clicked
- * @property {string} [className] - Optional CSS class name for the container
- * @property {boolean} [showSubtitle=false] - Whether to show the subtitle
- * @property {boolean} [transparentCards=true] - Whether to use transparent card backgrounds
- */
-export interface ItemNavigationProps {
-  items: NavigationItem[];
-  title?: string;
-  subtitle?: string;
-  columns?: number;
-  mobileColumns?: number;
-  tabletColumns?: number;
-  gapSize?: number;
-  initialAnimation?: boolean;
-  animationStagger?: number;
-  onItemClick?: (item: NavigationItem) => void;
-  className?: string;
-  showSubtitle?: boolean;
-  transparentCards?: boolean;
-}
-
-/**
- * Styled component props
- */
-interface GridContainerProps {
-  $columns: number;
-  $mobileColumns: number;
-  $tabletColumns: number;
-  $gapSize: number;
-}
-
-interface CardProps {
-  $isHovered: boolean;
-  $color?: string;
-  $transparent: boolean;
-}
+import { motion, useAnimation } from 'framer-motion';
+import { css, cx } from "../../../styled-system/css"; // Adjust path as needed
 
 // ==========================================================
 // ANIMATION VARIANTS
@@ -207,292 +118,283 @@ const ANIMATIONS = {
 };
 
 // ==========================================================
-// STYLED COMPONENTS
+// STYLE DEFINITIONS
 // ==========================================================
 
-const Container = styled.div`
-  width: 90%;
-  max-width: min(95vw, 1800px);
-  margin: 0 auto;
-  padding: 1.5rem 1rem;
-  margin-left: 2.5%;
-  margin-right: 5%;
+// Container styles
+const containerStyle = css({
+  width: '90%',
+  maxWidth: 'min(95vw, 2200px)',
+  margin: '0 auto',
+  padding: '1.5rem 1rem',
+  marginLeft: '2.5%',
+  marginRight: '5%',
   
-  @media (min-width: 1400px) {
-    max-width: min(90vw, 1800px);
-  }
+  '@media (min-width: 1400px)': {
+    maxWidth: 'min(90vw, 2200px)'
+  },
   
-  @media (max-width: 640px) {
-    width: 95%;
-    margin-left: auto;
-    margin-right: auto;
-    padding: 1rem 0.5rem;
+  '@media (max-width: 640px)': {
+    width: '95%',
+    marginLeft: 'auto',
+    marginRight: 'auto',
+    padding: '1rem 0.5rem'
   }
-`;
+});
 
-const TitleContainer = styled.div`
-  margin-left: 1rem;
-  margin-top: 2.5rem;
-  text-align: left;
-  margin-bottom: 2.5rem;
+const titleContainerStyle = css({
+  marginLeft: '1rem',
+  marginTop: '2.5rem',
+  textAlign: 'left',
+  marginBottom: '2.5rem',
   
-  @media (max-width: 640px) {
-    margin-left: 0.5rem;
-    margin-top: 1.5rem;
-    margin-bottom: 1.5rem;
+  '@media (max-width: 640px)': {
+    marginLeft: '0.5rem',
+    marginTop: '1.5rem',
+    marginBottom: '1.5rem'
   }
-`;
+});
 
-const Title = styled.h2`
-  font-family: var(--font-heading, 'system-ui');
-  font-size: min(2.5rem, 5vw);
-  font-weight: 200;
-  letter-spacing: 0.2em;
-  color: ${DEFAULT_COLORS.primary};
-  text-transform: uppercase;
-  margin-bottom: 0.5rem;
-`;
+const titleStyle = css({
+  fontFamily: 'var(--font-heading, "system-ui")',
+  fontSize: 'clamp(1.5rem, 1.2rem + 1.5vw, 2.5rem)',
+  fontWeight: '200',
+  letterSpacing: '0.2em',
+  color: 'primary',
+  textTransform: 'uppercase',
+  marginBottom: '0.5rem'
+});
 
-const Subtitle = styled.p`
-  font-size: min(1.125rem, 2.5vw);
-  color: ${DEFAULT_COLORS.textSecondary};
-  max-width: 700px;
-  margin: 0 auto;
-  line-height: 1.6;
-`;
+const subtitleStyle = css({
+  fontSize: 'clamp(0.875rem, 0.8rem + 0.5vw, 1.125rem)',
+  color: 'textMuted',
+  maxWidth: '700px',
+  margin: '0 auto',
+  lineHeight: '1.6'
+});
 
-const GridContainer = styled(motion.div)<GridContainerProps>`
-  display: grid;
-  grid-template-columns: repeat(${props => props.$columns}, minmax(min(250px, 22vw), 1fr));
-  gap: ${props => props.$gapSize}rem;
-  width: 100%;
-  max-width: 100%;
+// Grid container style
+const gridContainerStyle = css({
+  display: 'grid',
+  gridTemplateColumns: 'repeat(1, minmax(120px, 1fr))', // Default for smallest screens
+  gap: '1.5rem',
+  width: '100%',
+  maxWidth: '100%',
   
-  @media (min-width: 1400px) {
-    grid-template-columns: repeat(${props => props.$columns}, minmax(min(280px, 24vw), 1fr));
-  }
+  '@media (min-width: 640px)': {
+    gridTemplateColumns: 'repeat(1, minmax(min(250px, 30vw), 1fr))',
+    gap: '1.5rem'
+  },
   
-  @media (max-width: 1024px) {
-    grid-template-columns: repeat(${props => props.$tabletColumns}, minmax(min(220px, 30vw), 1fr));
-  }
+  '@media (min-width: 768px)': {
+    gridTemplateColumns: 'repeat(2, minmax(min(220px, 30vw), 1fr))',
+    gap: '1.5rem'
+  },
   
-  @media (max-width: 640px) {
-    grid-template-columns: repeat(${props => props.$mobileColumns}, minmax(120px, 1fr));
-    gap: ${props => props.$gapSize * 0.75}rem;
-    margin: 0 auto;
-    width: 100%;
+  '@media (min-width: 1024px)': {
+    gridTemplateColumns: 'repeat(3, minmax(min(250px, 22vw), 1fr))',
+    gap: '1.5rem'
+  },
+  
+  '@media (min-width: 1400px)': {
+    gridTemplateColumns: 'repeat(3, minmax(min(280px, 24vw), 1fr))',
+    gap: '1.5rem'
   }
-`;
+});
 
-const Card = styled(motion.div)<CardProps>`
-  position: relative;
-  background: ${props => props.$transparent 
-    ? 'transparent' 
-    : DEFAULT_COLORS.secondary};
-  backdrop-filter: ${props => props.$transparent ? 'none' : 'blur(8px)'};
-  border-radius: 8px;
-  padding: 0.85rem 1rem;
-  overflow: hidden;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: flex-start;
-  min-height: 54px;
-  height: auto;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: ${props => props.$transparent 
-    ? 'rgba(0, 0, 0, 0.05) 0px 1px 3px 0px, rgba(27, 31, 35, 0.15) 0px 0px 0px 1px'
-    : '0 4px 20px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.05)'};
-  border: ${props => props.$isHovered ? '0.3px' : '0.1px'} solid ${props => 
-    props.$color 
-      ? props.$color 
-      : DEFAULT_COLORS.tertiary};
+// Card style
+const cardStyle = css({
+  position: 'relative',
+  backgroundColor: 'transparent',
+  borderRadius: '8px',
+  padding: '0.85rem 1rem',
+  overflow: 'hidden',
+  display: 'flex',
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'flex-start',
+  minHeight: '54px',
+  height: 'auto',
+  textAlign: 'left',
+  cursor: 'pointer',
+  transition: 'all 0.3s ease',
+  borderWidth: '0.1px',
+  borderStyle: 'solid',
+  borderColor: 'primary',
+  boxShadow: 'rgba(0, 0, 0, 0.05) 0px 1px 3px 0px, rgba(27, 31, 35, 0.15) 0px 0px 0px 1px',
   
-  /* Add glow effect */
-  &::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 100%;
-    height: 100%;
-    background: ${props => 
-      props.$color 
-        ? `${props.$color}` 
-        : DEFAULT_COLORS.primary};
-    filter: blur(30px);
-    z-index: -1;
-    opacity: ${props => props.$isHovered ? 0.15 : 0};
-    transform: translate(-50%, -50%) scale(${props => props.$isHovered ? 1 : 0.8});
-    transition: opacity 0.5s ease, transform 0.5s ease;
-  }
+  // Modified to have tab-like left border
+  borderLeftWidth: '4px',
   
-  /* Shine effect overlay */
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      to right,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.2) 50%,
-      rgba(255, 255, 255, 0) 100%
-    );
-    z-index: 2;
-    transform: translateX(-100%);
-    transition: transform 0s;
-  }
+  // Focus styles
+  _focusVisible: {
+    outline: 'none',
+    boxShadow: '0 0 0 2px var(--colors-primary)',
+    borderColor: 'text',
+    background: 'rgba(255, 255, 255, 0.05)'
+  },
   
-  &:hover::before {
-    transform: translateX(100%);
-    transition: transform 1.2s cubic-bezier(0.19, 1, 0.22, 1);
-  }
+  '@media (min-width: 1400px)': {
+    padding: '0.9rem 1.25rem',
+    minHeight: '60px'
+  },
   
-  /* Keyboard focus styles */
-  &:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 2px ${props => 
-      props.$color 
-        ? `${props.$color}` 
-        : DEFAULT_COLORS.primary};
-    border-color: ${props => 
-      props.$color 
-        ? `${props.$color}` 
-        : DEFAULT_COLORS.primary};
+  '@media (max-width: 640px)': {
+    padding: '0.75rem',
+    minHeight: '50px',
+    opacity: '1',
+    borderWidth: '0.2px',
+    borderLeftWidth: '4px',
+    boxShadow: 'rgba(0, 0, 0, 0.05) 0px 1px 2px 0px',
   }
-  
-  @media (min-width: 1400px) {
-    padding: 0.9rem 1.25rem;
-    min-height: 60px;
-  }
-  
-  @media (max-width: 640px) {
-    padding: 0.75rem;
-    min-height: 50px;
-    opacity: 1;
-    background: ${props => props.$transparent 
-      ? 'rgba(0, 0, 0, 0.02)' 
-      : DEFAULT_COLORS.secondary};
-    border-width: 0.2px;
-    box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
-    
-    /* Add subtle glow effect by default on mobile */
-    &::after {
-      opacity: 0.05;
-      transform: translate(-50%, -50%) scale(0.9);
-    }
-  }
-`;
+});
 
-const IconContainer = styled(motion.div)<{ $color?: string }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  margin-right: 0.8rem;
-  color: ${props => props.$color || DEFAULT_COLORS.primary};
-  
-  svg {
-    width: 100%;
-    height: 100%;
-  }
-  
-  @media (min-width: 1400px) {
-    width: 28px;
-    height: 28px;
-  }
-`;
+// Solid card variant
+const cardSolidStyle = css({
+  background: 'backgroundAlt',
+  backdropFilter: 'blur(8px)',
+  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.05)',
+});
 
-const GoldenTab = styled.div<{ $color?: string }>`
-  position: absolute;
-  left: 10px;
-  top: 40%;
-  width: 3px;
-  height: 20%;
-  background: ${props => props.$color || DEFAULT_COLORS.primary};
-  border-top-right-radius: 2px;
-  border-bottom-right-radius: 2px;
-  transition: height 0.3s ease, top 0.3s ease;
-  opacity: 1;
+// Golden tab style (the expandable line element)
+const goldenTabStyle = css({
+  // Current properties
+  position: 'absolute',
+  left: '10px',
+  top: '40%',
+  width: '3px',
+  height: '20%',
+  background: 'primary',
+  borderTopRightRadius: '2px',
+  borderBottomRightRadius: '2px',
   
-  ${Card}:hover &, ${Card}:focus-visible & {
-    height: 60%;
-    top: 20%;
+  // Enhanced properties
+  boxShadow: '0 0 4px 0 rgba(var(--colors-primary), 0.1)', // Subtle ambient glow
+  transition: 'height 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), boxShadow 0.5s ease',
+  
+  // Hover state with enhanced glow
+  '[role="link"]:hover &, [role="button"]:hover &': {
+    height: '60%',
+    top: '20%',
+    boxShadow: '0 0 8px 2px rgba(var(--colors-primary), 0.25), 0 0 2px 0px rgba(var(--colors-primary), 0.5)', // Intensified glow
   }
-`;
+});
 
-const TextContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-`;
+// Icon container style
+const iconContainerStyle = css({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '26px',
+  height: '26px',
+  marginRight: '0.8rem',
+  marginLeft: '0.8rem', // Added margin to make space for the golden tab
+  color: 'primary',
+  
+  '& svg': {
+    width: '100%',
+    height: '100%'
+  },
+  
+  '@media (min-width: 1400px)': {
+    width: '28px',
+    height: '28px'
+  }
+});
 
-const GlowEffect = styled(motion.div)<{ $color?: string }>`
-  position: absolute;
-  top: 50%;
-  left: 15%;
-  transform: translate(-50%, -50%);
-  width: 35px;
-  height: 35px;
-  background: ${props => props.$color || DEFAULT_COLORS.glow};
-  border-radius: 50%;
-  filter: blur(20px);
-  z-index: -1;
-`;
+// Glow effect style
+const glowEffectStyle = css({
+  position: 'absolute',
+  top: '50%',
+  left: '15%',
+  transform: 'translate(-50%, -50%)',
+  width: '35px',
+  height: '35px',
+  borderRadius: '50%',
+  filter: 'blur(20px)',
+  zIndex: '-1'
+});
 
-const Label = styled(motion.div)<{ $color?: string }>`
-  font-family: var(--font-heading, 'system-ui');
-  font-size: 0.85rem;
-  font-weight: 300;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: ${props => props.$color || DEFAULT_COLORS.text};
-  
-  @media (min-width: 1400px) {
-    font-size: 0.9rem;
-  }
-`;
+// Text container style
+const textContainerStyle = css({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+  justifyContent: 'center'
+});
 
-const Description = styled(motion.div)<{ $color?: string }>`
-  font-size: 0.7rem;
-  color: ${props => props.$color ? `${props.$color}99` : DEFAULT_COLORS.textSecondary};
-  margin-top: 0.25rem;
-  line-height: 1.4;
-  max-width: 90%;
-  opacity: 0;
-  max-height: 0;
-  overflow: hidden;
-  transition: opacity 0.3s ease, max-height 0.3s ease, margin-top 0.3s ease;
+// Label style
+const labelStyle = css({
+  fontFamily: 'var(--font-heading, "system-ui")',
+  fontSize: 'clamp(0.75rem, 0.7rem + 0.25vw, 0.9rem)',
+  fontWeight: '300',
+  textTransform: 'uppercase',
+  letterSpacing: '0.1em',
+  color: 'text'
+});
+
+// Description style
+const descriptionStyle = css({
+  fontSize: 'clamp(0.65rem, 0.6rem + 0.25vw, 0.75rem)',
+  color: 'textMuted',
+  marginTop: '0.25rem',
+  lineHeight: '1.4',
+  maxWidth: '90%',
+  opacity: '0',
+  maxHeight: '0',
+  overflow: 'hidden',
+  transition: 'opacity 0.3s ease, max-height 0.3s ease, margin-top 0.3s ease',
   
-  ${Card}:hover & {
-    opacity: 1;
-    max-height: 60px;
-    margin-top: 0.25rem;
+  '@media (max-width: 640px)': {
+    opacity: '0.7',
+    maxHeight: '40px',
+    marginTop: '0.25rem',
   }
-  
-  @media (min-width: 1400px) {
-    font-size: 0.75rem;
-  }
-  
-  @media (max-width: 640px) {
-    /* Show partial description by default on mobile */
-    opacity: 0.7;
-    max-height: 40px;
-    margin-top: 0.25rem;
-    font-size: 0.65rem;
-    
-    ${Card}:active & {
-      opacity: 1;
-    }
-  }
-`;
+});
+
+// Description visible style (used with Framer Motion)
+const descriptionVisibleStyle = css({
+  opacity: '1',
+  maxHeight: '60px',
+  marginTop: '0.25rem'
+});
+
+// ==========================================================
+// TYPES & INTERFACES
+// ==========================================================
+
+/**
+ * Navigation item interface
+ */
+export interface NavigationItem {
+  id: string;
+  label: string;
+  href: string;
+  icon?: React.ReactNode;
+  description?: string;
+  color?: string;
+}
+
+/**
+ * Props for the ItemNavigation component
+ */
+export interface ItemNavigationProps {
+  items: NavigationItem[];
+  title?: string;
+  subtitle?: string;
+  columns?: number;
+  mobileColumns?: number;
+  tabletColumns?: number;
+  gapSize?: number;
+  initialAnimation?: boolean;
+  animationStagger?: number;
+  onItemClick?: (item: NavigationItem) => void;
+  className?: string;
+  showSubtitle?: boolean;
+  transparentCards?: boolean;
+  ariaLabel?: string;
+  reducedMotion?: boolean;
+}
 
 // ==========================================================
 // ITEM COMPONENT
@@ -505,10 +407,9 @@ interface ItemProps {
   animationStagger: number;
   transparentCards: boolean;
   isFocused?: boolean;
-  ref?: React.Ref<HTMLElement>;
 }
 
-// Use React.forwardRef to handle the ref
+// Item component to render each navigation item
 const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({ 
   item, 
   onItemClick, 
@@ -518,7 +419,6 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
 }, ref) => {
   const [isHovered, setIsHovered] = useState(false);
   const router = useRouter();
-  const controls = useAnimation();
   
   // Calculate staggered animation delay
   const animationDelay = useMemo(() => {
@@ -528,13 +428,11 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
   // Handle hover events
   const handleMouseEnter = useCallback(() => {
     setIsHovered(true);
-    controls.start('hover');
-  }, [controls]);
+  }, []);
   
   const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
-    controls.start('visible');
-  }, [controls]);
+  }, []);
   
   // Handle item click
   const handleClick = useCallback(() => {
@@ -560,10 +458,11 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
         router.push(item.href);
       }
     }
-  }, [item, onItemClick, router, setIsHovered]);
+  }, [item, onItemClick, router]);
   
   return (
     <motion.div
+      ref={ref as React.RefObject<HTMLDivElement>}
       variants={ANIMATIONS.item}
       initial="hidden"
       animate="visible"
@@ -573,54 +472,90 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
       transition={{
         delay: animationDelay,
       }}
-      ref={ref as React.RefObject<HTMLDivElement>}
     >
-      <Card
-        $isHovered={isHovered}
-        $color={item.color}
-        $transparent={transparentCards}
+      <div
+        className={cx(
+          cardStyle,
+          !transparentCards && cardSolidStyle
+        )}
+        style={{ 
+          borderColor: item.color || 'var(--colors-primary)',
+          borderLeftColor: item.color || 'var(--colors-primary)',
+        }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
         tabIndex={0}
+        role={item.href ? "link" : "button"}
+        aria-label={item.label}
+        aria-describedby={item.description ? `desc-${item.id}` : undefined}
         onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
           if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        handleClick();
+            e.preventDefault();
+            handleClick();
           }
         }}
       >
-        <GoldenTab $color={item.color} />
+        {/* Golden tab indicator that expands on hover */}
+        <div 
+          className={goldenTabStyle}
+          style={{ background: item.color || 'var(--colors-primary)' }}
+          aria-hidden="true"
+        />
         
         {item.icon && (
           <>
-        <IconContainer 
-          variants={ANIMATIONS.icon}
-          $color={item.color}
-        >
-          {item.icon}
-        </IconContainer>
-        {isHovered && <GlowEffect variants={ANIMATIONS.glow} $color={item.color} />}
+            <motion.div 
+              className={iconContainerStyle}
+              style={{ color: item.color || 'var(--colors-primary)' }}
+              variants={ANIMATIONS.icon}
+              aria-hidden="true"
+            >
+              {item.icon}
+            </motion.div>
+            
+            {isHovered && (
+              <motion.div
+                className={glowEffectStyle}
+                style={{ background: item.color || 'var(--colors-glow)' }}
+                variants={ANIMATIONS.glow}
+                initial="initial"
+                animate="hover"
+                aria-hidden="true"
+              />
+            )}
           </>
         )}
         
-        <TextContainer>
-          <Label variants={ANIMATIONS.label} $color={item.color}>
-        {item.label}
-          </Label>
+        <div className={textContainerStyle}>
+          <motion.div
+            className={labelStyle}
+            style={{ color: item.color || 'var(--colors-text)' }}
+            variants={ANIMATIONS.label}
+            id={`label-${item.id}`}
+          >
+            {item.label}
+          </motion.div>
           
           {item.description && (
-        <Description $color={item.color}>
-          {item.description}
-        </Description>
+            <div 
+              className={cx(
+                descriptionStyle,
+                isHovered && descriptionVisibleStyle
+              )}
+              style={{ color: item.color ? `${item.color}99` : 'var(--colors-textMuted)' }}
+              id={`desc-${item.id}`}
+            >
+              {item.description}
+            </div>
           )}
-        </TextContainer>
-      </Card>
+        </div>
+      </div>
     </motion.div>
   );
 }));
 
-// Ensure we add displayName to the forwarded ref component
+// Set display name for forwardRef component
 Item.displayName = 'NavigationItem';
 
 // ==========================================================
@@ -639,7 +574,7 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
   subtitle,
   columns = 3,
   mobileColumns = 1,
-  tabletColumns = 1,
+  tabletColumns = 2,
   gapSize = 1.5,
   initialAnimation = true,
   animationStagger = 0.05,
@@ -647,9 +582,9 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
   className,
   showSubtitle = false,
   transparentCards = true,
+  ariaLabel,
+  reducedMotion = false
 }) => {
-  const gridControls = useAnimation();
-  
   // useRef for accessing the container element DOM node
   const containerRef = useRef<HTMLDivElement>(null);
   
@@ -658,6 +593,9 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
   
   // State to track the currently focused item index
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
+  
+  // Framer Motion controls
+  const gridControls = useAnimation();
   
   // This effect runs on client-side only, ensuring proper hydration in Next.js
   useEffect(() => {
@@ -676,9 +614,23 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
       }
     }
     
+    // Check if user prefers reduced motion
+    const prefersReducedMotion = reducedMotion || 
+      (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    
+    // Start animation when component mounts, unless reduced motion is preferred
+    if (initialAnimation && !prefersReducedMotion) {
+      setTimeout(() => {
+        gridControls.start('visible');
+      }, 100);
+    } else {
+      // If reduced motion is preferred, immediately show the content
+      gridControls.set('visible');
+    }
+    
     // Add resize event listener to handle orientation changes on mobile
     const handleResize = () => {
-      if (gridControls && initialAnimation) {
+      if (initialAnimation && !prefersReducedMotion) {
         // Reset animation on resize for smoother transitions
         gridControls.set("hidden");
         setTimeout(() => {
@@ -691,7 +643,7 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, [items.length, gridControls, initialAnimation]);
+  }, [initialAnimation, gridControls, items.length, reducedMotion]);
   
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -736,37 +688,31 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
     }
   }, [items.length]);
   
-  // Start animation when component mounts
-  useEffect(() => {
-    if (initialAnimation) {
-      gridControls.start('visible');
-    }
-  }, [initialAnimation, gridControls]);
-  
   // Memoize items array to prevent unnecessary re-renders
   const memoizedItems = useMemo(() => items, [items]);
   
   return (
-    <Container 
-      className={className} 
+    <div 
+      className={cx(containerStyle, className)} 
       ref={containerRef}
       onKeyDown={handleKeyDown}
+      role="navigation"
+      aria-label={ariaLabel || title || "Navigation Menu"}
     >
       {(title || (subtitle && showSubtitle)) && (
-        <TitleContainer>
-          {title && <Title>{title}</Title>}
-          {subtitle && showSubtitle && <Subtitle>{subtitle}</Subtitle>}
-        </TitleContainer>
+        <div className={titleContainerStyle}>
+          {title && <h2 className={titleStyle} id="navigation-title">{title}</h2>}
+          {subtitle && showSubtitle && <p className={subtitleStyle} id="navigation-subtitle">{subtitle}</p>}
+        </div>
       )}
       
-      <GridContainer
-        $columns={columns}
-        $mobileColumns={mobileColumns}
-        $tabletColumns={tabletColumns}
-        $gapSize={gapSize}
+      <motion.div
+        className={gridContainerStyle}
         variants={ANIMATIONS.grid}
         initial={initialAnimation ? "hidden" : "visible"}
         animate={gridControls}
+        aria-labelledby={title ? "navigation-title" : undefined}
+        aria-describedby={subtitle && showSubtitle ? "navigation-subtitle" : undefined}
       >
         {memoizedItems.map((item, index) => (
           <Item
@@ -785,8 +731,8 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
             isFocused={focusedIndex === index}
           />
         ))}
-      </GridContainer>
-    </Container>
+      </motion.div>
+    </div>
   );
 };
 
