@@ -856,7 +856,8 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
             {item.label}
           </motion.div>
           
-          {item.description && !isScrolling && (
+          {/* Only render description if NOT on mobile */}
+          {item.description && !isMobile && !isScrolling && (
             <AnimatePresence>
               <motion.div 
                 className={descriptionStyle}
@@ -864,14 +865,14 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
                 id={`desc-${item.id}`}
                 variants={ANIMATIONS.description}
                 initial="initial"
-                animate={isHovered || isMobileViewport ? "hover" : "initial"}
+                animate={isHovered ? "hover" : "initial"}
               >
                 {item.description}
               </motion.div>
             </AnimatePresence>
           )}
-          {/* Simpler non-animated version of description during scrolling */}
-          {item.description && isScrolling && (isHovered || isMobileViewport) && (
+          {/* Simpler non-animated version of description during scrolling - also only when NOT on mobile */}
+          {item.description && !isMobile && isScrolling && isHovered && (
             <div 
               className={descriptionStyle}
               style={{ 
