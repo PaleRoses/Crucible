@@ -66,7 +66,7 @@ const NavLayout: React.FC = () => {
 
   return (
     <ScrollAwareSpacerTyped
-      height={40}
+      height={10}
       zIndex={100}
       transitionDuration={0.25}
       showOnScrollUp={true}

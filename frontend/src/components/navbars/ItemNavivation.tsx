@@ -2,15 +2,15 @@
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, useAnimation } from 'framer-motion';
-import { css, cx } from "../../../styled-system/css"; // Adjust path as needed
+import { motion, useAnimation, AnimatePresence } from 'framer-motion';
+import { css, cx } from "../../../styled-system/css"; // PandaCSS import
 
 // ==========================================================
-// ANIMATION VARIANTS
+// ANIMATION VARIANTS - ENHANCED
 // ==========================================================
 
 /**
- * Animation variants for different components
+ * Animation variants with improved transitions and effects
  */
 const ANIMATIONS = {
   grid: {
@@ -20,9 +20,9 @@ const ANIMATIONS = {
     visible: { 
       opacity: 1,
       transition: { 
-        staggerChildren: 0.1,
-        delayChildren: 0.2,
-        duration: 0.6,
+        staggerChildren: 0.08, // Slightly faster stagger for a more fluid appearance
+        delayChildren: 0.15,
+        duration: 0.7,
         ease: [0.25, 0.1, 0.25, 1.0] 
       }
     }
@@ -32,27 +32,38 @@ const ANIMATIONS = {
     hidden: { 
       y: 15, 
       opacity: 0,
-      scale: 0.95
+      scale: 0.95,
+      rotateX: '3deg', // Slight 3D rotation for more dynamic entry
     },
     visible: { 
       y: 0, 
       opacity: 1,
       scale: 1,
+      rotateX: '0deg',
       transition: { 
-        duration: 0.4,
-        ease: [0.19, 1, 0.22, 1] 
+        duration: 0.5,
+        ease: [0.19, 1, 0.22, 1],
+        y: { duration: 0.5, ease: [0.19, 1, 0.22, 1] },
+        opacity: { duration: 0.4, ease: "easeOut" },
+        scale: { duration: 0.5, ease: [0.34, 1.56, 0.64, 1] },
+        rotateX: { duration: 0.5, ease: [0.19, 1, 0.22, 1] }
       }
     },
     hover: {
-      y: -4,
+      y: -6, // Slightly more pronounced lift
       scale: 1.04,
+      boxShadow: "0px 10px 25px rgba(0, 0, 0, 0.1)",
       transition: { 
-        duration: 0.25,
-        ease: [0.19, 1, 0.22, 1] 
+        duration: 0.4,
+        ease: [0.19, 1, 0.22, 1],
+        y: { type: "spring", stiffness: 300, damping: 15 }, // Spring physics for natural movement
+        scale: { duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }, // Elastic ease for scale
+        boxShadow: { duration: 0.4, ease: "easeOut" }
       }
     },
     tap: {
       scale: 0.97,
+      y: -2, // Maintain some lift even when pressed
       transition: { 
         duration: 0.1,
         ease: [0.19, 1, 0.22, 1] 
@@ -62,63 +73,132 @@ const ANIMATIONS = {
   
   icon: {
     initial: { 
-      scale: 1 
+      scale: 1,
+      rotate: 0
     },
     hover: { 
-      scale: 1.08, 
+      scale: 1.1, 
+      rotate: 5, // Slight rotation for more playful effect
       transition: { 
-        duration: 0.3, 
-        ease: [0.19, 1, 0.22, 1] 
+        duration: 0.4, 
+        ease: [0.34, 1.56, 0.64, 1], // Elastic easing for bounce effect
+        scale: { type: "spring", stiffness: 400, damping: 10 },
+        rotate: { duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }
       } 
     }
   },
   
   glow: {
     initial: { 
-      opacity: 0.3,
-      scale: 0.9
+      opacity: 0.2,
+      scale: 0.8
     },
     hover: { 
-      opacity: 0.7,
+      opacity: 0.6,
       scale: 1.1,
       transition: { 
-        duration: 0.5, 
-        ease: [0.19, 1, 0.22, 1] 
+        duration: 2.5, 
+        ease: "easeInOut",
+        repeat: Infinity,
+        repeatType: "reverse" as const // Type assertion to fix the error
       } 
     }
   },
   
   label: {
     initial: { 
-      y: 0 
+      y: 0
+      // Removed letterSpacing to avoid affecting text with spring physics
     },
     hover: { 
-      y: -2, 
+      y: -3, // Slightly more pronounced lift
+      // No letterSpacing animation
       transition: { 
         duration: 0.3, 
-        ease: [0.19, 1, 0.22, 1] 
+        ease: "easeOut" // Simpler easing for text movement
       } 
     }
   },
   
+  // Enhanced shine effect - diagonal sweep animation
   shine: {
     initial: {
       opacity: 0,
       x: '-100%',
     },
     hover: {
-      opacity: 0.3,
-      x: '100%',
+      opacity: 0.3, // Fixed value for opacity
+      x: '200%', // Move further for complete exit
       transition: {
-        duration: 1.2,
-        ease: 'easeInOut',
+        duration: 1.8,
+        ease: "easeInOut",
+        repeat: Infinity,
+        repeatDelay: 2, // Wait between sweeps
+        repeatType: "loop" as const
       },
     },
+  },
+  
+  // New animation for the golden tab
+  goldenTab: {
+    initial: {
+      height: '20%',
+      top: '40%',
+      opacity: 0.9,
+    },
+    hover: {
+      height: '70%', // Expand more dramatically
+      top: '15%', // Position higher for better visual impact
+      opacity: 1,
+      transition: {
+        height: { type: "spring", stiffness: 300, damping: 20, duration: 0.5 },
+        top: { type: "spring", stiffness: 300, damping: 20, duration: 0.5 },
+        opacity: { duration: 0.3 }
+      }
+    }
+  },
+  
+  // New animation for tab glow
+  tabGlow: {
+    initial: {
+      opacity: 0.3,
+      width: '100%',
+      height: '100%',
+    },
+    hover: {
+      opacity: 0.7, // Fixed value instead of array to avoid type issues
+      width: '110%', // Fixed value instead of array
+      height: '110%', // Fixed value instead of array
+      transition: {
+        opacity: { duration: 2, ease: "easeInOut", repeat: Infinity, repeatType: "reverse" as const },
+        width: { duration: 2.5, ease: "easeInOut", repeat: Infinity, repeatType: "reverse" as const },
+        height: { duration: 2.5, ease: "easeInOut", repeat: Infinity, repeatType: "reverse" as const }
+      }
+    }
+  },
+  
+  // New animation for description text
+  description: {
+    initial: {
+      opacity: 0,
+      height: 0,
+      y: 5
+    },
+    hover: {
+      opacity: 1,
+      height: "auto",
+      y: 0,
+      transition: {
+        opacity: { duration: 0.4, ease: "easeOut" },
+        height: { duration: 0.4, ease: [0.19, 1, 0.22, 1] },
+        y: { duration: 0.4, ease: [0.19, 1, 0.22, 1] }
+      }
+    }
   }
 };
 
 // ==========================================================
-// STYLE DEFINITIONS
+// STYLE DEFINITIONS - ENHANCED
 // ==========================================================
 
 // Container styles
@@ -202,11 +282,11 @@ const gridContainerStyle = css({
   }
 });
 
-// Card style
+// Enhanced card style with better transitions
 const cardStyle = css({
   position: 'relative',
   backgroundColor: 'transparent',
-  borderRadius: '8px',
+  borderRadius: '12px', // Slightly larger border radius for modern look
   padding: '0.85rem 1rem',
   overflow: 'hidden',
   display: 'flex',
@@ -217,11 +297,12 @@ const cardStyle = css({
   height: 'auto',
   textAlign: 'left',
   cursor: 'pointer',
-  transition: 'all 0.3s ease',
+  transition: 'all 0.45s cubic-bezier(0.19, 1, 0.22, 1)', // Improved transition curve
   borderWidth: '0.1px',
   borderStyle: 'solid',
   borderColor: 'primary',
-  boxShadow: 'rgba(0, 0, 0, 0.05) 0px 1px 3px 0px, rgba(27, 31, 35, 0.15) 0px 0px 0px 1px',
+  boxShadow: 'rgba(0, 0, 0, 0.05) 0px 2px 6px 0px, rgba(27, 31, 35, 0.08) 0px 0px 0px 1px',
+  willChange: 'transform, box-shadow, border-color', // Optimizes animations for these properties
   
   // Modified to have tab-like left border
   borderLeftWidth: '4px',
@@ -229,9 +310,9 @@ const cardStyle = css({
   // Focus styles
   _focusVisible: {
     outline: 'none',
-    boxShadow: '0 0 0 2px var(--colors-primary)',
+    boxShadow: '0 0 0 3px var(--colors-primary), 0 4px 8px rgba(0, 0, 0, 0.1)',
     borderColor: 'text',
-    background: 'rgba(255, 255, 255, 0.05)'
+    background: 'rgba(255, 255, 255, 0.07)'
   },
   
   '@media (min-width: 1400px)': {
@@ -245,42 +326,83 @@ const cardStyle = css({
     opacity: '1',
     borderWidth: '0.2px',
     borderLeftWidth: '4px',
-    boxShadow: 'rgba(0, 0, 0, 0.05) 0px 1px 2px 0px',
+    boxShadow: 'rgba(0, 0, 0, 0.05) 0px 1px 3px 0px',
   }
 });
 
-// Solid card variant
+// Enhanced solid card variant
 const cardSolidStyle = css({
   background: 'backgroundAlt',
-  backdropFilter: 'blur(8px)',
-  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.05)',
+  backdropFilter: 'blur(10px)', // Increased blur for more depth
+  boxShadow: '0 6px 22px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.08)',
 });
 
-// Golden tab style (the expandable line element)
+// Enhanced golden tab style - more dynamic and interactive (with left offset)
 const goldenTabStyle = css({
-  // Current properties
   position: 'absolute',
-  left: '10px',
+  left: '10px', // Maintaining the original left offset as mentioned
   top: '40%',
-  width: '3px',
+  width: '4px', // Slightly thicker for better visibility
   height: '20%',
   background: 'primary',
-  borderTopRightRadius: '2px',
-  borderBottomRightRadius: '2px',
+  borderTopRightRadius: '6px', // More rounded caps
+  borderBottomRightRadius: '6px',
   
   // Enhanced properties
-  boxShadow: '0 0 4px 0 rgba(var(--colors-primary), 0.1)', // Subtle ambient glow
-  transition: 'height 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), top 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), boxShadow 0.5s ease',
+  boxShadow: '0 0 6px 0 rgba(var(--colors-primary), 0.3)', // Stronger ambient glow
+  transition: 'all 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)', // Spring-like transition
   
-  // Hover state with enhanced glow
+  // Pseudo-element for additional glow
+  _before: {
+    content: '""',
+    position: 'absolute',
+    left: '-2px',
+    top: '-50%',
+    width: '8px',
+    height: '200%',
+    background: 'linear-gradient(to bottom, transparent, var(--colors-primary), transparent)',
+    opacity: '0.2',
+    filter: 'blur(3px)',
+    transition: 'opacity 0.5s ease',
+  },
+  
+  // Enhanced hover state
   '[role="link"]:hover &, [role="button"]:hover &': {
-    height: '60%',
-    top: '20%',
-    boxShadow: '0 0 8px 2px rgba(var(--colors-primary), 0.25), 0 0 2px 0px rgba(var(--colors-primary), 0.5)', // Intensified glow
+    height: '70%',
+    top: '15%',
+    boxShadow: '0 0 12px 3px rgba(var(--colors-primary), 0.4), 0 0 4px 1px rgba(var(--colors-primary), 0.6)', // Intensified glow
+    
+    _before: {
+      opacity: '0.7',
+    }
   }
 });
 
-// Icon container style
+// New tab glow container
+const tabGlowContainerStyle = css({
+  position: 'absolute',
+  left: '0',
+  top: '0',
+  width: '10px',
+  height: '100%',
+  overflow: 'hidden',
+  zIndex: '0',
+});
+
+// Tab glow effect style
+const tabGlowStyle = css({
+  position: 'absolute',
+  left: '-5px',
+  top: '0',
+  width: '10px',
+  height: '100%',
+  background: 'primary',
+  filter: 'blur(8px)',
+  opacity: '0.3',
+  zIndex: '-1',
+});
+
+// Enhanced icon container style
 const iconContainerStyle = css({
   display: 'flex',
   alignItems: 'center',
@@ -288,8 +410,10 @@ const iconContainerStyle = css({
   width: '26px',
   height: '26px',
   marginRight: '0.8rem',
-  marginLeft: '0.8rem', // Added margin to make space for the golden tab
+  marginLeft: '1rem', // Slightly more margin for better spacing with enhanced tab
   color: 'primary',
+  position: 'relative', // For positioning the glow effect
+  zIndex: '2', // Ensure it's above the glow
   
   '& svg': {
     width: '100%',
@@ -302,17 +426,31 @@ const iconContainerStyle = css({
   }
 });
 
-// Glow effect style
+// Enhanced glow effect style - more dynamic
 const glowEffectStyle = css({
   position: 'absolute',
   top: '50%',
-  left: '15%',
+  left: '50%',
   transform: 'translate(-50%, -50%)',
-  width: '35px',
-  height: '35px',
+  width: '40px',
+  height: '40px',
   borderRadius: '50%',
-  filter: 'blur(20px)',
-  zIndex: '-1'
+  filter: 'blur(15px)',
+  zIndex: '1',
+  background: 'radial-gradient(circle, var(--colors-glow) 0%, transparent 70%)', // Gradient for better glow
+});
+
+// Shine effect style - for the diagonal shine animation
+const shineEffectStyle = css({
+  position: 'absolute',
+  top: '-50%',
+  left: '-100%',
+  width: '60%',
+  height: '200%',
+  background: 'linear-gradient(to right, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%)',
+  transform: 'rotate(25deg)', // Diagonal angle
+  zIndex: '1',
+  pointerEvents: 'none', // Ensure it doesn't interfere with interactions
 });
 
 // Text container style
@@ -320,43 +458,37 @@ const textContainerStyle = css({
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'flex-start',
-  justifyContent: 'center'
+  justifyContent: 'center',
+  zIndex: '2',
+  position: 'relative',
+  overflow: 'hidden', // For the description animation
 });
 
-// Label style
+  // Enhanced label style - no spring physics for text
 const labelStyle = css({
   fontFamily: 'var(--font-heading, "system-ui")',
   fontSize: 'clamp(0.75rem, 0.7rem + 0.25vw, 0.9rem)',
   fontWeight: '300',
   textTransform: 'uppercase',
   letterSpacing: '0.1em',
-  color: 'text'
+  color: 'text',
+  position: 'relative', // For the shine effect to be positioned relative to this
+  zIndex: '2',
+  // No letter-spacing transition to avoid spring physics on text
 });
 
-// Description style
+// Enhanced description style - using Framer Motion instead of CSS transitions
 const descriptionStyle = css({
   fontSize: 'clamp(0.65rem, 0.6rem + 0.25vw, 0.75rem)',
   color: 'textMuted',
-  marginTop: '0.25rem',
   lineHeight: '1.4',
-  maxWidth: '90%',
-  opacity: '0',
-  maxHeight: '0',
-  overflow: 'hidden',
-  transition: 'opacity 0.3s ease, max-height 0.3s ease, margin-top 0.3s ease',
+  maxWidth: '95%', // Slightly wider
+  position: 'relative',
+  zIndex: '2',
   
   '@media (max-width: 640px)': {
-    opacity: '0.7',
-    maxHeight: '40px',
-    marginTop: '0.25rem',
+    display: 'block',
   }
-});
-
-// Description visible style (used with Framer Motion)
-const descriptionVisibleStyle = css({
-  opacity: '1',
-  maxHeight: '60px',
-  marginTop: '0.25rem'
 });
 
 // ==========================================================
@@ -397,7 +529,7 @@ export interface ItemNavigationProps {
 }
 
 // ==========================================================
-// ITEM COMPONENT
+// ITEM COMPONENT - ENHANCED
 // ==========================================================
 
 interface ItemProps {
@@ -409,21 +541,39 @@ interface ItemProps {
   isFocused?: boolean;
 }
 
-// Item component to render each navigation item
+// Enhanced Item component with better animations and interactivity
 const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({ 
   item, 
   onItemClick, 
   index, 
   animationStagger,
   transparentCards,
+  isFocused
 }, ref) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const itemRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   
   // Calculate staggered animation delay
   const animationDelay = useMemo(() => {
     return index * animationStagger;
   }, [index, animationStagger]);
+  
+  // Handle mouse movement for dynamic effects
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!itemRef.current) return;
+    
+    const rect = itemRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left; // x position within the element
+    const y = e.clientY - rect.top; // y position within the element
+    
+    // Calculate normalized position (0 to 1)
+    const normalizedX = x / rect.width;
+    const normalizedY = y / rect.height;
+    
+    setMousePosition({ x: normalizedX, y: normalizedY });
+  }, []);
   
   // Handle hover events
   const handleMouseEnter = useCallback(() => {
@@ -460,6 +610,23 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
     }
   }, [item, onItemClick, router]);
   
+  // Calculate dynamic tab height based on mouse position
+  const tabHeight = useMemo(() => {
+    if (!isHovered) return '20%';
+    // Make the tab height respond to mouse Y position - limited effect to preserve design
+    const baseHeight = 60; // Base height percentage
+    const variableHeight = 10; // Reduced additional height based on mouse position
+    return `${baseHeight + (mousePosition.y * variableHeight)}%`;
+  }, [isHovered, mousePosition.y]);
+  
+  // Calculate dynamic tab position based on mouse position
+  const tabTop = useMemo(() => {
+    if (!isHovered) return '40%';
+    // Center the tab around the mouse Y position, with constraints
+    const position = Math.max(15, Math.min(85 - parseFloat(tabHeight), mousePosition.y * 100));
+    return `${position}%`;
+  }, [isHovered, mousePosition.y, tabHeight]);
+  
   return (
     <motion.div
       ref={ref as React.RefObject<HTMLDivElement>}
@@ -474,6 +641,7 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
       }}
     >
       <div
+        ref={itemRef}
         className={cx(
           cardStyle,
           !transparentCards && cardSolidStyle
@@ -484,6 +652,7 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
         }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onMouseMove={handleMouseMove}
         onClick={handleClick}
         tabIndex={0}
         role={item.href ? "link" : "button"}
@@ -496,12 +665,45 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
           }
         }}
       >
-        {/* Golden tab indicator that expands on hover */}
-        <div 
+        {/* Enhanced golden tab indicator that responds to mouse position */}
+        <motion.div 
           className={goldenTabStyle}
-          style={{ background: item.color || 'var(--colors-primary)' }}
+          style={{ 
+            background: item.color || 'var(--colors-primary)',
+            height: isHovered ? tabHeight : '20%', 
+            top: isHovered ? tabTop : '40%',
+            left: '10px', // Ensuring the left offset is applied here as well
+          }}
+          variants={ANIMATIONS.goldenTab}
+          initial="initial"
+          animate={isHovered ? "hover" : "initial"}
           aria-hidden="true"
         />
+        
+        {/* Tab glow effect */}
+        <div className={tabGlowContainerStyle} aria-hidden="true">
+          <motion.div
+            className={tabGlowStyle}
+            style={{ background: item.color || 'var(--colors-primary)' }}
+            variants={ANIMATIONS.tabGlow}
+            initial="initial"
+            animate={isHovered ? "hover" : "initial"}
+          />
+        </div>
+        
+        {/* Diagonal shine effect */}
+        <AnimatePresence>
+          {isHovered && (
+            <motion.div
+              className={shineEffectStyle}
+              variants={ANIMATIONS.shine}
+              initial="initial"
+              animate="hover"
+              exit="initial"
+              aria-hidden="true"
+            />
+          )}
+        </AnimatePresence>
         
         {item.icon && (
           <>
@@ -514,16 +716,19 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
               {item.icon}
             </motion.div>
             
-            {isHovered && (
-              <motion.div
-                className={glowEffectStyle}
-                style={{ background: item.color || 'var(--colors-glow)' }}
-                variants={ANIMATIONS.glow}
-                initial="initial"
-                animate="hover"
-                aria-hidden="true"
-              />
-            )}
+            <AnimatePresence>
+              {isHovered && (
+                <motion.div
+                  className={glowEffectStyle}
+                  style={{ background: item.color || 'var(--colors-glow)' }}
+                  variants={ANIMATIONS.glow}
+                  initial="initial"
+                  animate="hover"
+                  exit="initial"
+                  aria-hidden="true"
+                />
+              )}
+            </AnimatePresence>
           </>
         )}
         
@@ -538,16 +743,18 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
           </motion.div>
           
           {item.description && (
-            <div 
-              className={cx(
-                descriptionStyle,
-                isHovered && descriptionVisibleStyle
-              )}
-              style={{ color: item.color ? `${item.color}99` : 'var(--colors-textMuted)' }}
-              id={`desc-${item.id}`}
-            >
-              {item.description}
-            </div>
+            <AnimatePresence>
+              <motion.div 
+                className={descriptionStyle}
+                style={{ color: item.color ? `${item.color}99` : 'var(--colors-textMuted)' }}
+                id={`desc-${item.id}`}
+                variants={ANIMATIONS.description}
+                initial="initial"
+                animate={isHovered || window.matchMedia('(max-width: 640px)').matches ? "hover" : "initial"}
+              >
+                {item.description}
+              </motion.div>
+            </AnimatePresence>
           )}
         </div>
       </div>
@@ -563,10 +770,10 @@ Item.displayName = 'NavigationItem';
 // ==========================================================
 
 /**
- * ItemNavigation Component
+ * Enhanced ItemNavigation Component
  * 
- * A responsive grid-based navigation component with smooth animations
- * and hover effects. Designed to provide a rich, interactive experience.
+ * A responsive grid-based navigation component with advanced animations
+ * and interactive hover effects. Designed to provide a rich, engaging experience.
  */
 const ItemNavigation: React.FC<ItemNavigationProps> = ({
   items,
