@@ -14,22 +14,22 @@ import { css, cx } from "../../../styled-system/css"; // PandaCSS import
  */
 const ANIMATIONS = {
   grid: {
-    hidden: { 
+    hidden: {
       opacity: 0
     },
-    visible: { 
+    visible: {
       opacity: 1,
-      transition: { 
+      transition: {
         staggerChildren: 0.08, // Slightly faster stagger for a more fluid appearance
         delayChildren: 0.15,
         duration: 0.7,
-        ease: [0.25, 0.1, 0.25, 1.0] 
+        ease: [0.25, 0.1, 0.25, 1.0]
       }
     },
     // New mobile variant with reduced animation complexity
     visibleMobile: {
       opacity: 1,
-      transition: { 
+      transition: {
         staggerChildren: 0.03, // Much faster stagger for mobile
         delayChildren: 0.1,
         duration: 0.5,
@@ -37,129 +37,127 @@ const ANIMATIONS = {
       }
     }
   },
-  
+
   item: {
-    hidden: { 
-      y: 15, 
+    hidden: {
+      y: 15,
       opacity: 0,
       scale: 0.95,
       rotateX: '3deg', // Slight 3D rotation for more dynamic entry
     },
-    visible: { 
-      y: 0, 
+    visible: {
+      y: 0,
       opacity: 1,
       scale: 1,
       rotateX: '0deg',
-      transition: { 
-        duration: 0.5,
-        ease: [0.19, 1, 0.22, 1],
-        y: { duration: 0.5, ease: [0.19, 1, 0.22, 1] },
-        opacity: { duration: 0.4, ease: "easeOut" },
-        scale: { duration: 0.5, ease: [0.34, 1.56, 0.64, 1] },
-        rotateX: { duration: 0.5, ease: [0.19, 1, 0.22, 1] }
+      transition: { // This transition will now apply when returning FROM hover
+        duration: 0.4, // Slightly faster return
+        ease: [0.25, 0.1, 0.25, 1.0], // Standard ease out
+        // Explicitly define transitions for properties changed on hover
+        scale: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1.0] },
+        boxShadow: { duration: 0.4, ease: "easeOut" }
       }
     },
     // New simplified mobile variant
     visibleMobile: {
-      y: 0, 
+      y: 0,
       opacity: 1,
       scale: 1,
       rotateX: '0deg',
-      transition: { 
-        duration: 0.2, // Faster duration for mobile
+      transition: { // This transition will now apply when returning FROM hover (mobile)
+        duration: 0.3, // Faster duration for mobile
         ease: "easeOut", // Simpler easing function
-        opacity: { duration: 0.2, ease: "easeOut" }
+        opacity: { duration: 0.2, ease: "easeOut" },
+        // Explicitly define transitions for properties changed on hover (mobile)
+        scale: { duration: 0.3, ease: "easeOut" },
       }
     },
     // No animation during scrolling for better performance
     staticMobile: {
-      y: 0, 
+      y: 0,
       opacity: 1,
-      scale: 1,
+      scale: 1, // Ensure scale is explicitly 1
       rotateX: '0deg',
-      transition: { 
+      transition: {
         duration: 0, // No duration = no animation
       }
     },
     hover: {
-      y: -6, // Slightly more pronounced lift
+      // y: -6, // Removed y translation to prevent layout shift
       scale: 1.04,
       boxShadow: "0px 10px 25px rgba(0, 0, 0, 0.1)",
-      transition: { 
-        duration: 0.4,
-        ease: [0.19, 1, 0.22, 1],
-        y: { type: "spring", stiffness: 300, damping: 15 }, // Spring physics for natural movement
-        scale: { duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }, // Elastic ease for scale
-        boxShadow: { duration: 0.4, ease: "easeOut" }
-      }
+      // Removed specific transition block - will use 'visible' transition on exit
     },
     // Simpler hover for mobile
     hoverMobile: {
-      y: -2, // Reduced lift
+      // y: -2, // Removed y translation
       scale: 1.02, // Reduced scale
-      transition: { 
-        duration: 0.3,
-        ease: "easeOut" // Simpler easing
-      }
+      // Removed specific transition block - will use 'visibleMobile' transition on exit
     },
     tap: {
       scale: 0.97,
-      y: -2, // Maintain some lift even when pressed
-      transition: { 
+      // y: -2, // Removed y translation
+      transition: {
         duration: 0.1,
-        ease: [0.19, 1, 0.22, 1] 
+        ease: [0.19, 1, 0.22, 1]
       }
     }
   },
-  
+
   icon: {
-    initial: { 
+    initial: {
       scale: 1,
       rotate: 0
     },
-    hover: { 
-      scale: 1.1, 
+    hover: {
+      scale: 1.1, // Ensure scale increases
       rotate: 5, // Slight rotation for more playful effect
-      transition: { 
-        duration: 0.4, 
+      transition: { // Keep icon transition specific if desired
+        duration: 0.4,
         ease: [0.34, 1.56, 0.64, 1], // Elastic easing for bounce effect
         scale: { type: "spring", stiffness: 400, damping: 10 },
         rotate: { duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }
-      } 
+      }
     }
   },
-  
-  // Updated glow animation to work with the new pseudo-element approach
+
+  // Updated glow animation to work with the new pseudo-element approach and include exit animation
   glow: {
-    initial: { 
+    initial: {
       opacity: 0,
       scale: 0.6
     },
-    hover: { 
+    hover: {
       opacity: 1,
       scale: 1,
-      transition: { 
+      transition: {
         opacity: { duration: 0.8, ease: [0.19, 1, 0.22, 1] },
         scale: { duration: 0.9, ease: [0.34, 1.56, 0.64, 1] }
-      } 
-    }
-  },
-  
-  label: {
-    initial: { 
-      y: 0
-      // Removed letterSpacing to avoid affecting text with spring physics
+      }
     },
-    hover: { 
-      y: -3, // Slightly more pronounced lift
-      // No letterSpacing animation
-      transition: { 
-        duration: 0.3, 
-        ease: "easeOut" // Simpler easing for text movement
-      } 
+    exit: {
+      opacity: 0,
+      scale: 0.6,
+      transition: {
+        opacity: { duration: 0.5, ease: "easeOut" },
+        scale: { duration: 0.5, ease: "easeOut" }
+      }
     }
   },
-  
+
+  label: {
+    initial: {
+      y: 0
+    },
+    hover: {
+      y: -3, // Keep label lift as it doesn't affect layout much
+      transition: {
+        duration: 0.3,
+        ease: "easeOut"
+      }
+    }
+  },
+
   // Removed the shine effect animation completely
   shine: {
     initial: {
@@ -172,7 +170,7 @@ const ANIMATIONS = {
       },
     },
   },
-  
+
   // New animation for the golden tab
   goldenTab: {
     initial: {
@@ -191,7 +189,7 @@ const ANIMATIONS = {
       }
     }
   },
-  
+
   // Simplified tab glow animation - no pulsing, single color
   tabGlow: {
     initial: {
@@ -208,21 +206,18 @@ const ANIMATIONS = {
       }
     }
   },
-  
-  // New animation for description text
+
+  // Modified animation for description text - no height animation to prevent layout shifts
   description: {
     initial: {
       opacity: 0,
-      height: 0,
       y: 5
     },
     hover: {
       opacity: 1,
-      height: "auto",
       y: 0,
       transition: {
         opacity: { duration: 0.4, ease: "easeOut" },
-        height: { duration: 0.4, ease: [0.19, 1, 0.22, 1] },
         y: { duration: 0.4, ease: [0.19, 1, 0.22, 1] }
       }
     }
@@ -241,11 +236,11 @@ const containerStyle = css({
   padding: '1.5rem 1rem',
   marginLeft: '2.5%',
   marginRight: '5%',
-  
+
   '@media (min-width: 1400px)': {
     maxWidth: 'min(90vw, 2200px)'
   },
-  
+
   '@media (max-width: 640px)': {
     width: '95%',
     marginLeft: 'auto',
@@ -259,7 +254,7 @@ const titleContainerStyle = css({
   marginTop: '2.5rem',
   textAlign: 'left',
   marginBottom: '2.5rem',
-  
+
   '@media (max-width: 640px)': {
     marginLeft: '0.5rem',
     marginTop: '1.5rem',
@@ -285,7 +280,7 @@ const subtitleStyle = css({
   lineHeight: '1.6'
 });
 
-  // Mobile optimized grid container style
+  // Mobile optimized grid container style with improved spacing to prevent layout shifts
 const gridContainerStyle = css({
   display: 'grid',
   gridTemplateColumns: 'repeat(1, minmax(120px, 1fr))', // Default for smallest screens
@@ -295,54 +290,59 @@ const gridContainerStyle = css({
   willChange: 'transform', // Hardware acceleration hint for smoother animations
   transform: 'translateZ(0)', // Force GPU rendering
   
+  // Add padding at the bottom to account for description overflow
+  paddingBottom: '1.5rem',
+
   '@media (min-width: 640px)': {
     gridTemplateColumns: 'repeat(1, minmax(min(250px, 30vw), 1fr))',
     gap: '1.5rem'
   },
-  
+
   '@media (min-width: 768px)': {
     gridTemplateColumns: 'repeat(2, minmax(min(220px, 30vw), 1fr))',
     gap: '1.5rem'
   },
-  
+
   '@media (min-width: 1024px)': {
     gridTemplateColumns: 'repeat(3, minmax(min(250px, 22vw), 1fr))',
     gap: '1.5rem'
   },
-  
+
   '@media (min-width: 1400px)': {
     gridTemplateColumns: 'repeat(3, minmax(min(280px, 24vw), 1fr))',
     gap: '1.5rem'
   }
 });
 
-// Enhanced card style with better transitions and mobile optimizations
+// Enhanced card style with fixed height to prevent layout shifts
 const cardStyle = css({
   position: 'relative',
   backgroundColor: 'transparent',
   borderRadius: '12px', // Slightly larger border radius for modern look
   padding: '0.85rem 1rem',
-  overflow: 'hidden',
+  overflow: 'visible', // Changed to visible to allow description to overflow without shifting layout
   display: 'flex',
   flexDirection: 'row',
   alignItems: 'center',
   justifyContent: 'flex-start',
   minHeight: '54px',
-  height: 'auto',
+  height: '54px', // Fixed height to prevent layout shifts
   textAlign: 'left',
   cursor: 'pointer',
-  transition: 'all 0.45s cubic-bezier(0.19, 1, 0.22, 1)', // Improved transition curve
+  // Removed transition here, will rely on motion component transitions
+  // transition: 'all 0.45s cubic-bezier(0.19, 1, 0.22, 1)',
   borderWidth: '0.1px',
   borderStyle: 'solid',
   borderColor: 'primary',
   boxShadow: 'rgba(0, 0, 0, 0.05) 0px 2px 6px 0px, rgba(27, 31, 35, 0.08) 0px 0px 0px 1px',
-  willChange: 'transform, opacity', // Optimize for these properties only
+  willChange: 'transform, opacity, box-shadow', // Added box-shadow
   transform: 'translateZ(0)', // Force GPU rendering
   backfaceVisibility: 'hidden', // Prevent flickering on some mobile browsers
-  
+  transformOrigin: 'center center', // Ensure scaling happens from center
+
   // Modified to have tab-like left border
   borderLeftWidth: '4px',
-  
+
   // Focus styles
   _focusVisible: {
     outline: 'none',
@@ -350,15 +350,17 @@ const cardStyle = css({
     borderColor: 'text',
     background: 'rgba(255, 255, 255, 0.07)'
   },
-  
+
   '@media (min-width: 1400px)': {
     padding: '0.9rem 1.25rem',
-    minHeight: '60px'
+    minHeight: '60px',
+    height: '60px', // Fixed height for larger screens
   },
-  
+
   '@media (max-width: 640px)': {
     padding: '0.75rem',
     minHeight: '50px',
+    height: '50px', // Fixed height for mobile
     opacity: '1',
     borderWidth: '0.2px',
     borderLeftWidth: '4px',
@@ -383,11 +385,11 @@ const goldenTabStyle = css({
   background: 'primary',
   borderTopRightRadius: '6px', // More rounded caps
   borderBottomRightRadius: '6px',
-  
+
   // Enhanced properties
   boxShadow: '0 0 6px 0 rgba(var(--colors-primary), 0.3)', // Stronger ambient glow
   transition: 'all 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)', // Spring-like transition
-  
+
   // Pseudo-element for additional glow
   _before: {
     content: '""',
@@ -401,13 +403,13 @@ const goldenTabStyle = css({
     filter: 'blur(3px)',
     transition: 'opacity 0.5s ease',
   },
-  
+
   // Enhanced hover state
   '[role="link"]:hover &, [role="button"]:hover &': {
     height: '70%',
     top: '15%',
     boxShadow: '0 0 12px 3px rgba(var(--colors-primary), 0.4), 0 0 4px 1px rgba(var(--colors-primary), 0.6)', // Intensified glow
-    
+
     _before: {
       opacity: '0.7',
     }
@@ -451,12 +453,12 @@ const iconContainerStyle = css({
   color: 'primary',
   position: 'relative', // For positioning the glow effect
   zIndex: '2', // Ensure it's above the glow
-  
+
   '& svg': {
     width: '100%',
     height: '100%'
   },
-  
+
   '@media (min-width: 1400px)': {
     width: '28px',
     height: '28px'
@@ -499,7 +501,7 @@ const shineEffectStyle = css({
   pointerEvents: 'none', // Ensure it doesn't interfere with interactions
 });
 
-// Text container style
+// Text container style - modified to handle absolutely positioned description
 const textContainerStyle = css({
   display: 'flex',
   flexDirection: 'column',
@@ -507,7 +509,8 @@ const textContainerStyle = css({
   justifyContent: 'center',
   zIndex: '2',
   position: 'relative',
-  overflow: 'hidden', // For the description animation
+  overflow: 'visible', // Changed to visible to allow description to be visible outside container
+  width: '100%', // Ensure it takes full width for proper description positioning
 });
 
   // Enhanced label style - no spring physics for text
@@ -523,15 +526,18 @@ const labelStyle = css({
   // No letter-spacing transition to avoid spring physics on text
 });
 
-// Enhanced description style - using Framer Motion instead of CSS transitions
+// Enhanced description style - absolutely positioned to prevent layout shifts
 const descriptionStyle = css({
   fontSize: 'clamp(0.65rem, 0.6rem + 0.25vw, 0.75rem)',
   color: 'textMuted',
   lineHeight: '1.4',
   maxWidth: '95%', // Slightly wider
-  position: 'relative',
+  position: 'absolute', // Changed to absolute to prevent layout shifts
+  top: '100%',        // Position below the label
+  left: '0',
+  paddingTop: '0.3rem',
   zIndex: '2',
-  
+
   '@media (max-width: 640px)': {
     display: 'block',
   }
@@ -572,6 +578,7 @@ export interface ItemNavigationProps {
   transparentCards?: boolean;
   ariaLabel?: string;
   reducedMotion?: boolean;
+  showDescriptions?: boolean; // New prop to control description visibility
 }
 
 // ==========================================================
@@ -588,16 +595,16 @@ const useMediaQuery = (query: string) => {
   useEffect(() => {
     // Avoid referencing window during SSR
     if (typeof window === 'undefined') return;
-    
+
     const media = window.matchMedia(query);
     const updateMatch = () => setMatches(media.matches);
-    
+
     // Initial check
     updateMatch();
-    
+
     // Add listener - using addEventListener for better compatibility
     media.addEventListener('change', updateMatch);
-    
+
     // Cleanup
     return () => media.removeEventListener('change', updateMatch);
   }, [query]);
@@ -625,18 +632,20 @@ interface ItemProps {
   isFocused?: boolean;
   isMobile: boolean; // Add isMobile as a prop instead of using the hook
   isScrolling: boolean; // Add scrolling state for mobile optimization
+  showDescriptions?: boolean; // New prop to control description visibility
 }
 
 // Enhanced Item component with better animations and interactivity
-const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({ 
-  item, 
-  onItemClick, 
-  index, 
+const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
+  item,
+  onItemClick,
+  index,
   animationStagger,
   transparentCards,
   isFocused,
   isMobile, // Use the passed prop instead of the hook
-  isScrolling
+  isScrolling,
+  showDescriptions // Added this prop to fix TypeScript error
 }, ref) => {
   const [isHovered, setIsHovered] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -644,7 +653,7 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
   const itemRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const isMobileViewport = useMediaQuery('(max-width: 640px)');
-  
+
   // Effect-based detection for touch devices - runs once on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -652,37 +661,47 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
       setIsTouchDevice(touchDevice);
     }
   }, []);
-  
+
   // Calculate staggered animation delay
   const animationDelay = useMemo(() => {
     // Reduce animation delay for mobile to prevent flickering during scrolling
     return isMobile ? index * (animationStagger / 2) : index * animationStagger;
   }, [index, animationStagger, isMobile]);
-  
+
   // Handle mouse movement for dynamic effects
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (isMobile || !itemRef.current) return; // Skip on mobile for better performance
-    
+
     const rect = itemRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left; // x position within the element
     const y = e.clientY - rect.top; // y position within the element
-    
+
     // Calculate normalized position (0 to 1)
     const normalizedX = x / rect.width;
     const normalizedY = y / rect.height;
-    
+
     setMousePosition({ x: normalizedX, y: normalizedY });
   }, [isMobile]);
-  
-  // Handle hover events
+
+  // Handle hover events - Disable hover effect if scrolling
   const handleMouseEnter = useCallback(() => {
-    setIsHovered(true);
-  }, []);
-  
+    if (!isScrolling) { // Only set hover if not scrolling
+        setIsHovered(true);
+    }
+  }, [isScrolling]); // Depend on isScrolling
+
   const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
   }, []);
-  
+
+  // If scrolling starts while hovered, explicitly exit hover state
+  useEffect(() => {
+      if (isScrolling) {
+          setIsHovered(false);
+      }
+  }, [isScrolling]);
+
+
   // Handle item click
   const handleClick = useCallback(() => {
     // Add a touch feedback for mobile
@@ -706,52 +725,75 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
       }
     }
   }, [item, onItemClick, router, isMobile]);
-  
+
   // Calculate dynamic tab height based on mouse position
   const tabHeight = useMemo(() => {
-    if (!isHovered) return '20%';
-    
+    if (!isHovered || isScrolling) return '20%'; // Keep tab minimal if scrolling or not hovered
+
     // Simplified calculation for mobile
     if (isMobile) return '60%';
-    
+
     // Make the tab height respond to mouse Y position - limited effect to preserve design
     const baseHeight = 60; // Base height percentage
     const variableHeight = 10; // Reduced additional height based on mouse position
     return `${baseHeight + (mousePosition.y * variableHeight)}%`;
-  }, [isHovered, mousePosition.y, isMobile]);
-  
+  }, [isHovered, mousePosition.y, isMobile, isScrolling]); // Added isScrolling dependency
+
   // Calculate dynamic tab position based on mouse position
   const tabTop = useMemo(() => {
-    if (!isHovered) return '40%';
-    
+    if (!isHovered || isScrolling) return '40%'; // Keep tab minimal if scrolling or not hovered
+
     // Simplified calculation for mobile
     if (isMobile) return '20%';
-    
+
     // Center the tab around the mouse Y position, with constraints
     const position = Math.max(15, Math.min(85 - parseFloat(tabHeight), mousePosition.y * 100));
     return `${position}%`;
-  }, [isHovered, mousePosition.y, tabHeight, isMobile]);
+  }, [isHovered, mousePosition.y, tabHeight, isMobile, isScrolling]); // Added isScrolling dependency
+
+  // Determine the correct animation variant based on mobile and scrolling states
+  const itemAnimateVariant = useMemo(() => {
+    if (isMobile) {
+      return isScrolling ? "staticMobile" : "visibleMobile";
+    }
+    return "visible";
+  }, [isMobile, isScrolling]);
+
+  // Determine the correct hover variant, disabling hover during scroll
+  const itemHoverVariant = useMemo(() => {
+      if (isScrolling) return undefined; // No hover effect during scroll
+      return isMobile ? "hoverMobile" : "hover";
+  }, [isMobile, isScrolling]);
   
+  // Set a fixed container height for layout stability
+  const containerHeight = useMemo(() => {
+    if (isMobile) {
+      return isMobileViewport ? "50px" : "54px";
+    }
+    return "54px";
+  }, [isMobile, isMobileViewport]);
+
+
   return (
     <motion.div
       ref={ref as React.RefObject<HTMLDivElement>}
       variants={ANIMATIONS.item}
       initial="hidden"
-      animate={isMobile 
-        ? (isScrolling ? "staticMobile" : "visibleMobile") 
-        : "visible"} // Use static variant during scrolling on mobile
-      whileHover={isMobile ? "hoverMobile" : "hover"} // Use mobile specific hover
+      animate={itemAnimateVariant} // Use memoized variant
+      whileHover={itemHoverVariant} // Use memoized variant (disables hover during scroll)
       whileTap="tap"
       custom={animationDelay}
-      transition={{
-        delay: animationDelay,
-      }}
+      // Define default transition for the main item div
+      transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1.0] }}
       style={{
         // Hardware acceleration hints for smoother animation
         transform: "translateZ(0)",
         backfaceVisibility: "hidden",
-        // Disable animations during scroll on mobile for better performance
-        transitionDuration: isScrolling && isMobile ? "0s" : undefined
+        transformOrigin: "center center", // Ensure scaling happens from center
+        // Fixed height container to prevent layout shifts
+        height: containerHeight,
+        margin: "0", // Prevent margin changes on hover
+        zIndex: isHovered ? "5" : "1" // Bring hovered items to front to prevent z-index issues with descriptions
       }}
     >
       <div
@@ -760,11 +802,11 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
           cardStyle,
           !transparentCards && cardSolidStyle
         )}
-        style={{ 
+        style={{
           borderColor: item.color || 'var(--colors-primary)',
           borderLeftColor: item.color || 'var(--colors-primary)',
         }}
-        onMouseEnter={handleMouseEnter}
+        onMouseEnter={handleMouseEnter} // Updated handler
         onMouseLeave={handleMouseLeave}
         onMouseMove={handleMouseMove}
         onClick={handleClick}
@@ -779,112 +821,98 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
           }
         }}
       >
-        {/* Centered glow effect for the entire card - optimized for scrolling */}
-        {!isScrolling && (
-          <AnimatePresence>
-            {isHovered && (
-              <motion.div
-                className={glowEffectStyle}
-                style={{ color: item.color || 'var(--colors-primary)' }}
-                variants={ANIMATIONS.glow}
-                initial="initial"
-                animate="hover"
-                exit="initial"
-                aria-hidden="true"
-              />
-            )}
-          </AnimatePresence>
-        )}
-        {/* Simpler non-animated version during scrolling */}
-        {isScrolling && isHovered && (
-          <div 
-            className={glowEffectStyle}
-            style={{ 
-              color: item.color || 'var(--colors-primary)',
-              opacity: 0.6,
-            }}
-            aria-hidden="true"
-          />
-        )}
-        
-        {/* Enhanced golden tab indicator that responds to mouse position */}
-        <motion.div 
+        {/* Centered glow effect for the entire card - AnimatePresence always rendered */}
+        <AnimatePresence>
+          {!isScrolling && isHovered && (
+            <motion.div
+              className={glowEffectStyle}
+              style={{ color: item.color || 'var(--colors-primary)' }}
+              variants={ANIMATIONS.glow}
+              initial="initial"
+              animate="hover"
+              exit="exit" // Use the new exit animation variant
+              aria-hidden="true"
+            />
+          )}
+        </AnimatePresence>
+        {/* No glow effect during scrolling */}
+
+        {/* Enhanced golden tab indicator - animation depends on hover state (which is disabled during scroll) */}
+        <motion.div
           className={goldenTabStyle}
-          style={{ 
+          style={{
             background: item.color || 'var(--colors-primary)',
-            height: isHovered ? tabHeight : '20%', 
+            // Style directly depends on isHovered state, which is false during scroll
+            height: isHovered ? tabHeight : '20%',
             top: isHovered ? tabTop : '40%',
             left: '10px', // Ensuring the left offset is applied here as well
           }}
           variants={ANIMATIONS.goldenTab}
           initial="initial"
-          animate={isHovered ? "hover" : "initial"}
+          animate={isHovered ? "hover" : "initial"} // Animation depends on hover state
           aria-hidden="true"
         />
-        
-        {/* Tab glow effect */}
+
+        {/* Tab glow effect - animation depends on hover state */}
         <div className={tabGlowContainerStyle} aria-hidden="true">
           <motion.div
             className={tabGlowStyle}
             style={{ background: item.color || 'var(--colors-primary)' }}
             variants={ANIMATIONS.tabGlow}
             initial="initial"
-            animate={isHovered ? "hover" : "initial"}
+            animate={isHovered ? "hover" : "initial"} // Animation depends on hover state
           />
         </div>
-        
-        {/* Removed diagonal shine effect */}
-        
+
+        {/* Icon container - Explicitly control animation based on parent hover state */}
         {item.icon && (
-          <motion.div 
+          <motion.div
             className={iconContainerStyle}
             style={{ color: item.color || 'var(--colors-primary)' }}
             variants={ANIMATIONS.icon}
+            initial="initial" // Set initial state
+            animate={isHovered && !isScrolling ? "hover" : "initial"} // Animate to 'hover' only if parent is hovered AND not scrolling
             aria-hidden="true"
           >
             {item.icon}
           </motion.div>
         )}
-        
+
         <div className={textContainerStyle}>
+          {/* Label - Explicitly control animation based on parent hover state */}
           <motion.div
             className={labelStyle}
             style={{ color: item.color || 'var(--colors-text)' }}
             variants={ANIMATIONS.label}
+            initial="initial" // Set initial state
+            animate={isHovered && !isScrolling ? "hover" : "initial"} // Animate to 'hover' only if parent is hovered AND not scrolling
             id={`label-${item.id}`}
           >
             {item.label}
           </motion.div>
-          
-          {/* Only render description if NOT on mobile */}
-          {item.description && !isMobile && !isScrolling && (
+
+          {/* Description - only render if:
+              1. Item has a description
+              2. NOT on mobile
+              3. NOT scrolling
+              4. Is hovered
+              5. showDescriptions prop is true */}
+          {item.description && !isMobile && !isScrolling && isHovered && showDescriptions && (
             <AnimatePresence>
-              <motion.div 
+              <motion.div
                 className={descriptionStyle}
                 style={{ color: item.color ? `${item.color}99` : 'var(--colors-textMuted)' }}
                 id={`desc-${item.id}`}
                 variants={ANIMATIONS.description}
                 initial="initial"
-                animate={isHovered ? "hover" : "initial"}
+                animate={"hover"} // Animate only appears if isHovered is true
+                exit="initial"
               >
                 {item.description}
               </motion.div>
             </AnimatePresence>
           )}
-          {/* Simpler non-animated version of description during scrolling - also only when NOT on mobile */}
-          {item.description && !isMobile && isScrolling && isHovered && (
-            <div 
-              className={descriptionStyle}
-              style={{ 
-                color: item.color ? `${item.color}99` : 'var(--colors-textMuted)',
-                opacity: 1,
-                height: 'auto',
-              }}
-              id={`desc-${item.id}`}
-            >
-              {item.description}
-            </div>
-          )}
+          {/* No description during scrolling or if not hovered or if descriptions are disabled */}
         </div>
       </div>
     </motion.div>
@@ -900,7 +928,7 @@ Item.displayName = 'NavigationItem';
 
 /**
  * Enhanced ItemNavigation Component
- * 
+ *
  * A responsive grid-based navigation component with advanced animations
  * and interactive hover effects. Designed to provide a rich, engaging experience.
  */
@@ -919,42 +947,43 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
   showSubtitle = false,
   transparentCards = true,
   ariaLabel,
-  reducedMotion = false
+  reducedMotion = false,
+  showDescriptions = false // Default is false - descriptions are disabled
 }) => {
   // useRef for accessing the container element DOM node
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   // Refs to store navigation items for keyboard navigation
   const itemRefs = useRef<Array<HTMLElement | null>>([]);
-  
+
   // State to track the currently focused item index
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
-  
+
   // State to track if the items are currently being scrolled
   const [isScrolling, setIsScrolling] = useState(false);
-  
+
   // Scroll timer ref to persist between renders and properly handle cleanup
   const scrollTimerRef = useRef<number | null>(null);
-  
+
   // Detect if we're on mobile
   const isMobile = useIsMobile();
-  
+
   // State to track touch device status
   const [isTouchDevice, setIsTouchDevice] = useState(false);
-  
+
   // Framer Motion controls
   const gridControls = useAnimation();
-  
+
   // This effect runs on client-side only, ensuring proper hydration in Next.js
   useEffect(() => {
     // Initialize any client-side specific functionality
     if (containerRef.current) {
       // Ensure we have access to the DOM element
       containerRef.current.dataset.hydrated = 'true';
-      
+
       // Initialize refs array with the correct length
       itemRefs.current = itemRefs.current.slice(0, items.length);
-      
+
       // Check if current device is a touch device - done once in an effect
       if (typeof window !== 'undefined') {
         const touchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -964,11 +993,11 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
         }
       }
     }
-    
+
     // Check if user prefers reduced motion
-    const prefersReducedMotion = reducedMotion || 
+    const prefersReducedMotion = reducedMotion ||
       (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    
+
     // Start animation when component mounts, unless reduced motion is preferred
     if (initialAnimation && !prefersReducedMotion) {
       setTimeout(() => {
@@ -979,7 +1008,7 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
       // If reduced motion is preferred, immediately show the content
       gridControls.set(isMobile ? "visibleMobile" : "visible");
     }
-    
+
     // Add resize event listener to handle orientation changes on mobile
     const handleResize = () => {
       if (initialAnimation && !prefersReducedMotion) {
@@ -990,47 +1019,53 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
         }, 100);
       }
     };
-    
+
     // Add scroll event listener to detect scrolling with proper debouncing
     const handleScroll = () => {
       // Set scrolling state to true immediately if not already
-      if (!isScrolling) {
-        setIsScrolling(true);
-      }
-      
+      // Use functional update to avoid stale state issues if events fire rapidly
+      setIsScrolling(prev => {
+          if (!prev) { // Only update if currently false
+              return true;
+          }
+          return prev; // Otherwise keep it true
+      });
+
       // Clear any existing timeout to implement debouncing
       if (scrollTimerRef.current !== null) {
         window.clearTimeout(scrollTimerRef.current);
       }
-      
+
       // Set new timeout to detect when scrolling stops
       scrollTimerRef.current = window.setTimeout(() => {
         setIsScrolling(false);
         scrollTimerRef.current = null;
-      }, 200);
+      }, 200); // 200ms debounce timeout
     };
-    
+
+
     window.addEventListener('scroll', handleScroll, { passive: true });
-    
+
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('scroll', handleScroll);
-      
+
       // Clear any pending timeout during cleanup
       if (scrollTimerRef.current !== null) {
         window.clearTimeout(scrollTimerRef.current);
         scrollTimerRef.current = null;
       }
     };
-  }, [initialAnimation, gridControls, items.length, reducedMotion, isMobile, isScrolling]);
-  
+    // Ensure useEffect re-runs if key props change, including isMobile for animation target
+  }, [initialAnimation, gridControls, items.length, reducedMotion, isMobile]); // Removed isScrolling from here, handled internally now
+
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     const { key } = e;
-    
+
     // Skip if no items
     if (items.length === 0) return;
-    
+
     switch (key) {
       case 'ArrowRight':
       case 'ArrowDown': {
@@ -1066,13 +1101,13 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
       }
     }
   }, [items.length]);
-  
+
   // Memoize items array to prevent unnecessary re-renders
   const memoizedItems = useMemo(() => items, [items]);
-  
+
   return (
-    <div 
-      className={cx(containerStyle, className)} 
+    <div
+      className={cx(containerStyle, className)}
       ref={containerRef}
       onKeyDown={handleKeyDown}
       role="navigation"
@@ -1084,7 +1119,7 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
           {subtitle && showSubtitle && <p className={subtitleStyle} id="navigation-subtitle">{subtitle}</p>}
         </div>
       )}
-      
+
       <motion.div
         className={gridContainerStyle}
         variants={ANIMATIONS.grid}
@@ -1097,8 +1132,6 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
           willChange: "transform, opacity",
           transform: "translateZ(0)",
           backfaceVisibility: "hidden",
-          // Disable animations during scroll on mobile for better performance
-          animationDuration: isScrolling && isMobile ? "0s" : undefined
         }}
       >
         {memoizedItems.map((item, index) => (
@@ -1118,6 +1151,7 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
               }
             }}
             isFocused={focusedIndex === index}
+            showDescriptions={showDescriptions} // Pass the showDescriptions prop to each Item
           />
         ))}
       </motion.div>
