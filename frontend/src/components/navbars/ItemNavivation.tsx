@@ -71,6 +71,16 @@ const ANIMATIONS = {
         opacity: { duration: 0.2, ease: "easeOut" }
       }
     },
+    // No animation during scrolling for better performance
+    staticMobile: {
+      y: 0, 
+      opacity: 1,
+      scale: 1,
+      rotateX: '0deg',
+      transition: { 
+        duration: 0, // No duration = no animation
+      }
+    },
     hover: {
       y: -6, // Slightly more pronounced lift
       scale: 1.04,
@@ -569,30 +579,38 @@ export interface ItemNavigationProps {
 // ==========================================================
 
 /**
+ * Media query hook - reusable for any breakpoint
+ * Returns whether the current viewport matches the provided query
+ */
+const useMediaQuery = (query: string) => {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    // Avoid referencing window during SSR
+    if (typeof window === 'undefined') return;
+    
+    const media = window.matchMedia(query);
+    const updateMatch = () => setMatches(media.matches);
+    
+    // Initial check
+    updateMatch();
+    
+    // Add listener - using addEventListener for better compatibility
+    media.addEventListener('change', updateMatch);
+    
+    // Cleanup
+    return () => media.removeEventListener('change', updateMatch);
+  }, [query]);
+
+  return matches;
+};
+
+/**
  * Mobile detection hook - properly placed within component structure
  * Detects if the current viewport is mobile sized
  */
 const useIsMobile = () => {
-  const [isMobile, setIsMobile] = useState(false);
-  
-  useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.matchMedia('(max-width: 768px)').matches);
-    };
-    
-    // Initial check
-    checkIfMobile();
-    
-    // Add event listener for resize
-    window.addEventListener('resize', checkIfMobile);
-    
-    // Cleanup
-    return () => {
-      window.removeEventListener('resize', checkIfMobile);
-    };
-  }, []);
-  
-  return isMobile;
+  return useMediaQuery('(max-width: 768px)');
 };
 
 // ITEM COMPONENT - ENHANCED
@@ -622,8 +640,18 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
 }, ref) => {
   const [isHovered, setIsHovered] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
   const itemRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const isMobileViewport = useMediaQuery('(max-width: 640px)');
+  
+  // Effect-based detection for touch devices - runs once on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const touchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      setIsTouchDevice(touchDevice);
+    }
+  }, []);
   
   // Calculate staggered animation delay
   const animationDelay = useMemo(() => {
@@ -709,7 +737,9 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
       ref={ref as React.RefObject<HTMLDivElement>}
       variants={ANIMATIONS.item}
       initial="hidden"
-      animate={isMobile ? (isScrolling ? "visibleMobile" : "visibleMobile") : "visible"} // Use mobile specific animations
+      animate={isMobile 
+        ? (isScrolling ? "staticMobile" : "visibleMobile") 
+        : "visible"} // Use static variant during scrolling on mobile
       whileHover={isMobile ? "hoverMobile" : "hover"} // Use mobile specific hover
       whileTap="tap"
       custom={animationDelay}
@@ -749,20 +779,33 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
           }
         }}
       >
-        {/* Centered glow effect for the entire card */}
-        <AnimatePresence>
-          {isHovered && (
-            <motion.div
-              className={glowEffectStyle}
-              style={{ color: item.color || 'var(--colors-primary)' }}
-              variants={ANIMATIONS.glow}
-              initial="initial"
-              animate="hover"
-              exit="initial"
-              aria-hidden="true"
-            />
-          )}
-        </AnimatePresence>
+        {/* Centered glow effect for the entire card - optimized for scrolling */}
+        {!isScrolling && (
+          <AnimatePresence>
+            {isHovered && (
+              <motion.div
+                className={glowEffectStyle}
+                style={{ color: item.color || 'var(--colors-primary)' }}
+                variants={ANIMATIONS.glow}
+                initial="initial"
+                animate="hover"
+                exit="initial"
+                aria-hidden="true"
+              />
+            )}
+          </AnimatePresence>
+        )}
+        {/* Simpler non-animated version during scrolling */}
+        {isScrolling && isHovered && (
+          <div 
+            className={glowEffectStyle}
+            style={{ 
+              color: item.color || 'var(--colors-primary)',
+              opacity: 0.6,
+            }}
+            aria-hidden="true"
+          />
+        )}
         
         {/* Enhanced golden tab indicator that responds to mouse position */}
         <motion.div 
@@ -813,7 +856,7 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
             {item.label}
           </motion.div>
           
-          {item.description && (
+          {item.description && !isScrolling && (
             <AnimatePresence>
               <motion.div 
                 className={descriptionStyle}
@@ -821,11 +864,25 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
                 id={`desc-${item.id}`}
                 variants={ANIMATIONS.description}
                 initial="initial"
-                animate={isHovered || window.matchMedia('(max-width: 640px)').matches ? "hover" : "initial"}
+                animate={isHovered || isMobileViewport ? "hover" : "initial"}
               >
                 {item.description}
               </motion.div>
             </AnimatePresence>
+          )}
+          {/* Simpler non-animated version of description during scrolling */}
+          {item.description && isScrolling && (isHovered || isMobileViewport) && (
+            <div 
+              className={descriptionStyle}
+              style={{ 
+                color: item.color ? `${item.color}99` : 'var(--colors-textMuted)',
+                opacity: 1,
+                height: 'auto',
+              }}
+              id={`desc-${item.id}`}
+            >
+              {item.description}
+            </div>
           )}
         </div>
       </div>
@@ -875,8 +932,14 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
   // State to track if the items are currently being scrolled
   const [isScrolling, setIsScrolling] = useState(false);
   
+  // Scroll timer ref to persist between renders and properly handle cleanup
+  const scrollTimerRef = useRef<number | null>(null);
+  
   // Detect if we're on mobile
   const isMobile = useIsMobile();
+  
+  // State to track touch device status
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
   
   // Framer Motion controls
   const gridControls = useAnimation();
@@ -891,10 +954,13 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
       // Initialize refs array with the correct length
       itemRefs.current = itemRefs.current.slice(0, items.length);
       
-      // Add class to handle touch devices
-      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      if (isTouchDevice) {
-        containerRef.current.classList.add('touch-device');
+      // Check if current device is a touch device - done once in an effect
+      if (typeof window !== 'undefined') {
+        const touchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        if (touchDevice) {
+          setIsTouchDevice(true);
+          containerRef.current.classList.add('touch-device');
+        }
       }
     }
     
@@ -924,24 +990,36 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
       }
     };
     
-    // Add scroll event listener to detect scrolling
+    // Add scroll event listener to detect scrolling with proper debouncing
     const handleScroll = () => {
+      // Set scrolling state to true immediately if not already
       if (!isScrolling) {
         setIsScrolling(true);
-        // After scrolling stops, re-enable animations with a delay
-        const scrollTimer = setTimeout(() => {
-          setIsScrolling(false);
-        }, 200);
-        return () => clearTimeout(scrollTimer);
       }
+      
+      // Clear any existing timeout to implement debouncing
+      if (scrollTimerRef.current !== null) {
+        window.clearTimeout(scrollTimerRef.current);
+      }
+      
+      // Set new timeout to detect when scrolling stops
+      scrollTimerRef.current = window.setTimeout(() => {
+        setIsScrolling(false);
+        scrollTimerRef.current = null;
+      }, 200);
     };
     
-    window.addEventListener('resize', handleResize);
     window.addEventListener('scroll', handleScroll, { passive: true });
     
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('scroll', handleScroll);
+      
+      // Clear any pending timeout during cleanup
+      if (scrollTimerRef.current !== null) {
+        window.clearTimeout(scrollTimerRef.current);
+        scrollTimerRef.current = null;
+      }
     };
   }, [initialAnimation, gridControls, items.length, reducedMotion, isMobile, isScrolling]);
   
