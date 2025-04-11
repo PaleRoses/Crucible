@@ -1,10 +1,10 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { cx } from '../../../../styled-system/css';
-import { NavItem } from '../navigationbar/navbarhooks/navigation';
-import { ANIMATIONS, DESKTOP_NAV_ITEM_CLASS } from '../navigationbar/navbarhooks/navigation';
-import { getIconComponent } from '../navigationbar/navbarhooks/IconUtils';
-import * as DesktopStyles from '@/components/navbars/navbarstyles/DeskTopNavigation.styles'; // Adjusted path
+import { cx } from '../../../../../styled-system/css';
+import { NavItem } from '@/components/navbars/navigationbar/navbarhooks/navigation'; // Adjusted path
+import { ANIMATIONS, DESKTOP_NAV_ITEM_CLASS } from '@/components/navbars/navigationbar/navbarhooks/navigation'; // Adjusted path
+import { getIconComponent } from '@/components/navbars/navigationbar/navbarhooks/IconUtils';
+import * as DesktopStyles from '@/components/navbars/navigationbar/navbarstyles/DeskTopNavigation.styles'; // Adjusted path
 import { useDesktopNavigation } from '@/components/navbars/navigationbar/navbarhooks/useDesktopNavigation'; // Adjusted path
 
 interface DesktopNavItemComponentProps {

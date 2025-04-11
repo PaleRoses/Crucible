@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { memo, useCallback, useMemo } from 'react';
-import { cx } from '../../../styled-system/css';
+import { cx } from '../../../../styled-system/css';
 
 // --- Import Custom Hooks ---
 import { useDesktopNavigation } from '@/components/navbars/navigationbar/navbarhooks/useDesktopNavigation';
@@ -13,13 +13,13 @@ import { DEFAULT_ICON_MAPPING, DEFAULT_NAV_ITEMS, getIconComponent } from '@/com
 import { MOBILE_MENU_BUTTON_CLASS, NavigationBarProps } from '@/components/navbars/navigationbar/navbarhooks/navigation';
 
 // --- Import Styles ---
-import * as DesktopStyles from '@/components/navbars/navbarstyles/DeskTopNavigation.styles';
-import * as MobileStyles from '@/components/navbars/navbarstyles/MobileNavigation.styles';
+import * as DesktopStyles from '@/components/navbars/navigationbar/navbarstyles/DeskTopNavigation.styles';
+import * as MobileStyles from '@/components/navbars/navigationbar/navbarstyles/MobileNavigation.styles';
 
 // --- Import Sub-Components ---
-import DesktopNavItemComponent from '@/components/navbars/navbarcomponents/DesktopNavItemComponent';
-import GlobalSubmenuComponent from '@/components/navbars/navbarcomponents/GlobalSubmenuComponent';
-import MobileMenuComponent from '@/components/navbars/navbarcomponents/MobileMenuComponent';
+import DesktopNavItemComponent from '@/components/navbars/navigationbar/navbarcomponents/DesktopNavItemComponent';
+import GlobalSubmenuComponent from '@/components/navbars/navigationbar/navbarcomponents/GlobalSubmenuComponent';
+import MobileMenuComponent from '@/components/navbars/navigationbar/navbarcomponents/MobileMenuComponent';
 
 /**
  * The main NavigationBar component with sidebar support and transparent buttons.

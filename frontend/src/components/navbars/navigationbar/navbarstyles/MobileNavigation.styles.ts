@@ -13,7 +13,7 @@ export const mobileNavbarLogoLinkStyle = css({
     outlineColor: 'primary',
     outlineOffset: '1px',
   }
-});import { css } from '../../../../styled-system/css'; // Ensure this path is correct
+});import { css } from '../../../../../styled-system/css'; // Ensure this path is correct
 
 // --- Panda CSS Style Definitions (Mobile) ---
 

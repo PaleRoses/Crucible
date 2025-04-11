@@ -1,4 +1,4 @@
-import { css } from '../../../../styled-system/css'; // Ensure this path is correct
+import { css } from '../../../../../styled-system/css'; // Ensure this path is correct
 
 // --- Panda CSS Style Definitions (Desktop) ---
 

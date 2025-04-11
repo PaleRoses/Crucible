@@ -161,6 +161,7 @@ const useItemHoverEffects = (
  */
 interface UseKeyboardNavigationOptions {
   itemCount: number;
+  debug?: boolean;
 }
 
 /**
@@ -183,32 +184,45 @@ interface UseKeyboardNavigationResult {
 const useKeyboardNavigation = (
     options: UseKeyboardNavigationOptions
 ): UseKeyboardNavigationResult => {
-  const { itemCount } = options;
+  const { itemCount, debug = false } = options;
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
   const itemRefs = useRef<Array<HTMLElement | null>>([]);
+  const isInitializedRef = useRef<boolean>(false);
 
+  // Initialize refs array when component mounts or itemCount changes
   useEffect(() => {
-    itemRefs.current = Array(itemCount).fill(null).map((_, i) => itemRefs.current[i] || null);
-  }, [itemCount]);
+    // Initialize the refs array with the correct length
+    if (itemRefs.current.length !== itemCount) {
+      itemRefs.current = Array(itemCount).fill(null);
+      isInitializedRef.current = true;
+      if (debug) console.log('Keyboard navigation: Initialized refs array', { itemCount });
+    }
+  }, [itemCount, debug]);
 
-  // Effect to reset focus if the focused item disappears (e.g., itemCount changes)
+  // Effect to reset focus if the focused item disappears
   useEffect(() => {
     if (focusedIndex >= itemCount) {
-        setFocusedIndex(-1); // Reset if focused item index is out of bounds
+      setFocusedIndex(-1); // Reset if focused item index is out of bounds
+      if (debug) console.log('Keyboard navigation: Reset focus index (out of bounds)');
     }
-  }, [itemCount, focusedIndex]);
+  }, [itemCount, focusedIndex, debug]);
 
-
+  // More robust ref registration
   const registerRef = useCallback((index: number, element: HTMLElement | null) => {
     if (index >= 0 && index < itemCount) {
-         itemRefs.current[index] = element;
+      if (element !== itemRefs.current[index]) {
+        itemRefs.current[index] = element;
+        if (debug) console.log(`Keyboard navigation: Registered ref for item ${index}`, { element });
+      }
     }
-  }, [itemCount]);
+  }, [itemCount, debug]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (itemCount === 0) return;
     const { key } = e;
     let nextIndex = focusedIndex;
+
+    if (debug) console.log('Keyboard navigation: Key pressed', { key, currentFocus: focusedIndex });
 
     switch (key) {
       case 'ArrowDown':
@@ -234,26 +248,42 @@ const useKeyboardNavigation = (
     }
 
     if (nextIndex !== focusedIndex) {
-      setFocusedIndex(nextIndex); // Update state FIRST
-      const nextElement = itemRefs.current[nextIndex];
-      if (nextElement) {
-        // Focus the element *after* state update ensures correct tabIndex is set
-        requestAnimationFrame(() => {
-            nextElement.focus();
-        });
-      }
+      if (debug) console.log(`Keyboard navigation: Moving focus to index ${nextIndex}`);
+      
+      // Update state directly
+      setFocusedIndex(nextIndex);
+      
+      // Immediately focus the element in a more reliable way
+      setTimeout(() => {
+        const nextElement = itemRefs.current[nextIndex];
+        if (nextElement) {
+          if (debug) console.log('Keyboard navigation: Focusing element', { nextElement });
+          nextElement.focus({ preventScroll: false });
+        } else if (debug) {
+          console.warn(`Keyboard navigation: Element at index ${nextIndex} not found in refs`, itemRefs.current);
+        }
+      }, 0);
     }
-  }, [itemCount, focusedIndex]);
+  }, [itemCount, focusedIndex, debug]);
 
-  // Function to get props for each item (including ref and tabIndex)
-  const getItemProps = useCallback((index: number): { ref: (element: HTMLElement | null) => void; tabIndex: 0 | -1 } => ({
-    ref: (element: HTMLElement | null) => registerRef(index, element),
-    // Determine tabIndex based on the *current* focusedIndex state
-    tabIndex: (focusedIndex === -1 && index === 0) || focusedIndex === index ? 0 : -1,
-  }), [focusedIndex, registerRef]); // Dependency includes focusedIndex
+  // Enhanced props getter with better tabIndex handling
+  const getItemProps = useCallback((index: number): { ref: (element: HTMLElement | null) => void; tabIndex: 0 | -1 } => {
+    const isFirst = index === 0;
+    const isFocused = focusedIndex === index;
+    const tabIndex = (focusedIndex === -1 && isFirst) || isFocused ? 0 : -1;
+    
+    if (debug && isFocused) {
+      console.log(`Keyboard navigation: Item ${index} has focus, tabIndex=${tabIndex}`);
+    }
+    
+    return {
+      ref: (element: HTMLElement | null) => registerRef(index, element),
+      tabIndex,
+    };
+  }, [focusedIndex, registerRef, debug]);
 
   return {
-    focusedIndex, // Return the current focused index
+    focusedIndex,
     containerProps: {
       onKeyDown: handleKeyDown,
     },
@@ -516,12 +546,16 @@ const ANIMATIONS = {
 // ==========================================================
 
 // Define the desired focus style properties using css function
-// No scaling needed for focus ring itself, it applies to the scaling card
+// Enhanced focus ring styles for better keyboard navigation visibility
 const focusRingStyles = css({
   outline: 'none',
-  boxShadow: '0 0 0 3px var(--colors-primary), 0 4px 8px rgba(0, 0, 0, 0.1)',
+  boxShadow: '0 0 0 3px var(--colors-primary), 0 4px 12px rgba(0, 0, 0, 0.15)',
   borderColor: 'text',
-  background: 'rgba(255, 255, 255, 0.07)',
+  background: 'rgba(255, 255, 255, 0.1)',
+  position: 'relative',
+  zIndex: '10',
+  transform: 'translateY(-2px) scale(1.02)',
+  transition: 'all 0.2s ease-out',
 });
 
 // Container styles
@@ -960,6 +994,7 @@ const Item = React.memo(React.forwardRef<HTMLDivElement, ItemProps>(({
           e.preventDefault();
           handleClick();
       }
+      // Let other key events bubble up to the container for navigation
   };
 
   // --- Render ---
@@ -987,17 +1022,20 @@ const Item = React.memo(React.forwardRef<HTMLDivElement, ItemProps>(({
     >
       <div
         ref={(node) => {
+            // First register with keyboard navigation system for reliable focus
             if (typeof ref === 'function') {
                 ref(node);
             } else if (ref) {
                 ref.current = node;
             }
+            // Then use for hover effects
             itemHoverRef.current = node;
         }}
         className={cx(
             cardStyle, // Base card styles (including updated clamp() for height)
             !transparentCards && cardSolidStyle,
-            isFocused && focusRingStyles // Conditional focus styles
+            isFocused && focusRingStyles, // Conditional focus styles
+            'navigation-item' // Add a class for easier debugging
         )}
         style={{
             // Use item color for border, respects the scaled borderLeftWidth
@@ -1103,7 +1141,7 @@ const Item = React.memo(React.forwardRef<HTMLDivElement, ItemProps>(({
 Item.displayName = 'NavigationItem';
 
 // ==========================================================
-// MAIN COMPONENT (No changes needed in component logic)
+// MAIN COMPONENT (Updated for better keyboard navigation)
 // ==========================================================
 
 const ItemNavigation: React.FC<ItemNavigationProps> = ({
@@ -1125,10 +1163,34 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
   const isScrolling = useScrollDetection(200);
   const isMobile = useIsMobile();
   const gridControls = useAnimation();
+  const [keyboardMode, setKeyboardMode] = useState(false);
 
+  // Enable debug mode to troubleshoot keyboard navigation issues
   const { focusedIndex, containerProps, getItemProps } = useKeyboardNavigation({
-    itemCount: items.length
+    itemCount: items.length,
+    debug: false // Set to true to enable console debugging
   });
+
+  // Detect keyboard navigation mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Tab') {
+        setKeyboardMode(true);
+      }
+    };
+    
+    const handleMouseDown = () => {
+      setKeyboardMode(false);
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('mousedown', handleMouseDown);
+    
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('mousedown', handleMouseDown);
+    };
+  }, []);
 
   useConditionalAnimation({
       controls: gridControls,

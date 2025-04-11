@@ -35,7 +35,6 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   return (
     <StyledComponentsRegistry>
       <ThemeProvider>
-      < ThemeSelector/>
 
         <SidebarProvider>
 

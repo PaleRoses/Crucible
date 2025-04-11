@@ -1,12 +1,12 @@
 import React, { useState, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
-import { cx } from '../../../../styled-system/css'; // Adjusted path
-import { NavItem } from '../navigationbar/navbarhooks/navigation'; // Adjusted path
-import { ANIMATIONS, MOBILE_NAV_ITEM_CLASS, MOBILE_SUBMENU_ITEM_CLASS } from '../navigationbar/navbarhooks/navigation'; // Adjusted path
-import { getIconComponent } from '../navigationbar/navbarhooks/IconUtils'; // Adjusted path
-import * as MobileStyles from '../navbarstyles/MobileNavigation.styles'; // Adjusted path
-import { useMobileMenuItemKeyboardNav, useMobileSubmenuKeyboardNav } from '../navigationbar/navbarhooks/useMobileMenuKeyboardNav'; // Adjusted path
+import { cx } from '../../../../../styled-system/css'; // Adjusted path
+import { NavItem } from '@/components/navbars/navigationbar/navbarhooks/navigation'; 
+import { ANIMATIONS, MOBILE_NAV_ITEM_CLASS, MOBILE_SUBMENU_ITEM_CLASS } from '@/components/navbars/navigationbar/navbarhooks/navigation'; // Adjusted path
+import { getIconComponent } from '@/components/navbars/navigationbar/navbarhooks/IconUtils'; // Adjusted path
+import * as MobileStyles from '@/components/navbars/navigationbar/navbarstyles/MobileNavigation.styles'; // Adjusted path
+import { useMobileMenuItemKeyboardNav, useMobileSubmenuKeyboardNav } from '@/components/navbars/navigationbar/navbarhooks/useMobileMenuKeyboardNav'; // Adjusted path
 
 interface MobileNavItemComponentProps {
   item: NavItem;

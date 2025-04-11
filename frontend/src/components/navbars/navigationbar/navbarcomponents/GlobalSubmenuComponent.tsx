@@ -5,10 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { NavItem } from '@/components/navbars/navigationbar/navbarhooks/navigation'; // Already using alias
 import { ANIMATIONS } from '@/components/navbars/navigationbar/navbarhooks/navigation'; // Changed from ../
 import { getIconComponent } from '@/components/navbars/navigationbar/navbarhooks/IconUtils'; // Changed from ../
-import * as DesktopStyles from '@/components/navbars/navbarstyles/DeskTopNavigation.styles'; // Changed from ../
+import * as DesktopStyles from '@/components/navbars/navigationbar/navbarstyles/DeskTopNavigation.styles'; // Changed from ../
 import { useDesktopNavigation } from '@/components/navbars/navigationbar/navbarhooks/useDesktopNavigation'; // Changed from ../
 // --- Local import remains relative ---
-import MemoizedSubmenuItem from './MemoizedSubmenuItem'; // Import sibling component
+import MemoizedSubmenuItem from '@/components/navbars/navigationbar/navbarcomponents/MemoizedSubmenuItem'; // Import sibling component
 
 interface GlobalSubmenuComponentProps {
   activeItem: NavItem | null; // The NavItem whose submenu is currently active, or null

@@ -5,7 +5,7 @@ import React from 'react';
 import { iconMapping } from './layoutdata/IconMappings';
 import { navItems } from './layoutdata/NavigationData';
 import { MoonIcon } from './layoutdata/IconComponents';
-import NavigationBar from '../navbars/NavigationBar';
+import NavigationBar from '@/components/navbars/navigationbar/NavigationBar';
 import ScrollAwareSpacer from '@/components/effects/utility/ScrollAwareNavBar';
 // Import sidebar context hook
 import { useSidebar } from '../../contexts/SideBarContext';
@@ -66,7 +66,7 @@ const NavLayout: React.FC = () => {
 
   return (
     <ScrollAwareSpacerTyped
-      height={10}
+      height={0}
       zIndex={100}
       transitionDuration={0.25}
       showOnScrollUp={true}
