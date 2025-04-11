@@ -77,7 +77,6 @@ export interface ScrollingContentWithNavProps {
 
 // Outermost container div
 export const containerStyles = css({
-  paddingTop: '2rem',
   position: 'relative',
   width: 'full',
   height: '100vh', // Ensure container takes full viewport height
@@ -86,6 +85,10 @@ export const containerStyles = css({
   color: 'text',
   fontFamily: 'body', // Ensure this font supports the weights used (e.g., 'thin', 'light')
   overflow: 'hidden', // Prevent scroll on the container itself
+  pointerEvents: 'none', // Make the container itself non-interactive
+  '& > *': {
+    pointerEvents: 'auto', // But allow interactions with its children
+  }
 });
 
 // Header Styles - Now part of content area only, with alignment matching content
@@ -128,7 +131,7 @@ export const navListCommonStyles = css({
 
 // Mobile Navigation Styles - Sticky within the scrolling container
 export const mobileNavWrapperStyles = css({
-  display: { base: 'block', md: 'none' },
+  display: { base: 'block', md: 'none' }, // Ensures it's only visible on mobile/tablet
   position: 'sticky',
   top: '0',
   bg: 'background',
@@ -166,8 +169,8 @@ export const mobileNavDropdownStyles = css({
   borderColor: 'border',
   boxShadow: 'lg',
   height: 'auto',
-  maxH: 'calc(50vh - 60px)', // Limit to half viewport height minus header
-  overflowY: 'hidden', // Prevents scrolling within the dropdown
+  // Remove maxH to prevent content getting cut off
+  overflow: 'hidden', // Prevent ALL scrolling (both x and y)
   zIndex: 19,
   transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
 });
@@ -180,7 +183,8 @@ export const mobileNavListStyles = css({
 
 // Main Content Area Styles - This container scrolls
 export const mainContainerStyles = css({
-  marginTop: '0', // Reduced from 20 to improve mobile navbar positioning
+  position: 'relative',
+  marginTop: '0',
   display: 'flex',
   flexDirection: { base: 'column', md: 'row' }, // Row layout on desktop for side-by-side content and nav
   flex: '1', // Allow this container to grow and fill remaining space
@@ -188,8 +192,17 @@ export const mainContainerStyles = css({
   overflowY: 'auto', // Enable scrolling ONLY for this container
   overflowX: 'hidden',
   scrollBehavior: 'smooth',
+  paddingTop: '0', // Ensure no padding at top to prevent dead space
   paddingRight: '2',
   paddingLeft: '5',
+  WebkitOverflowScrolling: 'touch', // Improve mobile scrolling
+  outline: 'none', // Prevent focus outline on the scrollable container
+  '&:focus': {
+    outline: 'none', // Ensure no focus outline appears
+  },
+  // Isolate the scrolling container
+  isolation: 'isolate',
+  zIndex: 1,
 });
 
 // Content Area within the scrolling container
@@ -560,9 +573,14 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
     setScrollOffset(offsetTop + internalStickyHeight + buffer);
   }, [offsetTop]); // Dependency on external offsetTop prop
 
-  // Calculate offset on mount and window resize
+  // Calculate offset on mount and window resize, and fix initial scroll position
   useEffect(() => {
     calculateAndSetScrollOffset(); // Initial calculation
+    
+    // Fix for unwanted scroll space: ensure we start at the top
+    if (mainContainerRef.current) {
+      mainContainerRef.current.scrollTop = 0;
+    }
 
     window.addEventListener('resize', calculateAndSetScrollOffset);
     return () => {
@@ -789,6 +807,24 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
       }
     }
   }, [isMobileNavOpen]);
+  
+  // Additional effect to ensure outer margins can't be focused or scrolled
+  useEffect(() => {
+    const preventFocusOnOuterMargins = (event: globalThis.FocusEvent) => {
+      // If focus enters the container but not a focusable child within content area
+      if (mainContainerRef.current && !mainContainerRef.current.contains(event.target as Node)) {
+        // Force focus back to the main content area
+        mainContainerRef.current.focus({ preventScroll: true });
+      }
+    };
+    
+    // Capture phase to intercept before regular event handling
+    document.addEventListener('focusin', preventFocusOnOuterMargins, true);
+    
+    return () => {
+      document.removeEventListener('focusin', preventFocusOnOuterMargins, true);
+    };
+  }, []);
 
 
   // --- Event Handlers ---
@@ -935,9 +971,21 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
   // --- JSX ---
   return (
     // Outermost container
-    <div className={cx(containerStyles, containerClassName)}>
-      {/* Main Scrollable Container */}
-      <div ref={mainContainerRef} className={cx(mainContainerStyles, mainClassName)}>
+    <div 
+      className={cx(containerStyles, containerClassName)}
+      tabIndex={-1} // Make container unfocusable
+    >
+      {/* Main Scrollable Container - Adding onLoad handler to ensure scroll position is reset */}
+      <div 
+        ref={mainContainerRef} 
+        className={cx(mainContainerStyles, mainClassName)}
+        onLoad={() => {
+          if (mainContainerRef.current) {
+            mainContainerRef.current.scrollTop = 0;
+          }
+        }}
+        tabIndex={-1} // Prevent focus on the scrollable container itself
+      >
         {/* Mobile Navigation (Sticky inside this container) */}
         <div ref={mobileNavRef} className={mobileNavWrapperStyles}>
           <button 
@@ -960,16 +1008,29 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
               aria-label={navTitle}
               style={dropdownStyle}
             >
-              <div className={css({ padding: '2', textAlign: 'center', fontSize: 'xs', color: 'textMuted' })}>
+              <div className={css({ 
+                padding: '2', 
+                textAlign: 'center', 
+                fontSize: 'xs', 
+                color: 'textMuted',
+                borderBottom: '1px solid',
+                borderColor: 'border',
+                marginBottom: '2'
+              })}>
                 Swipe up to dismiss
               </div>
-              <ul 
+                              <ul 
                 className={mobileNavListStyles}
+                // Keep touch gestures for dismissing the menu but prevent them from causing scroll
                 onTouchStart={(e) => {
+                  // Prevent default to avoid any native scrolling behavior
+                  e.preventDefault();
                   touchStartRef.current = e.touches[0].clientY;
                   touchMoveRef.current = e.touches[0].clientY;
                 }}
                 onTouchMove={(e) => {
+                  // Prevent default to avoid any native scrolling behavior
+                  e.preventDefault();
                   if (!touchStartRef.current) return;
                   
                   const currentY = e.touches[0].clientY;

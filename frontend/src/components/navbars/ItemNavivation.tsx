@@ -2,16 +2,338 @@
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, useAnimation, AnimatePresence } from 'framer-motion';
+import { motion, useAnimation, AnimatePresence, AnimationControls } from 'framer-motion'; // Import AnimationControls
 import { css, cx } from "../../../styled-system/css"; // PandaCSS import
 
 // ==========================================================
-// ANIMATION VARIANTS - ENHANCED
+// CUSTOM HOOKS
 // ==========================================================
 
 /**
- * Animation variants with improved transitions and mobile optimizations
+ * Detects if the user is currently scrolling, with debouncing.
  */
+const useScrollDetection = (debounceMs: number = 200): boolean => {
+  const [isScrolling, setIsScrolling] = useState(false);
+  const scrollTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolling(prev => !prev ? true : prev);
+      if (scrollTimerRef.current !== null) {
+        window.clearTimeout(scrollTimerRef.current);
+      }
+      scrollTimerRef.current = window.setTimeout(() => {
+        setIsScrolling(false);
+        scrollTimerRef.current = null;
+      }, debounceMs);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollTimerRef.current !== null) {
+        window.clearTimeout(scrollTimerRef.current);
+        scrollTimerRef.current = null;
+      }
+    };
+  }, [debounceMs]);
+
+  return isScrolling;
+};
+
+
+/**
+ * Media query hook - reusable for any breakpoint
+ */
+const useMediaQuery = (query: string) => {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const media = window.matchMedia(query);
+    const updateMatch = () => setMatches(media.matches);
+    updateMatch();
+    media.addEventListener('change', updateMatch);
+    return () => media.removeEventListener('change', updateMatch);
+  }, [query]);
+
+  return matches;
+};
+
+/**
+ * Mobile detection hook
+ */
+const useIsMobile = () => {
+  return useMediaQuery('(max-width: 768px)');
+};
+
+/**
+ * Checks if the user prefers reduced motion via media query.
+ * @param {boolean} [override=false] - Optional override to force a specific return value.
+ * @returns {boolean} - True if reduced motion is preferred or overridden, false otherwise.
+ */
+const useReducedMotion = (override?: boolean): boolean => {
+    const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+
+    // Return the override if provided, otherwise return the media query result
+    return override !== undefined ? override : prefersReducedMotion;
+};
+
+
+/**
+ * Manages hover state and relative mouse position for an element.
+ */
+const useItemHoverEffects = (
+    ref: React.RefObject<HTMLDivElement | null>,
+    options: {
+        isMobile?: boolean;
+        isScrolling?: boolean;
+        isDisabled?: boolean;
+        disableHoverOnScroll?: boolean;
+        trackMouseMoveOnMobile?: boolean;
+    } = {}
+) => {
+  const {
+    isMobile = false,
+    isScrolling = false,
+    isDisabled = false,
+    disableHoverOnScroll = true,
+    trackMouseMoveOnMobile = false,
+  } = options;
+
+  const [isHovered, setIsHovered] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  const handleMouseEnter = useCallback(() => {
+    const blockHover = isDisabled || (isScrolling && disableHoverOnScroll);
+    if (!blockHover) {
+      setIsHovered(true);
+    }
+  }, [isDisabled, isScrolling, disableHoverOnScroll]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (!isDisabled) {
+      setIsHovered(false);
+      setMousePosition({ x: 0, y: 0 });
+    }
+  }, [isDisabled]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
+      const blockTracking = isDisabled || !isHovered || (!trackMouseMoveOnMobile && isMobile) || !ref.current;
+      if (blockTracking) {
+         if (mousePosition.x !== 0 || mousePosition.y !== 0) {
+            setMousePosition({ x: 0, y: 0 });
+         }
+         return;
+      }
+      if (!ref.current) return;
+
+      const rect = ref.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const normalizedX = Math.min(1, Math.max(0, x / rect.width));
+      const normalizedY = Math.min(1, Math.max(0, y / rect.height));
+      setMousePosition({ x: normalizedX, y: normalizedY });
+    },
+    [ isHovered, isMobile, isDisabled, trackMouseMoveOnMobile, ref, mousePosition.x, mousePosition.y ]
+  );
+
+  useEffect(() => {
+    const shouldExitHover = isDisabled || (isScrolling && disableHoverOnScroll);
+    if (isHovered && shouldExitHover) {
+      setIsHovered(false);
+      setMousePosition({ x: 0, y: 0 });
+    }
+  }, [isScrolling, isDisabled, disableHoverOnScroll, isHovered]);
+
+  return {
+    isHovered,
+    mousePosition,
+    eventHandlers: {
+      onMouseEnter: handleMouseEnter,
+      onMouseLeave: handleMouseLeave,
+      onMouseMove: handleMouseMove,
+    },
+  };
+};
+
+/**
+ * Interface for keyboard navigation hook options.
+ */
+interface UseKeyboardNavigationOptions {
+  itemCount: number;
+}
+
+/**
+ * Interface for the return value of the keyboard navigation hook.
+ */
+interface UseKeyboardNavigationResult {
+  focusedIndex: number; // Expose focusedIndex
+  containerProps: {
+    onKeyDown: (event: React.KeyboardEvent) => void;
+  };
+  getItemProps: (index: number) => {
+    ref: (element: HTMLElement | null) => void;
+    tabIndex: 0 | -1;
+  };
+}
+
+/**
+ * Manages keyboard navigation (focus) within a list or grid.
+ */
+const useKeyboardNavigation = (
+    options: UseKeyboardNavigationOptions
+): UseKeyboardNavigationResult => {
+  const { itemCount } = options;
+  const [focusedIndex, setFocusedIndex] = useState<number>(-1);
+  const itemRefs = useRef<Array<HTMLElement | null>>([]);
+
+  useEffect(() => {
+    itemRefs.current = Array(itemCount).fill(null).map((_, i) => itemRefs.current[i] || null);
+  }, [itemCount]);
+
+  // Effect to reset focus if the focused item disappears (e.g., itemCount changes)
+  useEffect(() => {
+    if (focusedIndex >= itemCount) {
+        setFocusedIndex(-1); // Reset if focused item index is out of bounds
+    }
+  }, [itemCount, focusedIndex]);
+
+
+  const registerRef = useCallback((index: number, element: HTMLElement | null) => {
+    if (index >= 0 && index < itemCount) {
+         itemRefs.current[index] = element;
+    }
+  }, [itemCount]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (itemCount === 0) return;
+    const { key } = e;
+    let nextIndex = focusedIndex;
+
+    switch (key) {
+      case 'ArrowDown':
+      case 'ArrowRight':
+        e.preventDefault();
+        nextIndex = (focusedIndex === -1 || focusedIndex >= itemCount - 1) ? 0 : focusedIndex + 1;
+        break;
+      case 'ArrowUp':
+      case 'ArrowLeft':
+        e.preventDefault();
+        nextIndex = focusedIndex <= 0 ? itemCount - 1 : focusedIndex - 1;
+        break;
+      case 'Home':
+        e.preventDefault();
+        nextIndex = 0;
+        break;
+      case 'End':
+        e.preventDefault();
+        nextIndex = itemCount - 1;
+        break;
+      default:
+        return;
+    }
+
+    if (nextIndex !== focusedIndex) {
+      setFocusedIndex(nextIndex); // Update state FIRST
+      const nextElement = itemRefs.current[nextIndex];
+      if (nextElement) {
+        // Focus the element *after* state update ensures correct tabIndex is set
+        requestAnimationFrame(() => {
+            nextElement.focus();
+        });
+      }
+    }
+  }, [itemCount, focusedIndex]);
+
+  // Function to get props for each item (including ref and tabIndex)
+  const getItemProps = useCallback((index: number): { ref: (element: HTMLElement | null) => void; tabIndex: 0 | -1 } => ({
+    ref: (element: HTMLElement | null) => registerRef(index, element),
+    // Determine tabIndex based on the *current* focusedIndex state
+    tabIndex: (focusedIndex === -1 && index === 0) || focusedIndex === index ? 0 : -1,
+  }), [focusedIndex, registerRef]); // Dependency includes focusedIndex
+
+  return {
+    focusedIndex, // Return the current focused index
+    containerProps: {
+      onKeyDown: handleKeyDown,
+    },
+    getItemProps,
+  };
+};
+
+/**
+ * Interface for conditional animation hook options.
+ */
+interface UseConditionalAnimationOptions {
+  controls: AnimationControls;
+  initialAnimation: boolean;
+  reducedMotionOverride?: boolean; // Prop to manually override reduced motion preference
+  isEnabled: boolean; // Condition to use 'enabled' variant (vs 'disabled')
+  variants: {
+    enabled: string; // Variant name for the main animated state
+    disabled?: string; // Optional variant name for the alternative state (e.g., mobile)
+    hidden: string; // Variant name for the initial/hidden state
+  };
+  triggerDependency?: any; // Re-run effect if this changes
+  delayMs?: number; // Delay before starting animation
+}
+
+/**
+ * Manages the conditional execution of an initial Framer Motion animation
+ * based on props, user preferences (reduced motion), and component state.
+ * Uses the useReducedMotion hook internally.
+ */
+const useConditionalAnimation = (
+    options: UseConditionalAnimationOptions
+): void => {
+  const {
+    controls,
+    initialAnimation,
+    reducedMotionOverride, // Receive the override prop
+    isEnabled,
+    variants,
+    triggerDependency,
+    delayMs = 100,
+  } = options;
+
+  // Use the dedicated hook to check reduced motion preference, passing the override
+  const motionIsReduced = useReducedMotion(reducedMotionOverride);
+
+  useEffect(() => {
+    const targetVariant = isEnabled
+                            ? variants.enabled
+                            : (variants.disabled ?? variants.enabled);
+
+    let timerId: number | null = null;
+
+    // Use the motionIsReduced value from the hook
+    if (initialAnimation && !motionIsReduced) {
+       timerId = window.setTimeout(() => {
+            controls.start(targetVariant);
+       }, delayMs);
+    } else {
+      // Set immediately if no initial animation or if motion is reduced
+      controls.set(targetVariant);
+    }
+
+    return () => {
+      if (timerId !== null) {
+        window.clearTimeout(timerId);
+      }
+    };
+  }, [
+      controls, initialAnimation, motionIsReduced, isEnabled, // Use motionIsReduced from hook
+      variants.enabled, variants.disabled, variants.hidden, // Use stable strings
+      triggerDependency, delayMs
+  ]);
+};
+
+
+// ==========================================================
+// ANIMATION VARIANTS - REFORMATTED FOR READABILITY
+// ==========================================================
+
+// No changes needed to animation variants for scaling via CSS clamp()
 const ANIMATIONS = {
   grid: {
     hidden: {
@@ -20,108 +342,93 @@ const ANIMATIONS = {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.08, // Slightly faster stagger for a more fluid appearance
+        staggerChildren: 0.08,
         delayChildren: 0.15,
         duration: 0.7,
         ease: [0.25, 0.1, 0.25, 1.0]
       }
     },
-    // New mobile variant with reduced animation complexity
     visibleMobile: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.03, // Much faster stagger for mobile
+        staggerChildren: 0.03,
         delayChildren: 0.1,
         duration: 0.5,
         ease: "easeOut"
       }
     }
   },
-
   item: {
     hidden: {
       y: 15,
       opacity: 0,
       scale: 0.95,
-      rotateX: '3deg', // Slight 3D rotation for more dynamic entry
+      rotateX: '3deg',
     },
     visible: {
       y: 0,
       opacity: 1,
       scale: 1,
       rotateX: '0deg',
-      transition: { // This transition will now apply when returning FROM hover
-        duration: 0.4, // Slightly faster return
-        ease: [0.25, 0.1, 0.25, 1.0], // Standard ease out
-        // Explicitly define transitions for properties changed on hover
+      transition: {
+        duration: 0.4,
+        ease: [0.25, 0.1, 0.25, 1.0],
         scale: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1.0] },
         boxShadow: { duration: 0.4, ease: "easeOut" }
       }
     },
-    // New simplified mobile variant
     visibleMobile: {
       y: 0,
       opacity: 1,
       scale: 1,
       rotateX: '0deg',
-      transition: { // This transition will now apply when returning FROM hover (mobile)
-        duration: 0.3, // Faster duration for mobile
-        ease: "easeOut", // Simpler easing function
+      transition: {
+        duration: 0.3,
+        ease: "easeOut",
         opacity: { duration: 0.2, ease: "easeOut" },
-        // Explicitly define transitions for properties changed on hover (mobile)
         scale: { duration: 0.3, ease: "easeOut" },
       }
     },
-    // No animation during scrolling for better performance
     staticMobile: {
       y: 0,
       opacity: 1,
-      scale: 1, // Ensure scale is explicitly 1
+      scale: 1,
       rotateX: '0deg',
       transition: {
-        duration: 0, // No duration = no animation
+        duration: 0,
       }
     },
     hover: {
-      // y: -6, // Removed y translation to prevent layout shift
       scale: 1.04,
       boxShadow: "0px 10px 25px rgba(0, 0, 0, 0.1)",
-      // Removed specific transition block - will use 'visible' transition on exit
     },
-    // Simpler hover for mobile
     hoverMobile: {
-      // y: -2, // Removed y translation
-      scale: 1.02, // Reduced scale
-      // Removed specific transition block - will use 'visibleMobile' transition on exit
+      scale: 1.02,
     },
     tap: {
       scale: 0.97,
-      // y: -2, // Removed y translation
       transition: {
         duration: 0.1,
         ease: [0.19, 1, 0.22, 1]
       }
     }
   },
-
   icon: {
     initial: {
       scale: 1,
       rotate: 0
     },
     hover: {
-      scale: 1.1, // Ensure scale increases
-      rotate: 5, // Slight rotation for more playful effect
-      transition: { // Keep icon transition specific if desired
+      scale: 1.1,
+      rotate: 5,
+      transition: {
         duration: 0.4,
-        ease: [0.34, 1.56, 0.64, 1], // Elastic easing for bounce effect
+        ease: [0.34, 1.56, 0.64, 1],
         scale: { type: "spring", stiffness: 400, damping: 10 },
         rotate: { duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }
       }
     }
   },
-
-  // Updated glow animation to work with the new pseudo-element approach and include exit animation
   glow: {
     initial: {
       opacity: 0,
@@ -144,34 +451,18 @@ const ANIMATIONS = {
       }
     }
   },
-
   label: {
     initial: {
       y: 0
     },
     hover: {
-      y: -3, // Keep label lift as it doesn't affect layout much
+      y: -3,
       transition: {
         duration: 0.3,
         ease: "easeOut"
       }
     }
   },
-
-  // Removed the shine effect animation completely
-  shine: {
-    initial: {
-      opacity: 0,
-    },
-    hover: {
-      opacity: 0, // Keep it invisible
-      transition: {
-        duration: 0.1,
-      },
-    },
-  },
-
-  // New animation for the golden tab
   goldenTab: {
     initial: {
       height: '20%',
@@ -179,8 +470,8 @@ const ANIMATIONS = {
       opacity: 0.9,
     },
     hover: {
-      height: '70%', // Expand more dramatically
-      top: '15%', // Position higher for better visual impact
+      height: '70%',
+      top: '15%',
       opacity: 1,
       transition: {
         height: { type: "spring", stiffness: 300, damping: 20, duration: 0.5 },
@@ -189,8 +480,6 @@ const ANIMATIONS = {
       }
     }
   },
-
-  // Simplified tab glow animation - no pulsing, single color
   tabGlow: {
     initial: {
       opacity: 0.2,
@@ -198,7 +487,7 @@ const ANIMATIONS = {
       height: '100%',
     },
     hover: {
-      opacity: 0.4, // Fixed opacity, no animation
+      opacity: 0.4,
       width: '100%',
       height: '100%',
       transition: {
@@ -206,8 +495,6 @@ const ANIMATIONS = {
       }
     }
   },
-
-  // Modified animation for description text - no height animation to prevent layout shifts
   description: {
     initial: {
       opacity: 0,
@@ -225,172 +512,174 @@ const ANIMATIONS = {
 };
 
 // ==========================================================
-// STYLE DEFINITIONS - ENHANCED
+// STYLE DEFINITIONS - UPDATED WITH clamp() FOR SCALING
 // ==========================================================
+
+// Define the desired focus style properties using css function
+// No scaling needed for focus ring itself, it applies to the scaling card
+const focusRingStyles = css({
+  outline: 'none',
+  boxShadow: '0 0 0 3px var(--colors-primary), 0 4px 8px rgba(0, 0, 0, 0.1)',
+  borderColor: 'text',
+  background: 'rgba(255, 255, 255, 0.07)',
+});
 
 // Container styles
 const containerStyle = css({
-  width: '90%',
-  maxWidth: 'min(95vw, 2200px)',
+  width: '90%', // Set base width
+  // *** REMOVED maxWidth clamp for horizontal expansion ***
   margin: '0 auto',
-  padding: '1.5rem 1rem',
+  padding: '1.5rem 1rem', // Base padding, could be scaled if needed
   marginLeft: '2.5%',
   marginRight: '5%',
-
   '@media (min-width: 1400px)': {
-    maxWidth: 'min(90vw, 2200px)'
+     // *** REMOVED maxWidth clamp for horizontal expansion ***
+     // No maxWidth needed here, width: 90% applies
   },
-
   '@media (max-width: 640px)': {
     width: '95%',
     marginLeft: 'auto',
     marginRight: 'auto',
-    padding: '1rem 0.5rem'
-  }
+    padding: '1rem 0.5rem',
+    maxWidth: '100%', // Keep max-width for small screens to prevent overflow
+  },
 });
 
+// Title container styles - Margins could be scaled if desired
 const titleContainerStyle = css({
   marginLeft: '1rem',
   marginTop: '2.5rem',
   textAlign: 'left',
   marginBottom: '2.5rem',
-
   '@media (max-width: 640px)': {
     marginLeft: '0.5rem',
     marginTop: '1.5rem',
-    marginBottom: '1.5rem'
-  }
+    marginBottom: '1.5rem',
+  },
 });
 
+// Title styles - Adjusting clamp range slightly as per guide example
 const titleStyle = css({
   fontFamily: 'var(--font-heading, "system-ui")',
-  fontSize: 'clamp(1.5rem, 1.2rem + 1.5vw, 2.5rem)',
+  fontSize: 'clamp(1.5rem, 1.2rem + 1.5vw, 3rem)', // Increased max slightly
   fontWeight: '200',
-  letterSpacing: '0.2em',
+  letterSpacing: '0.2em', // Could scale: clamp(0.15em, calc(...), 0.25em)
   color: 'primary',
   textTransform: 'uppercase',
-  marginBottom: '0.5rem'
+  marginBottom: '0.5rem', // Could scale
 });
 
+// Subtitle styles - Adjusting clamp range slightly as per guide example
 const subtitleStyle = css({
-  fontSize: 'clamp(0.875rem, 0.8rem + 0.5vw, 1.125rem)',
+  fontSize: 'clamp(0.875rem, 0.8rem + 0.5vw, 1.25rem)', // Increased max slightly
   color: 'textMuted',
-  maxWidth: '700px',
-  margin: '0 auto',
-  lineHeight: '1.6'
+  maxWidth: '700px', // Keep max-width on subtitle for readability
+  margin: '0 auto', // Centering the subtitle text block
+  lineHeight: '1.6',
 });
 
-  // Mobile optimized grid container style with improved spacing to prevent layout shifts
+// Grid container styles
 const gridContainerStyle = css({
   display: 'grid',
-  gridTemplateColumns: 'repeat(1, minmax(120px, 1fr))', // Default for smallest screens
-  gap: '1.5rem',
-  width: '100%',
-  maxWidth: '100%',
-  willChange: 'transform', // Hardware acceleration hint for smoother animations
-  transform: 'translateZ(0)', // Force GPU rendering
-  
-  // Add padding at the bottom to account for description overflow
-  paddingBottom: '1.5rem',
-
+  gridTemplateColumns: 'repeat(1, minmax(120px, 1fr))',
+  gap: '1.5rem', // Base gap for smaller screens
+  width: '100%', // Grid takes full width of its container
+  maxWidth: '100%', // Ensure grid doesn't exceed container
+  willChange: 'transform',
+  transform: 'translateZ(0)',
+  paddingBottom: '1.5rem', // Could scale this
   '@media (min-width: 640px)': {
     gridTemplateColumns: 'repeat(1, minmax(min(250px, 30vw), 1fr))',
-    gap: '1.5rem'
+    gap: '1.5rem',
   },
-
   '@media (min-width: 768px)': {
     gridTemplateColumns: 'repeat(2, minmax(min(220px, 30vw), 1fr))',
-    gap: '1.5rem'
+    gap: '1.5rem',
   },
-
   '@media (min-width: 1024px)': {
     gridTemplateColumns: 'repeat(3, minmax(min(250px, 22vw), 1fr))',
-    gap: '1.5rem'
+    gap: '1.5rem',
   },
-
   '@media (min-width: 1400px)': {
+    // Base styles for 1400px (will be overridden by clamp below)
     gridTemplateColumns: 'repeat(3, minmax(min(280px, 24vw), 1fr))',
-    gap: '1.5rem'
-  }
+    // Apply clamp for gap scaling from 1.5rem (at 1400px) to 2rem (at 2000px)
+    // Using the guide's example calculation
+    gap: 'clamp(1.5rem, calc(1.1rem + 0.8vw), 2rem)',
+  },
 });
 
-// Enhanced card style with fixed height to prevent layout shifts
+// Card styles
 const cardStyle = css({
   position: 'relative',
   backgroundColor: 'transparent',
-  borderRadius: '12px', // Slightly larger border radius for modern look
-  padding: '0.85rem 1rem',
-  overflow: 'visible', // Changed to visible to allow description to overflow without shifting layout
+  borderRadius: '12px', // Could scale slightly: clamp(12px, calc(...), 16px)
+  padding: '0.85rem 1rem', // Base padding
+  overflow: 'visible',
   display: 'flex',
   flexDirection: 'row',
   alignItems: 'center',
   justifyContent: 'flex-start',
-  minHeight: '54px',
-  height: '54px', // Fixed height to prevent layout shifts
+  minHeight: '54px', // Base height for smaller screens
+  height: '54px', // Base height for smaller screens
   textAlign: 'left',
   cursor: 'pointer',
-  // Removed transition here, will rely on motion component transitions
-  // transition: 'all 0.45s cubic-bezier(0.19, 1, 0.22, 1)',
   borderWidth: '0.1px',
   borderStyle: 'solid',
   borderColor: 'primary',
   boxShadow: 'rgba(0, 0, 0, 0.05) 0px 2px 6px 0px, rgba(27, 31, 35, 0.08) 0px 0px 0px 1px',
-  willChange: 'transform, opacity, box-shadow', // Added box-shadow
-  transform: 'translateZ(0)', // Force GPU rendering
-  backfaceVisibility: 'hidden', // Prevent flickering on some mobile browsers
-  transformOrigin: 'center center', // Ensure scaling happens from center
-
-  // Modified to have tab-like left border
-  borderLeftWidth: '4px',
-
-  // Focus styles
-  _focusVisible: {
-    outline: 'none',
-    boxShadow: '0 0 0 3px var(--colors-primary), 0 4px 8px rgba(0, 0, 0, 0.1)',
-    borderColor: 'text',
-    background: 'rgba(255, 255, 255, 0.07)'
-  },
+  willChange: 'transform, opacity, box-shadow',
+  transform: 'translateZ(0)',
+  backfaceVisibility: 'hidden',
+  transformOrigin: 'center center',
+  borderLeftWidth: '4px', // Base border
+  outline: 'none',
 
   '@media (min-width: 1400px)': {
-    padding: '0.9rem 1.25rem',
-    minHeight: '60px',
-    height: '60px', // Fixed height for larger screens
-  },
+    // Apply clamp *here* to override the base values for > 1400px
+    // Scale padding from 0.9rem 1.25rem (at 1400px) up to 1.1rem 1.5rem (at 2000px)
+    // Note: Padding scaling kept the same as before, adjust if needed.
+    padding: 'clamp(0.9rem, calc(0.6rem + 0.5vw), 1.1rem) clamp(1.25rem, calc(0.9rem + 0.6vw), 1.5rem)',
 
+    // *** UPDATED HEIGHT SCALING ***
+    // Scale height more aggressively: from 60px (at 1400px) up to 100px (at 2400px)
+    // New preferred value calc(4px + 4vw) achieves this range.
+    minHeight: 'clamp(60px, calc(4px + 4vw), 100px)',
+    height: 'clamp(60px, calc(4px + 4vw), 100px)',
+
+    // Scale border from 4px (at 1400px) up to 5px (at 2000px) - kept the same
+    borderLeftWidth: 'clamp(4px, calc(3px + 0.167vw), 5px)',
+  },
   '@media (max-width: 640px)': {
     padding: '0.75rem',
     minHeight: '50px',
-    height: '50px', // Fixed height for mobile
+    height: '50px',
     opacity: '1',
     borderWidth: '0.2px',
     borderLeftWidth: '4px',
     boxShadow: 'rgba(0, 0, 0, 0.05) 0px 1px 3px 0px',
-  }
+  },
 });
 
-// Enhanced solid card variant
+// Solid card variant styles - No scaling needed here
 const cardSolidStyle = css({
   background: 'backgroundAlt',
-  backdropFilter: 'blur(10px)', // Increased blur for more depth
+  backdropFilter: 'blur(10px)',
   boxShadow: '0 6px 22px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.08)',
 });
 
-// Enhanced golden tab style - more dynamic and interactive (with left offset)
+// Golden tab indicator styles - Scaling position/size
 const goldenTabStyle = css({
   position: 'absolute',
-  left: '10px', // Maintaining the original left offset as mentioned
-  top: '40%',
-  width: '4px', // Slightly thicker for better visibility
-  height: '20%',
+  left: '10px', // Base position
+  top: '40%', // Base position (percentage based, might not need scaling)
+  width: '4px', // Base width
+  height: '20%', // Base height (percentage based)
   background: 'primary',
-  borderTopRightRadius: '6px', // More rounded caps
-  borderBottomRightRadius: '6px',
-
-  // Enhanced properties
-  boxShadow: '0 0 6px 0 rgba(var(--colors-primary), 0.3)', // Stronger ambient glow
-  transition: 'all 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)', // Spring-like transition
-
-  // Pseudo-element for additional glow
+  borderTopRightRadius: '6px', // Optional scale
+  borderBottomRightRadius: '6px', // Optional scale
+  boxShadow: '0 0 6px 0 rgba(var(--colors-primary), 0.3)',
+  transition: 'all 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)',
   _before: {
     content: '""',
     position: 'absolute',
@@ -404,22 +693,33 @@ const goldenTabStyle = css({
     transition: 'opacity 0.5s ease',
   },
 
-  // Enhanced hover state
+  '@media (min-width: 1400px)': {
+    // Apply clamp for scaling above 1400px
+    // Scale left from 10px (at 1400px) to 15px (at 2000px)
+    // Using the guide's example calculation
+    left: 'clamp(10px, calc(5px + 0.83vw), 15px)',
+    // Scale width from 4px (at 1400px) to 5px (at 2000px)
+    // Using the guide's example calculation
+    width: 'clamp(4px, calc(3px + 0.167vw), 5px)',
+    // Note: Scaling % heights/tops with clamp based on vw is less direct.
+    // Keeping these percentage-based for now. Adjust if needed.
+  },
+
+  // Hover state - check if visual looks okay with scaling
   '[role="link"]:hover &, [role="button"]:hover &': {
     height: '70%',
     top: '15%',
-    boxShadow: '0 0 12px 3px rgba(var(--colors-primary), 0.4), 0 0 4px 1px rgba(var(--colors-primary), 0.6)', // Intensified glow
-
+    boxShadow: '0 0 12px 3px rgba(var(--colors-primary), 0.4), 0 0 4px 1px rgba(var(--colors-primary), 0.6)',
     _before: {
       opacity: '0.7',
-    }
-  }
+    },
+  },
 });
 
-// New tab glow container
+// Tab glow container styles - No direct scaling needed
 const tabGlowContainerStyle = css({
   position: 'absolute',
-  left: '0px', // Match the golden tab position
+  left: '0px',
   top: '0',
   borderRadius: '8px',
   width: '20px',
@@ -428,47 +728,54 @@ const tabGlowContainerStyle = css({
   zIndex: '0',
 });
 
-// Tab glow effect style
+// Tab glow effect styles - No direct scaling needed
 const tabGlowStyle = css({
   position: 'absolute',
   left: '-5px',
   top: '0',
   width: '10px',
   height: '100%',
-  background: 'var(--colors-primary)', // Solid color
+  background: 'var(--colors-primary)',
   filter: 'blur(8px)',
   opacity: '0.3',
   zIndex: '-1',
 });
 
-// Enhanced icon container style
+// Icon container styles
 const iconContainerStyle = css({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  width: '26px',
-  height: '26px',
-  marginRight: '0.8rem',
-  marginLeft: '1rem', // Slightly more margin for better spacing with enhanced tab
+  width: '26px', // Base size
+  height: '26px', // Base size
+  marginRight: '0.8rem', // Base margin
+  marginLeft: '1rem', // Base margin
   color: 'primary',
-  position: 'relative', // For positioning the glow effect
-  zIndex: '2', // Ensure it's above the glow
-
+  position: 'relative',
+  zIndex: '2',
   '& svg': {
     width: '100%',
-    height: '100%'
+    height: '100%',
   },
-
   '@media (min-width: 1400px)': {
-    width: '28px',
-    height: '28px'
-  }
+    // Apply clamp *here* for scaling > 1400px
+    // Scale size from 28px (at 1400px) up to 36px (at 2000px)
+    // Using the guide's example calculation
+    width: 'clamp(28px, calc(20px + 1.33vw), 36px)',
+    height: 'clamp(28px, calc(20px + 1.33vw), 36px)',
+    // Scale margin from 0.8rem (at 1400px) up to 1rem (at 2000px)
+    // Using the guide's example calculation
+    marginRight: 'clamp(0.8rem, calc(0.6rem + 0.33vw), 1rem)',
+    // Scale margin from 1rem (at 1400px) up to 1.2rem (at 2000px)
+    // Using the guide's example calculation
+    marginLeft: 'clamp(1rem, calc(0.8rem + 0.33vw), 1.2rem)',
+  },
 });
 
-// Completely redesigned glow effect with explicit positioning
+// Glow effect styles (for hover) - Check if blur/size needs adjustment
 const glowEffectStyle = css({
   position: 'absolute',
-  inset: '0', // Covers the entire card
+  inset: '0',
   width: '100%',
   height: '100%',
   display: 'flex',
@@ -479,29 +786,16 @@ const glowEffectStyle = css({
   '&::after': {
     content: '""',
     position: 'absolute',
-    width: '50%',
-    height: '50%',
+    width: '50%', // Percentage based, should adapt to icon size
+    height: '50%', // Percentage based, should adapt to icon size
     borderRadius: '50%',
-    filter: 'blur(20px)',
+    filter: 'blur(20px)', // Fixed blur, could be scaled if needed: clamp(20px, calc(...), 30px)
     background: 'currentColor',
     opacity: '0.4',
-  }
+  },
 });
 
-// Shine effect style - for the diagonal shine animation (fixed gradient)
-const shineEffectStyle = css({
-  position: 'absolute',
-  top: '-50%',
-  left: '-100%',
-  width: '60%',
-  height: '200%',
-  background: 'rgba(255, 255, 255, 0.1)', // Solid color instead of gradient
-  transform: 'rotate(25deg)', // Diagonal angle
-  zIndex: '1',
-  pointerEvents: 'none', // Ensure it doesn't interfere with interactions
-});
-
-// Text container style - modified to handle absolutely positioned description
+// Text container styles - No direct scaling needed
 const textContainerStyle = css({
   display: 'flex',
   flexDirection: 'column',
@@ -509,369 +803,263 @@ const textContainerStyle = css({
   justifyContent: 'center',
   zIndex: '2',
   position: 'relative',
-  overflow: 'visible', // Changed to visible to allow description to be visible outside container
-  width: '100%', // Ensure it takes full width for proper description positioning
+  overflow: 'visible',
+  width: '100%',
 });
 
-  // Enhanced label style - no spring physics for text
+// Label styles
 const labelStyle = css({
   fontFamily: 'var(--font-heading, "system-ui")',
+  // Base size uses clamp already
   fontSize: 'clamp(0.75rem, 0.7rem + 0.25vw, 0.9rem)',
   fontWeight: '300',
   textTransform: 'uppercase',
-  letterSpacing: '0.1em',
+  letterSpacing: '0.1em', // Could scale: clamp(0.1em, calc(...), 0.13em)
   color: 'text',
-  position: 'relative', // For the shine effect to be positioned relative to this
+  position: 'relative',
   zIndex: '2',
-  // No letter-spacing transition to avoid spring physics on text
-});
-
-// Enhanced description style - absolutely positioned to prevent layout shifts
-const descriptionStyle = css({
-  fontSize: 'clamp(0.65rem, 0.6rem + 0.25vw, 0.75rem)',
-  color: 'textMuted',
-  lineHeight: '1.4',
-  maxWidth: '95%', // Slightly wider
-  position: 'absolute', // Changed to absolute to prevent layout shifts
-  top: '100%',        // Position below the label
-  left: '0',
-  paddingTop: '0.3rem',
-  zIndex: '2',
-
-  '@media (max-width: 640px)': {
-    display: 'block',
+  '@media (min-width: 1400px)': {
+     // Apply extended clamp *here* for different scaling > 1400px
+     // Scale from 0.9rem (at 1400px) to 1.1rem (at 2000px)
+     // Using the guide's example calculation
+     fontSize: 'clamp(0.9rem, calc(0.7rem + 0.33vw), 1.1rem)',
+     // Optional: Scale letter spacing slightly
+     // letterSpacing: 'clamp(0.1em, calc(0.05em + 0.08vw), 0.13em)',
   }
 });
 
-// ==========================================================
-// TYPES & INTERFACES
-// ==========================================================
+// Description styles
+const descriptionStyle = css({
+  // Base size uses clamp
+  fontSize: 'clamp(0.65rem, 0.6rem + 0.25vw, 0.75rem)',
+  color: 'textMuted',
+  lineHeight: '1.4', // Keep line-height stable for readability
+  maxWidth: '95%',
+  position: 'absolute',
+  top: '100%', // Positioning might need slight adjustment if parent height scales a lot
+  left: '0',
+  paddingTop: '0.3rem', // Base padding
+  zIndex: '2',
+  '@media (min-width: 1400px)': {
+     // Apply extended clamp *here* for scaling > 1400px
+     // Scale from 0.75rem (at 1400px) to 0.9rem (at 2000px)
+     // Using the guide's example calculation
+     fontSize: 'clamp(0.75rem, calc(0.6rem + 0.25vw), 0.9rem)',
+     // Scale paddingTop from 0.3rem (at 1400px) to 0.4rem (at 2000px)
+     // Using the guide's example calculation
+     paddingTop: 'clamp(0.3rem, calc(0.2rem + 0.167vw), 0.4rem)',
+  },
+  '@media (max-width: 640px)': {
+    display: 'block',
+  },
+});
 
-/**
- * Navigation item interface
- */
-export interface NavigationItem {
-  id: string;
-  label: string;
-  href: string;
-  icon?: React.ReactNode;
-  description?: string;
-  color?: string;
-}
-
-/**
- * Props for the ItemNavigation component
- */
-export interface ItemNavigationProps {
-  items: NavigationItem[];
-  title?: string;
-  subtitle?: string;
-  columns?: number;
-  mobileColumns?: number;
-  tabletColumns?: number;
-  gapSize?: number;
-  initialAnimation?: boolean;
-  animationStagger?: number;
-  onItemClick?: (item: NavigationItem) => void;
-  className?: string;
-  showSubtitle?: boolean;
-  transparentCards?: boolean;
-  ariaLabel?: string;
-  reducedMotion?: boolean;
-  showDescriptions?: boolean; // New prop to control description visibility
-}
 
 // ==========================================================
-// CUSTOM HOOKS
+// TYPES & INTERFACES (No changes needed)
 // ==========================================================
 
-/**
- * Media query hook - reusable for any breakpoint
- * Returns whether the current viewport matches the provided query
- */
-const useMediaQuery = (query: string) => {
-  const [matches, setMatches] = useState(false);
+export interface NavigationItem { id: string; label: string; href: string; icon?: React.ReactNode; description?: string; color?: string; }
+export interface ItemNavigationProps { items: NavigationItem[]; title?: string; subtitle?: string; initialAnimation?: boolean; animationStagger?: number; onItemClick?: (item: NavigationItem) => void; className?: string; showSubtitle?: boolean; transparentCards?: boolean; ariaLabel?: string; reducedMotion?: boolean; showDescriptions?: boolean; }
 
-  useEffect(() => {
-    // Avoid referencing window during SSR
-    if (typeof window === 'undefined') return;
-
-    const media = window.matchMedia(query);
-    const updateMatch = () => setMatches(media.matches);
-
-    // Initial check
-    updateMatch();
-
-    // Add listener - using addEventListener for better compatibility
-    media.addEventListener('change', updateMatch);
-
-    // Cleanup
-    return () => media.removeEventListener('change', updateMatch);
-  }, [query]);
-
-  return matches;
-};
-
-/**
- * Mobile detection hook - properly placed within component structure
- * Detects if the current viewport is mobile sized
- */
-const useIsMobile = () => {
-  return useMediaQuery('(max-width: 768px)');
-};
-
-// ITEM COMPONENT - ENHANCED
+// ==========================================================
+// ITEM COMPONENT (No changes needed in component logic)
 // ==========================================================
 
 interface ItemProps {
-  item: NavigationItem;
-  onItemClick?: (item: NavigationItem) => void;
-  index: number;
-  animationStagger: number;
-  transparentCards: boolean;
-  isFocused?: boolean;
-  isMobile: boolean; // Add isMobile as a prop instead of using the hook
-  isScrolling: boolean; // Add scrolling state for mobile optimization
-  showDescriptions?: boolean; // New prop to control description visibility
+    item: NavigationItem;
+    onItemClick?: (item: NavigationItem) => void;
+    index: number;
+    animationStagger: number;
+    transparentCards: boolean;
+    isMobile: boolean;
+    isScrolling: boolean;
+    showDescriptions?: boolean;
+    tabIndex?: 0 | -1;
+    isFocused: boolean;
 }
 
-// Enhanced Item component with better animations and interactivity
-const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
+const Item = React.memo(React.forwardRef<HTMLDivElement, ItemProps>(({
   item,
   onItemClick,
   index,
   animationStagger,
   transparentCards,
-  isFocused,
-  isMobile, // Use the passed prop instead of the hook
+  isMobile,
   isScrolling,
-  showDescriptions // Added this prop to fix TypeScript error
+  showDescriptions,
+  tabIndex,
+  isFocused
 }, ref) => {
-  const [isHovered, setIsHovered] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
-  const itemRef = useRef<HTMLDivElement>(null);
+  // --- State and Refs ---
+  const itemHoverRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const isMobileViewport = useMediaQuery('(max-width: 640px)');
 
-  // Effect-based detection for touch devices - runs once on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const touchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      setIsTouchDevice(touchDevice);
-    }
-  }, []);
+  // --- Hooks ---
+  const { isHovered, mousePosition, eventHandlers } = useItemHoverEffects(
+      itemHoverRef,
+      { isMobile, isScrolling }
+  );
 
-  // Calculate staggered animation delay
+  // --- Memoized Calculations ---
+  // These calculations should adapt correctly as the base CSS sizes change
   const animationDelay = useMemo(() => {
-    // Reduce animation delay for mobile to prevent flickering during scrolling
-    return isMobile ? index * (animationStagger / 2) : index * animationStagger;
+      return isMobile ? index * (animationStagger / 2) : index * animationStagger;
   }, [index, animationStagger, isMobile]);
 
-  // Handle mouse movement for dynamic effects
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (isMobile || !itemRef.current) return; // Skip on mobile for better performance
+  // Note: These tabHeight/tabTop calculations are percentage-based and might need
+  // adjustment if the new card height scaling causes visual issues on hover.
+  const tabHeight = useMemo(() => {
+      if (!isHovered || isScrolling) return '20%';
+      if (isMobile) return '60%';
+      const baseHeight = 60;
+      const variableHeight = 10;
+      return `${baseHeight + (mousePosition.y * variableHeight)}%`;
+  }, [isHovered, mousePosition.y, isMobile, isScrolling]);
 
-    const rect = itemRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left; // x position within the element
-    const y = e.clientY - rect.top; // y position within the element
+  const tabTop = useMemo(() => {
+      if (!isHovered || isScrolling) return '40%';
+      if (isMobile) return '20%';
+      const position = Math.max(15, Math.min(85 - parseFloat(tabHeight), mousePosition.y * 100));
+      return `${position}%`;
+  }, [isHovered, mousePosition.y, tabHeight, isMobile, isScrolling]);
 
-    // Calculate normalized position (0 to 1)
-    const normalizedX = x / rect.width;
-    const normalizedY = y / rect.height;
+  const itemAnimateVariant = useMemo(() => {
+      return isMobile ? (isScrolling ? "staticMobile" : "visibleMobile") : "visible";
+  }, [isMobile, isScrolling]);
 
-    setMousePosition({ x: normalizedX, y: normalizedY });
+  const itemHoverVariant = useMemo(() => {
+      return isScrolling ? undefined : (isMobile ? "hoverMobile" : "hover");
+  }, [isMobile, isScrolling]);
+
+  // Container height is now controlled by clamp() in CSS, so this memo might be less critical
+  // but doesn't hurt to keep for potential JS logic based on mobile state.
+  const containerHeight = useMemo(() => {
+      return isMobile ? "50px" : "auto"; // Use 'auto' on desktop as CSS clamp controls it
   }, [isMobile]);
 
-  // Handle hover events - Disable hover effect if scrolling
-  const handleMouseEnter = useCallback(() => {
-    if (!isScrolling) { // Only set hover if not scrolling
-        setIsHovered(true);
-    }
-  }, [isScrolling]); // Depend on isScrolling
-
-  const handleMouseLeave = useCallback(() => {
-    setIsHovered(false);
-  }, []);
-
-  // If scrolling starts while hovered, explicitly exit hover state
-  useEffect(() => {
-      if (isScrolling) {
-          setIsHovered(false);
-      }
-  }, [isScrolling]);
-
-
-  // Handle item click
+  // --- Event Handlers ---
   const handleClick = useCallback(() => {
-    // Add a touch feedback for mobile
     if (isMobile) {
-      setIsHovered(true);
-      // Add a small delay for touch feedback
-      setTimeout(() => {
-        if (onItemClick) {
-          onItemClick(item);
-        } else if (item.href) {
-          router.push(item.href);
-        }
-        // Reset hover state after navigation
-        setTimeout(() => setIsHovered(false), 50); // Reduced timeout for mobile
-      }, 100); // Reduced timeout for mobile
-    } else {
-      if (onItemClick) {
-        onItemClick(item);
-      } else if (item.href) {
-        router.push(item.href);
+      if (itemHoverRef.current) {
+          itemHoverRef.current.style.transform = 'scale(0.98)';
+          setTimeout(() => { if(itemHoverRef.current) itemHoverRef.current.style.transform = ''; }, 100);
       }
+      setTimeout(() => {
+          if (onItemClick) onItemClick(item);
+          else if (item.href) router.push(item.href);
+      }, 100);
+    } else {
+      if (onItemClick) onItemClick(item);
+      else if (item.href) router.push(item.href);
     }
   }, [item, onItemClick, router, isMobile]);
 
-  // Calculate dynamic tab height based on mouse position
-  const tabHeight = useMemo(() => {
-    if (!isHovered || isScrolling) return '20%'; // Keep tab minimal if scrolling or not hovered
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+      }
+  };
 
-    // Simplified calculation for mobile
-    if (isMobile) return '60%';
-
-    // Make the tab height respond to mouse Y position - limited effect to preserve design
-    const baseHeight = 60; // Base height percentage
-    const variableHeight = 10; // Reduced additional height based on mouse position
-    return `${baseHeight + (mousePosition.y * variableHeight)}%`;
-  }, [isHovered, mousePosition.y, isMobile, isScrolling]); // Added isScrolling dependency
-
-  // Calculate dynamic tab position based on mouse position
-  const tabTop = useMemo(() => {
-    if (!isHovered || isScrolling) return '40%'; // Keep tab minimal if scrolling or not hovered
-
-    // Simplified calculation for mobile
-    if (isMobile) return '20%';
-
-    // Center the tab around the mouse Y position, with constraints
-    const position = Math.max(15, Math.min(85 - parseFloat(tabHeight), mousePosition.y * 100));
-    return `${position}%`;
-  }, [isHovered, mousePosition.y, tabHeight, isMobile, isScrolling]); // Added isScrolling dependency
-
-  // Determine the correct animation variant based on mobile and scrolling states
-  const itemAnimateVariant = useMemo(() => {
-    if (isMobile) {
-      return isScrolling ? "staticMobile" : "visibleMobile";
-    }
-    return "visible";
-  }, [isMobile, isScrolling]);
-
-  // Determine the correct hover variant, disabling hover during scroll
-  const itemHoverVariant = useMemo(() => {
-      if (isScrolling) return undefined; // No hover effect during scroll
-      return isMobile ? "hoverMobile" : "hover";
-  }, [isMobile, isScrolling]);
-  
-  // Set a fixed container height for layout stability
-  const containerHeight = useMemo(() => {
-    if (isMobile) {
-      return isMobileViewport ? "50px" : "54px";
-    }
-    return "54px";
-  }, [isMobile, isMobileViewport]);
-
-
+  // --- Render ---
   return (
+    // The motion.div itself doesn't need direct style changes for clamp,
+    // as the inner div with cardStyle handles the sizing.
+    // Setting height to 'auto' here allows the inner div's clamp() to dictate height.
     <motion.div
-      ref={ref as React.RefObject<HTMLDivElement>}
       variants={ANIMATIONS.item}
       initial="hidden"
-      animate={itemAnimateVariant} // Use memoized variant
-      whileHover={itemHoverVariant} // Use memoized variant (disables hover during scroll)
+      animate={itemAnimateVariant}
+      whileHover={itemHoverVariant}
       whileTap="tap"
       custom={animationDelay}
-      // Define default transition for the main item div
       transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1.0] }}
       style={{
-        // Hardware acceleration hints for smoother animation
         transform: "translateZ(0)",
         backfaceVisibility: "hidden",
-        transformOrigin: "center center", // Ensure scaling happens from center
-        // Fixed height container to prevent layout shifts
-        height: containerHeight,
-        margin: "0", // Prevent margin changes on hover
-        zIndex: isHovered ? "5" : "1" // Bring hovered items to front to prevent z-index issues with descriptions
+        transformOrigin: "center center",
+        height: "auto", // Let inner div control height
+        margin: "0",
+        zIndex: isHovered ? 5 : 1
       }}
+      layout // Keep layout animation enabled
     >
       <div
-        ref={itemRef}
+        ref={(node) => {
+            if (typeof ref === 'function') {
+                ref(node);
+            } else if (ref) {
+                ref.current = node;
+            }
+            itemHoverRef.current = node;
+        }}
         className={cx(
-          cardStyle,
-          !transparentCards && cardSolidStyle
+            cardStyle, // Base card styles (including updated clamp() for height)
+            !transparentCards && cardSolidStyle,
+            isFocused && focusRingStyles // Conditional focus styles
         )}
         style={{
-          borderColor: item.color || 'var(--colors-primary)',
-          borderLeftColor: item.color || 'var(--colors-primary)',
+            // Use item color for border, respects the scaled borderLeftWidth
+            borderColor: item.color || 'var(--colors-primary)',
+            borderLeftColor: item.color || 'var(--colors-primary)',
         }}
-        onMouseEnter={handleMouseEnter} // Updated handler
-        onMouseLeave={handleMouseLeave}
-        onMouseMove={handleMouseMove}
+        {...eventHandlers}
         onClick={handleClick}
-        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        tabIndex={tabIndex}
         role={item.href ? "link" : "button"}
         aria-label={item.label}
         aria-describedby={item.description ? `desc-${item.id}` : undefined}
-        onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleClick();
-          }
-        }}
       >
-        {/* Centered glow effect for the entire card - AnimatePresence always rendered */}
+        {/* Inner elements: Glow, Tab, Icon, Text */}
+        {/* These should position correctly within the scaled parent */}
         <AnimatePresence>
           {!isScrolling && isHovered && (
             <motion.div
-              className={glowEffectStyle}
+              className={glowEffectStyle} // Includes potentially scaled blur/size
               style={{ color: item.color || 'var(--colors-primary)' }}
               variants={ANIMATIONS.glow}
               initial="initial"
               animate="hover"
-              exit="exit" // Use the new exit animation variant
+              exit="exit"
               aria-hidden="true"
             />
           )}
         </AnimatePresence>
-        {/* No glow effect during scrolling */}
 
-        {/* Enhanced golden tab indicator - animation depends on hover state (which is disabled during scroll) */}
         <motion.div
-          className={goldenTabStyle}
+          className={goldenTabStyle} // Includes scaled left/width
           style={{
             background: item.color || 'var(--colors-primary)',
-            // Style directly depends on isHovered state, which is false during scroll
+            // Hover height/top are percentage-based, should adapt
             height: isHovered ? tabHeight : '20%',
             top: isHovered ? tabTop : '40%',
-            left: '10px', // Ensuring the left offset is applied here as well
+            // Left is now controlled by clamp() in CSS
           }}
           variants={ANIMATIONS.goldenTab}
           initial="initial"
-          animate={isHovered ? "hover" : "initial"} // Animation depends on hover state
+          animate={isHovered ? "hover" : "initial"}
           aria-hidden="true"
         />
 
-        {/* Tab glow effect - animation depends on hover state */}
         <div className={tabGlowContainerStyle} aria-hidden="true">
           <motion.div
             className={tabGlowStyle}
             style={{ background: item.color || 'var(--colors-primary)' }}
             variants={ANIMATIONS.tabGlow}
             initial="initial"
-            animate={isHovered ? "hover" : "initial"} // Animation depends on hover state
+            animate={isHovered ? "hover" : "initial"}
           />
         </div>
 
-        {/* Icon container - Explicitly control animation based on parent hover state */}
         {item.icon && (
           <motion.div
-            className={iconContainerStyle}
+            className={iconContainerStyle} // Includes scaled size/margins
             style={{ color: item.color || 'var(--colors-primary)' }}
             variants={ANIMATIONS.icon}
-            initial="initial" // Set initial state
-            animate={isHovered && !isScrolling ? "hover" : "initial"} // Animate to 'hover' only if parent is hovered AND not scrolling
+            initial="initial"
+            animate={isHovered && !isScrolling ? "hover" : "initial"}
             aria-hidden="true"
           >
             {item.icon}
@@ -879,67 +1067,49 @@ const Item = React.memo(React.forwardRef<HTMLElement, ItemProps>(({
         )}
 
         <div className={textContainerStyle}>
-          {/* Label - Explicitly control animation based on parent hover state */}
           <motion.div
-            className={labelStyle}
+            className={labelStyle} // Includes scaled font size
             style={{ color: item.color || 'var(--colors-text)' }}
             variants={ANIMATIONS.label}
-            initial="initial" // Set initial state
-            animate={isHovered && !isScrolling ? "hover" : "initial"} // Animate to 'hover' only if parent is hovered AND not scrolling
+            initial="initial"
+            animate={isHovered && !isScrolling ? "hover" : "initial"}
             id={`label-${item.id}`}
           >
             {item.label}
           </motion.div>
 
-          {/* Description - only render if:
-              1. Item has a description
-              2. NOT on mobile
-              3. NOT scrolling
-              4. Is hovered
-              5. showDescriptions prop is true */}
+          {/* Description appearance logic remains the same */}
+          {/* Ensure description position updates correctly if card height changes significantly */}
           {item.description && !isMobile && !isScrolling && isHovered && showDescriptions && (
             <AnimatePresence>
               <motion.div
-                className={descriptionStyle}
+                className={descriptionStyle} // Includes scaled font size / padding top
                 style={{ color: item.color ? `${item.color}99` : 'var(--colors-textMuted)' }}
                 id={`desc-${item.id}`}
                 variants={ANIMATIONS.description}
                 initial="initial"
-                animate={"hover"} // Animate only appears if isHovered is true
+                animate="hover"
                 exit="initial"
               >
                 {item.description}
               </motion.div>
             </AnimatePresence>
           )}
-          {/* No description during scrolling or if not hovered or if descriptions are disabled */}
         </div>
       </div>
     </motion.div>
   );
 }));
-
-// Set display name for forwardRef component
 Item.displayName = 'NavigationItem';
 
 // ==========================================================
-// MAIN COMPONENT
+// MAIN COMPONENT (No changes needed in component logic)
 // ==========================================================
 
-/**
- * Enhanced ItemNavigation Component
- *
- * A responsive grid-based navigation component with advanced animations
- * and interactive hover effects. Designed to provide a rich, engaging experience.
- */
 const ItemNavigation: React.FC<ItemNavigationProps> = ({
   items,
   title,
   subtitle,
-  columns = 3,
-  mobileColumns = 1,
-  tabletColumns = 2,
-  gapSize = 1.5,
   initialAnimation = true,
   animationStagger = 0.05,
   onItemClick,
@@ -948,212 +1118,95 @@ const ItemNavigation: React.FC<ItemNavigationProps> = ({
   transparentCards = true,
   ariaLabel,
   reducedMotion = false,
-  showDescriptions = false // Default is false - descriptions are disabled
+  showDescriptions = false
 }) => {
-  // useRef for accessing the container element DOM node
+  // --- HOOKS ---
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Refs to store navigation items for keyboard navigation
-  const itemRefs = useRef<Array<HTMLElement | null>>([]);
-
-  // State to track the currently focused item index
-  const [focusedIndex, setFocusedIndex] = useState<number>(-1);
-
-  // State to track if the items are currently being scrolled
-  const [isScrolling, setIsScrolling] = useState(false);
-
-  // Scroll timer ref to persist between renders and properly handle cleanup
-  const scrollTimerRef = useRef<number | null>(null);
-
-  // Detect if we're on mobile
+  const isScrolling = useScrollDetection(200);
   const isMobile = useIsMobile();
-
-  // State to track touch device status
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
-
-  // Framer Motion controls
   const gridControls = useAnimation();
 
-  // This effect runs on client-side only, ensuring proper hydration in Next.js
-  useEffect(() => {
-    // Initialize any client-side specific functionality
-    if (containerRef.current) {
-      // Ensure we have access to the DOM element
-      containerRef.current.dataset.hydrated = 'true';
+  const { focusedIndex, containerProps, getItemProps } = useKeyboardNavigation({
+    itemCount: items.length
+  });
 
-      // Initialize refs array with the correct length
-      itemRefs.current = itemRefs.current.slice(0, items.length);
+  useConditionalAnimation({
+      controls: gridControls,
+      initialAnimation: initialAnimation,
+      reducedMotionOverride: reducedMotion,
+      isEnabled: !isMobile,
+      variants: {
+          enabled: "visible",
+          disabled: "visibleMobile",
+          hidden: "hidden"
+      },
+      triggerDependency: isMobile,
+  });
 
-      // Check if current device is a touch device - done once in an effect
-      if (typeof window !== 'undefined') {
-        const touchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-        if (touchDevice) {
-          setIsTouchDevice(true);
-          containerRef.current.classList.add('touch-device');
-        }
-      }
-    }
-
-    // Check if user prefers reduced motion
-    const prefersReducedMotion = reducedMotion ||
-      (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-
-    // Start animation when component mounts, unless reduced motion is preferred
-    if (initialAnimation && !prefersReducedMotion) {
-      setTimeout(() => {
-        // Use different animation variant for mobile
-        gridControls.start(isMobile ? "visibleMobile" : "visible");
-      }, 100);
-    } else {
-      // If reduced motion is preferred, immediately show the content
-      gridControls.set(isMobile ? "visibleMobile" : "visible");
-    }
-
-    // Add resize event listener to handle orientation changes on mobile
-    const handleResize = () => {
-      if (initialAnimation && !prefersReducedMotion) {
-        // Reset animation on resize for smoother transitions
-        gridControls.set("hidden");
-        setTimeout(() => {
-          gridControls.start(isMobile ? "visibleMobile" : "visible");
-        }, 100);
-      }
-    };
-
-    // Add scroll event listener to detect scrolling with proper debouncing
-    const handleScroll = () => {
-      // Set scrolling state to true immediately if not already
-      // Use functional update to avoid stale state issues if events fire rapidly
-      setIsScrolling(prev => {
-          if (!prev) { // Only update if currently false
-              return true;
-          }
-          return prev; // Otherwise keep it true
-      });
-
-      // Clear any existing timeout to implement debouncing
-      if (scrollTimerRef.current !== null) {
-        window.clearTimeout(scrollTimerRef.current);
-      }
-
-      // Set new timeout to detect when scrolling stops
-      scrollTimerRef.current = window.setTimeout(() => {
-        setIsScrolling(false);
-        scrollTimerRef.current = null;
-      }, 200); // 200ms debounce timeout
-    };
-
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('scroll', handleScroll);
-
-      // Clear any pending timeout during cleanup
-      if (scrollTimerRef.current !== null) {
-        window.clearTimeout(scrollTimerRef.current);
-        scrollTimerRef.current = null;
-      }
-    };
-    // Ensure useEffect re-runs if key props change, including isMobile for animation target
-  }, [initialAnimation, gridControls, items.length, reducedMotion, isMobile]); // Removed isScrolling from here, handled internally now
-
-  // Handle keyboard navigation
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    const { key } = e;
-
-    // Skip if no items
-    if (items.length === 0) return;
-
-    switch (key) {
-      case 'ArrowRight':
-      case 'ArrowDown': {
-        e.preventDefault();
-        setFocusedIndex(prevIndex => {
-          const nextIndex = prevIndex < items.length - 1 ? prevIndex + 1 : 0;
-          itemRefs.current[nextIndex]?.focus();
-          return nextIndex;
-        });
-        break;
-      }
-      case 'ArrowLeft':
-      case 'ArrowUp': {
-        e.preventDefault();
-        setFocusedIndex(prevIndex => {
-          const nextIndex = prevIndex > 0 ? prevIndex - 1 : items.length - 1;
-          itemRefs.current[nextIndex]?.focus();
-          return nextIndex;
-        });
-        break;
-      }
-      case 'Home': {
-        e.preventDefault();
-        itemRefs.current[0]?.focus();
-        setFocusedIndex(0);
-        break;
-      }
-      case 'End': {
-        e.preventDefault();
-        itemRefs.current[items.length - 1]?.focus();
-        setFocusedIndex(items.length - 1);
-        break;
-      }
-    }
-  }, [items.length]);
-
-  // Memoize items array to prevent unnecessary re-renders
+  // --- STATE & MEMOIZATION ---
   const memoizedItems = useMemo(() => items, [items]);
 
+  // --- EFFECTS ---
+  useEffect(() => {
+    const handleResize = () => { /* Placeholder */ };
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  // --- RENDER ---
   return (
     <div
-      className={cx(containerStyle, className)}
+      className={cx(containerStyle, className)} // containerStyle now has no max-width clamp
       ref={containerRef}
-      onKeyDown={handleKeyDown}
+      {...containerProps}
       role="navigation"
       aria-label={ariaLabel || title || "Navigation Menu"}
     >
       {(title || (subtitle && showSubtitle)) && (
         <div className={titleContainerStyle}>
+           {/* Title/Subtitle styles now include adjusted clamp() */}
           {title && <h2 className={titleStyle} id="navigation-title">{title}</h2>}
-          {subtitle && showSubtitle && <p className={subtitleStyle} id="navigation-subtitle">{subtitle}</p>}
+          {subtitle && showSubtitle && <p className={subtitleStyle}>{subtitle}</p>} {/* Removed subtitle id */}
         </div>
       )}
 
       <motion.div
-        className={gridContainerStyle}
+        className={gridContainerStyle} // gridContainerStyle now includes clamp() for gap
         variants={ANIMATIONS.grid}
         initial={initialAnimation ? "hidden" : (isMobile ? "visibleMobile" : "visible")}
         animate={gridControls}
         aria-labelledby={title ? "navigation-title" : undefined}
-        aria-describedby={subtitle && showSubtitle ? "navigation-subtitle" : undefined}
+        // aria-describedby removed as subtitle id was removed
         style={{
-          // Add performance optimizations
-          willChange: "transform, opacity",
-          transform: "translateZ(0)",
-          backfaceVisibility: "hidden",
+            willChange: "transform, opacity",
+            transform: "translateZ(0)",
+            backfaceVisibility: "hidden"
         }}
       >
-        {memoizedItems.map((item, index) => (
-          <Item
-            key={item.id}
-            item={item}
-            onItemClick={onItemClick}
-            index={index}
-            animationStagger={isMobile ? animationStagger / 3 : animationStagger} // Reduced stagger for mobile
-            transparentCards={transparentCards}
-            isMobile={isMobile} // Pass the isMobile state from the hook
-            isScrolling={isScrolling} // Pass the scrolling state
-            ref={(el: HTMLElement | null) => {
-              // Store the element reference in the refs array
-              if (el) {
-                itemRefs.current[index] = el;
-              }
-            }}
-            isFocused={focusedIndex === index}
-            showDescriptions={showDescriptions} // Pass the showDescriptions prop to each Item
-          />
-        ))}
+        {memoizedItems.map((item, index) => {
+          const itemNavProps = getItemProps(index);
+          const isFocused = focusedIndex === index;
+          return (
+            // Item component receives same props, but its internal styles (cardStyle, etc.)
+            // will now apply the updated clamp() scaling based on viewport width.
+            <Item
+              key={item.id}
+              item={item}
+              onItemClick={onItemClick}
+              index={index}
+              isFocused={isFocused}
+              animationStagger={isMobile ? animationStagger / 3 : animationStagger}
+              transparentCards={transparentCards}
+              isMobile={isMobile}
+              isScrolling={isScrolling}
+              showDescriptions={showDescriptions}
+              ref={itemNavProps.ref}
+              tabIndex={itemNavProps.tabIndex}
+            />
+          );
+        })}
       </motion.div>
     </div>
   );

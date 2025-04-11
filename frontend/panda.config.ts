@@ -22,7 +22,7 @@ export default defineConfig({
   globalCss: {
   
     ":root": {
-      // Font variables
+      // Font variablesa
       "--fonts-loaded": "0",
       "--font-heading":
         "'haboro-soft-condensed-fallback', 'haboro-soft-condensed', 'Avenir Next', 'Avenir', sans-serif",
