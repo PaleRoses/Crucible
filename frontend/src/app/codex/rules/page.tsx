@@ -211,10 +211,6 @@ const RulesPage: NextPage = () => {
           items={ruleItems}
           title="Crescent Rules"
           subtitle="Comprehensive rules for the Crescent system"
-          columns={3}
-          mobileColumns={1}
-          tabletColumns={2}
-          gapSize={1}
           initialAnimation={true}
           animationStagger={0.05}
           showSubtitle={false}
