@@ -5,7 +5,6 @@ import { iconMapping } from './layoutdata/IconMappings';
 import { navItems } from './layoutdata/NavigationData';
 import { MoonIcon } from './layoutdata/IconComponents';
 import NavigationBar from '@/components/navbars/navigationbar/NavigationBar';
-import IntersectionObserverSpacer from '@/components/effects/utility/ScrollAwareNavBar'; // Import the spacer
 import { useSidebar } from '../../contexts/SideBarContext';
 
 type NavigationBarProps = {
@@ -69,12 +68,7 @@ const NavLayout: React.FC = () => {
   
   
   return (
-    <IntersectionObserverSpacer 
-      height={navHeightInPixels}
-      style={spacerCustomStyle} // Apply custom styles
-      preventAllScrolling={true} // Enable all anti-scrolling features
-      allowKeyboardNavigation={true} // Enable keyboard navigation
-    >
+
       <NavigationBarTyped
         items={currentNavItems}
         logo={<MoonIcon />}
@@ -89,7 +83,6 @@ const NavLayout: React.FC = () => {
         mobileBreakpoint={768}
         leftActionItems={renderSidebarToggle()}
       />
-    </IntersectionObserverSpacer>
   );
 };
 
