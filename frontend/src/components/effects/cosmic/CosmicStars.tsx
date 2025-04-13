@@ -237,7 +237,7 @@ const DEFAULT_CONFIG: StarConfig = {
   maxSimultaneousFading: 10,
   // Drifting
   driftEnabled: true,
-  driftSpeed: 0.1,
+  driftSpeed: 0.12,
   driftSpeedVariation: 0.005,
   directionChangeFrequency: 0.0005,
   directionChangeAmount: 0.05,

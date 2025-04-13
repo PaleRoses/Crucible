@@ -64,7 +64,6 @@ const NavLayout: React.FC = () => {
     msUserSelect: 'none',
     WebkitOverflowScrolling: 'auto', // Use valid value - normal scrolling
     WebkitTapHighlightColor: 'transparent', // Remove tap highlight on mobile
-    // We already HAVE Colors
     
   };
   
