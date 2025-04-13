@@ -7,7 +7,7 @@ import { ANIMATIONS, MOBILE_MENU_BUTTON_CLASS } from '../navbarhooks/navigation'
 import { getIconComponent } from '../navbarhooks/IconUtils'; // Adjusted path
 import * as MobileStyles from '../navbarstyles/MobileNavigation.styles'; // Adjusted path
 import { useModalBehavior } from '../navbarhooks/useModalBehavior'; // Adjusted path
-import MobileNavItemComponent from '../navbarcomponents/MobileNavItemComponent'; // Import sibling
+import MobileNavItemComponent from '@/components/navbars/navigationbar/navbarcomponents/MobileNavItemComponent'; // Import correct component
 
 interface MobileMenuComponentProps {
   isOpen: boolean;

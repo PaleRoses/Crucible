@@ -84,6 +84,7 @@ export default function MotivationsPage() {
         sections={motivationsItems}
         headerTitle={motivationsCardData.title}
         navTitle={motivationsCardData.title}
+        autoFocusContainerOnMount={true}
       />
     </div>
   );

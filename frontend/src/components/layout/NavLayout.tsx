@@ -1,13 +1,11 @@
 'use client';
 
 import React from 'react';
-// Import using barrel files for cleaner paths
 import { iconMapping } from './layoutdata/IconMappings';
 import { navItems } from './layoutdata/NavigationData';
 import { MoonIcon } from './layoutdata/IconComponents';
 import NavigationBar from '@/components/navbars/navigationbar/NavigationBar';
-import ScrollAwareSpacer from '@/components/effects/utility/ScrollAwareNavBar';
-// Import sidebar context hook
+import IntersectionObserverSpacer from '@/components/effects/utility/ScrollAwareNavBar'; // Import the spacer
 import { useSidebar } from '../../contexts/SideBarContext';
 
 type NavigationBarProps = {
@@ -26,20 +24,6 @@ type NavigationBarProps = {
 };
 
 const NavigationBarTyped = NavigationBar as React.FC<NavigationBarProps>;
-
-type ScrollAwareSpacerProps = {
-  height: number;
-  zIndex: number;
-  transitionDuration: number;
-  showOnScrollUp: boolean;
-  hideOnScrollDown: boolean;
-  shrinkOnScroll: boolean;
-  fadeOnScroll: boolean;
-  className?: string;
-  children: React.ReactNode;
-};
-
-const ScrollAwareSpacerTyped = ScrollAwareSpacer as React.FC<ScrollAwareSpacerProps>;
 
 /**
  * Navigation Layout component
@@ -64,32 +48,48 @@ const NavLayout: React.FC = () => {
     return null;
   };
 
+  // Calculate the height in pixels based on your NavigationBar height
+  const navHeightInPixels = 45; // Convert from "45px" to number 45
+
+  // Add theme colors to the style object
+  const spacerCustomStyle: React.CSSProperties = {
+    pointerEvents: 'auto', // Allow interaction with navigation elements
+    userSelect: 'none', // Prevent text selection
+    overflow: 'hidden', // Prevent scrolling
+    touchAction: 'none', // Prevent mobile scroll/zoom gestures
+    scrollbarWidth: 'none', // Hide scrollbars in Firefox
+    msOverflowStyle: 'none', // Hide scrollbars in IE/Edge
+    WebkitUserSelect: 'none', // Cross-browser user selection prevention
+    MozUserSelect: 'none',
+    msUserSelect: 'none',
+    WebkitOverflowScrolling: 'auto', // Use valid value - normal scrolling
+    WebkitTapHighlightColor: 'transparent', // Remove tap highlight on mobile
+    // Theme colors applied here for the component
+  };
+  
+  
   return (
-    <ScrollAwareSpacerTyped
-      height={0}
-      zIndex={100}
-      transitionDuration={0.25}
-      showOnScrollUp={true}
-      hideOnScrollDown={false}
-      shrinkOnScroll={false}
-      fadeOnScroll={false}
-      className="w-full px-0"
+    <IntersectionObserverSpacer 
+      height={navHeightInPixels}
+      style={spacerCustomStyle} // Apply custom styles
+      preventAllScrolling={true} // Enable all anti-scrolling features
+      allowKeyboardNavigation={true} // Enable keyboard navigation
     >
       <NavigationBarTyped
-        items={currentNavItems} // Use imported navItems
-        logo={<MoonIcon />} // Use imported MoonIcon
+        items={currentNavItems}
+        logo={<MoonIcon />}
         homeHref="/"
         ariaLabel="Main Navigation"
         showItemDescriptions={false}
-        iconMapping={currentIconMapping} // Use imported iconMapping
+        iconMapping={currentIconMapping}
         height="45px"
         submenuBehavior="hover"
         submenuCloseDelay={200}
-        hideOnScroll={false}
+        hideOnScroll={false} // Set to false since IntersectionObserverSpacer handles scroll behavior
         mobileBreakpoint={768}
-        leftActionItems={renderSidebarToggle()} // Add the sidebar toggle button here
+        leftActionItems={renderSidebarToggle()}
       />
-    </ScrollAwareSpacerTyped>
+    </IntersectionObserverSpacer>
   );
 };
 

@@ -1,336 +1,460 @@
 /**
- * @file ScrollAwareSpacer.tsx
- * @description A high-performance spacer component that handles scroll-aware behavior
- * for fixed elements like navigation bars while maintaining proper document flow.
- * 
- * This is not a navbar itself, but rather a wrapper that adds scroll behavior to any content
- * without affecting the visual styling.
- * 
- * @example
- * import { ScrollAwareSpacer } from './components/ScrollAwareSpacer';
- * import NavigationBar from './components/NavigationBar';
- * 
- * function App() {
- *   return (
- *     <>
- *       <ScrollAwareSpacer height={70}>
- *         <NavigationBar />
- *       </ScrollAwareSpacer>
- *       <main>Page content here</main>
- *     </>
- *   );
- * }
- * 
- * @param {Object} props - Component props
- * @param {React.ReactNode} props.children - React nodes to be rendered inside the spacer
- * @param {number} [props.height=64] - Height of the spacer in pixels
- * @param {number} [props.topOffset=0] - Distance from the top of the viewport
- * @param {number} [props.zIndex=1000] - Z-index of the spacer for stacking context
- * @param {number} [props.transitionDuration=0.3] - Duration of show/hide animations in seconds
- * @param {boolean} [props.showOnScrollUp=true] - Whether to show the spacer when scrolling up
- * @param {boolean} [props.hideOnScrollDown=true] - Whether to hide the spacer when scrolling down past threshold
- * @param {number} [props.threshold=100] - Scroll distance in pixels before animations fully apply
- * @param {boolean} [props.shrinkOnScroll=false] - Whether to slightly shrink the spacer on scroll (disabled by default)
- * @param {boolean} [props.fadeOnScroll=true] - Whether to slightly fade the spacer on scroll
- * @param {string} [props.className=''] - Additional class names for the spacer
- * @param {React.CSSProperties} [props.style={}] - Additional inline styles for the spacer
- * @param {string} [props.spacerClassName=''] - Additional class names for the spacer element
- * @param {React.CSSProperties} [props.spacerStyle={}] - Additional inline styles for the spacer element
- * @param {boolean} [props.disableOnMobile=true] - Whether to use simplified behavior on mobile devices
- * @param {number} [props.mobileBreakpoint=768] - Screen width threshold in pixels for mobile detection
+ * @file IntersectionObserverSpacer.tsx
+ * @description A modern, performant spacer component that uses IntersectionObserver
+ * for precise scroll detection with minimal DOM impact. Enhanced with comprehensive
+ * anti-scroll measures while preserving keyboard navigation.
  */
+import { useRef, useState, useEffect, useCallback } from 'react';
 
-import React, { useRef, useState, useMemo, memo, useEffect } from 'react';
-import { motion, useScroll, useTransform, useMotionValueEvent } from 'framer-motion';
-
-/**
- * Props interface for the ScrollAwareSpacer component
- */
-interface ScrollAwareSpacerProps {
+interface IntersectionObserverSpacerProps {
   /** React nodes to be rendered inside the spacer */
   children: React.ReactNode;
   
-  /** Height of the spacer in pixels */
+  /** Height of the spacer in pixels (default: 64) */
   height?: number;
   
-  /** Distance from the top of the viewport */
-  topOffset?: number;
-  
-  /** Z-index of the spacer for stacking context */
-  zIndex?: number;
-  
-  /** Duration of show/hide animations in seconds */
-  transitionDuration?: number;
-  
-  /** Whether to show the spacer when scrolling up */
-  showOnScrollUp?: boolean;
-  
-  /** Whether to hide the spacer when scrolling down past threshold */
-  hideOnScrollDown?: boolean;
-  
-  /** Scroll distance in pixels before animations fully apply */
-  threshold?: number;
-  
-  /** Whether to slightly shrink the spacer on scroll */
-  shrinkOnScroll?: boolean;
-  
-  /** Whether to slightly fade the spacer on scroll */
-  fadeOnScroll?: boolean;
-  
-  /** Additional class names for the spacer */
+  /** Additional class name for the container */
   className?: string;
   
-  /** Additional inline styles for the spacer */
+  /** Additional inline styles for the container */
   style?: React.CSSProperties;
   
-  /** Additional class names for the spacer element */
-  spacerClassName?: string;
+  /** Whether to apply extreme anti-scroll measures (default: true) */
+  preventAllScrolling?: boolean;
   
-  /** Additional inline styles for the spacer element */
-  spacerStyle?: React.CSSProperties;
-  
-  /** Whether to use simplified behavior on mobile devices */
-  disableOnMobile?: boolean;
-  
-  /** Screen width threshold in pixels for mobile detection */
-  mobileBreakpoint?: number;
+  /** Whether to allow keyboard navigation (default: true) */
+  allowKeyboardNavigation?: boolean;
 }
 
 /**
- * ScrollAwareSpacer component implementation
- * Memoized to prevent unnecessary re-renders
+ * IntersectionObserverSpacer Component
+ * Uses IntersectionObserver for precise scroll detection with
+ * comprehensive anti-scroll measures while preserving keyboard navigation
  */
-const ScrollAwareSpacer = memo((props: ScrollAwareSpacerProps) => {
-  const {
-    children,
-    height = 64,                              // Default height of 64px
-    topOffset = 0,                            // Default to top of viewport
-    zIndex = 1000,                            // High z-index to stay above content
-    transitionDuration = 0.3,                 // Animation speed in seconds
-    showOnScrollUp = true,                    // Show when scrolling up by default
-    hideOnScrollDown = true,                  // Hide when scrolling down by default
-    threshold = 100,                          // Scroll distance before animations fully apply
-    shrinkOnScroll = false,                   // Disable shrink effect by default
-    fadeOnScroll = true,                      // Enable fade effect by default
-    className = '',                           // Optional additional classes
-    style = {},                               // Optional additional styles
-    spacerClassName = '',                     // Optional spacer classes
-    spacerStyle = {},                         // Optional spacer styles
-    disableOnMobile = true,                   // Use simplified version on mobile by default
-    mobileBreakpoint = 768,                   // Default mobile breakpoint (tablets and smaller)
-  } = props;
+const IntersectionObserverSpacer = ({
+  children,
+  height = 64,
+  className = '',
+  style = {},
+  preventAllScrolling = true,
+  allowKeyboardNavigation = true, // New prop to control keyboard navigation
+}: IntersectionObserverSpacerProps) => {
+  // Reference to the sentinel element that will be observed
+  const sentinelRef = useRef<HTMLDivElement>(null);
   
-  // Base spacer styling (maintains document flow)
-  const defaultSpacerStyle: React.CSSProperties = {
+  // Reference to the container element
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // State to track if sentinel is intersecting viewport
+  const [isIntersecting, setIsIntersecting] = useState(true);
+  
+  // Prevent wheel events
+  const preventWheel = useCallback((e: WheelEvent) => {
+    if (preventAllScrolling) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, [preventAllScrolling]);
+  
+  // Prevent touch events
+  const preventTouch = useCallback((e: TouchEvent) => {
+    if (preventAllScrolling) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, [preventAllScrolling]);
+  
+  // Smart keyboard event handler that distinguishes between scrolling and UI navigation
+  const preventKeyScroll = useCallback((e: KeyboardEvent) => {
+    // Always allow Tab key for keyboard navigation
+    if (e.key === 'Tab') {
+      return; // Never interfere with Tab navigation
+    }
+    
+    if (preventAllScrolling) {
+      // Keys that can cause scrolling
+      const scrollKeys = [
+        'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+        'PageUp', 'PageDown', 'Home', 'End', 'Space'
+      ];
+      
+      // Skip handling for any key if the target is a special interactive element
+      const target = e.target as HTMLElement;
+      if (target) {
+        const tagName = target.tagName.toLowerCase();
+        const role = target.getAttribute('role');
+        
+        // Allow arrow keys for these interactive elements
+        const interactiveElements = [
+          'select', 'option', 'input', 'textarea', 'button', 'a',
+          // Also check for ARIA roles
+          'menuitem', 'menu', 'menubar', 'listbox', 'combobox', 'radio', 'tab'
+        ];
+        
+        // If the event target is an interactive element or has an interactive role, let it handle the key
+        if (interactiveElements.includes(tagName) || 
+            (role && interactiveElements.includes(role)) ||
+            target.hasAttribute('aria-haspopup') ||
+            target.hasAttribute('aria-expanded')) {
+          return; // Let the interactive element handle its own keyboard navigation
+        }
+      }
+      
+      // Only prevent default for keys that would cause scrolling when not in an interactive context
+      if (scrollKeys.includes(e.key) && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        // Don't use stopPropagation() to allow bubbling for UI navigation
+      }
+    }
+  }, [preventAllScrolling]);
+  
+  // Set up event listeners to prevent scrolling
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !preventAllScrolling) return;
+    
+    // Use passive: false to allow preventDefault
+    container.addEventListener('wheel', preventWheel as EventListener, { passive: false });
+    container.addEventListener('touchstart', preventTouch as EventListener, { passive: false });
+    container.addEventListener('touchmove', preventTouch as EventListener, { passive: false });
+    container.addEventListener('keydown', preventKeyScroll as EventListener);
+    
+    return () => {
+      container.removeEventListener('wheel', preventWheel as EventListener);
+      container.removeEventListener('touchstart', preventTouch as EventListener);
+      container.removeEventListener('touchmove', preventTouch as EventListener);
+      container.removeEventListener('keydown', preventKeyScroll as EventListener);
+    };
+  }, [preventWheel, preventTouch, preventKeyScroll, preventAllScrolling]);
+  
+  // Set up IntersectionObserver to detect when the sentinel leaves viewport
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || typeof IntersectionObserver === 'undefined') return;
+    
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsIntersecting(entry.isIntersecting);
+      },
+      {
+        // Start observing slightly before element enters viewport
+        rootMargin: '-1px 0px 0px 0px',
+        threshold: 0,
+      }
+    );
+    
+    observer.observe(sentinel);
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+  
+  // Create spacer style
+  const spacerStyle: React.CSSProperties = {
     height: `${height}px`,
     width: '100%',
-    marginBottom: '0px',
+    pointerEvents: 'none', // Ensures it doesn't interfere with mouse events
+    touchAction: 'none',
+    userSelect: 'none',
   };
   
-  // Merge default and custom spacer styles
-  const combinedSpacerStyle = { ...defaultSpacerStyle, ...spacerStyle };
-  
-  // State to track if the device is mobile
-  const [isMobile, setIsMobile] = useState<boolean>(false);
-  // State for visibility - used by both mobile and desktop
-  const [isVisible, setIsVisible] = useState<boolean>(true);
-  // Refs to track scroll position - used by both
-  const containerRef = useRef<HTMLDivElement>(null);
-  const prevScrollY = useRef<number>(0);
-  
-  // Effect to detect mobile devices on mount and window resize
-  useEffect(() => {
-    const checkIfMobile = () => {
-      if (typeof window !== 'undefined') {
-        setIsMobile(window.innerWidth < mobileBreakpoint);
-      }
-    };
-    
-    // Check initially
-    checkIfMobile();
-    
-    // Add resize listener if in browser
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', checkIfMobile);
-      
-      // Clean up
-      return () => {
-        window.removeEventListener('resize', checkIfMobile);
-      };
-    }
-  }, [mobileBreakpoint]);
-  
-  // Effect for handling scroll on mobile
-  useEffect(() => {
-    if (isMobile && disableOnMobile) {
-      const handleScroll = () => {
-        if (typeof window === 'undefined') return;
-        
-        const currentScrollY = window.scrollY;
-        
-        // Skip if direction-based visibility is disabled
-        if (!showOnScrollUp && !hideOnScrollDown) return;
-        
-        const direction = currentScrollY > prevScrollY.current ? "down" : "up";
-        
-        // Show when scrolling up if enabled
-        if (direction === "up" && showOnScrollUp) {
-          setIsVisible(true);
-        } 
-        // Hide when scrolling down past threshold if enabled
-        else if (direction === "down" && hideOnScrollDown && currentScrollY > threshold) {
-          setIsVisible(false);
-        }
-        
-        // Save current position for next comparison
-        prevScrollY.current = currentScrollY;
-      };
-      
-      window.addEventListener('scroll', handleScroll);
-      return () => {
-        window.removeEventListener('scroll', handleScroll);
-      };
-    }
-  }, [isMobile, disableOnMobile, showOnScrollUp, hideOnScrollDown, threshold]);
-  
-  // Get scroll information from Framer Motion - always call this hook
-  const { scrollY } = useScroll();
-  
-  // Create transforms based on scroll position - always call these hooks
-  const opacityScrollEffect = useTransform(scrollY, [0, threshold], [1, 0.85]);
-  const opacityNoEffect = useTransform(scrollY, [0, 1], [1, 1]);
-  const scaleScrollEffect = useTransform(scrollY, [0, threshold], [1, 0.97]);
-  const scaleNoEffect = useTransform(scrollY, [0, 1], [1, 1]);
-  
-  // Then use the values conditionally
-  const opacity = fadeOnScroll ? opacityScrollEffect : opacityNoEffect;
-  const scale = shrinkOnScroll ? scaleScrollEffect : scaleNoEffect;
-  
-  // Track scroll direction for showing/hiding behavior on desktop
-  useMotionValueEvent(scrollY, "change", (latest) => {
-    // Only apply this for desktop
-    if (isMobile && disableOnMobile) return;
-    
-    // Skip if direction-based visibility is disabled
-    if (!showOnScrollUp && !hideOnScrollDown) return;
-    
-    const previous = prevScrollY.current;
-    const direction = latest > previous ? "down" : "up";
-    
-    // Show when scrolling up if enabled
-    if (direction === "up" && showOnScrollUp) {
-      setIsVisible(true);
-    } 
-    // Hide when scrolling down past threshold if enabled
-    else if (direction === "down" && hideOnScrollDown && latest > threshold) {
-      setIsVisible(false);
-    }
-    
-    // Save current position for next comparison
-    prevScrollY.current = latest;
-  });
-  
-  // Memoized animation variants to prevent recalculation
-  const variants = useMemo(() => ({
-    visible: { 
-      y: 0,
-      transition: { duration: transitionDuration, ease: "easeOut" }
-    },
-    hidden: { 
-      y: -height - 20, // Move above viewport to ensure it's hidden
-      transition: { duration: transitionDuration, ease: "easeIn" }
-    }
-  }), [height, transitionDuration]);
-  
-  // Base container styling - designed for full-width navigation bars
-  const defaultContainerStyle: React.CSSProperties = {
-    position: 'fixed',
-    top: topOffset,
+  // Create container style - fixed when not intersecting
+  const containerStyle: React.CSSProperties = {
+    position: isIntersecting ? 'relative' : 'fixed',
+    top: 0,
     left: 0,
     width: '100%',
     height: `${height}px`,
-    padding: 0,
-    display: 'flex',
-    alignItems: 'center',
-    zIndex,
+    zIndex: 1000,
+    overflow: 'visible', // Ensure dropdowns can appear outside
+    pointerEvents: 'auto', // Allow interaction with the navigation
+    touchAction: 'none', // Prevent touch scrolling
+    userSelect: 'none', // Prevent text selection
+    scrollbarWidth: 'none', // Firefox
+    msOverflowStyle: 'none', // IE/Edge
+    WebkitOverflowScrolling: 'touch', // iOS momentum scrolling
+    WebkitUserSelect: 'none',
+    MozUserSelect: 'none',
+    msUserSelect: 'none',
+    ...style,
   };
   
-  // Conditionally add will-change property only for desktop
-  if (!isMobile || !disableOnMobile) {
-    defaultContainerStyle.willChange = 'transform, opacity';
-  }
-  
-  // Merge default and custom styles
-  const combinedContainerStyle = { ...defaultContainerStyle, ...style };
-  
-  // Render different versions based on device type
-  if (isMobile && disableOnMobile) {
-    // Mobile version with simplified behavior
-    return (
-      <>
-        {/* 
-          Invisible spacer div that maintains document flow
-          This ensures content below the spacer is properly pushed down
-        */}
-        <div 
-          className={`scroll-aware-spacer ${spacerClassName}`}
-          style={combinedSpacerStyle}
-        />
+  // Enhanced CSS styles for anti-scrolling while ensuring keyboard navigation works
+  useEffect(() => {
+    if (preventAllScrolling) {
+      // Apply a CSS class to handle additional anti-scroll styles
+      const styleEl = document.createElement('style');
+      
+      // Enhanced focus styles that ensure keyboard navigation works
+      styleEl.innerHTML = `
+        /* Base anti-scroll styles */
+        .anti-scroll-element {
+          -webkit-tap-highlight-color: transparent !important;
+        }
         
-        {/* 
-          Simple container with CSS transitions for mobile
-          This avoids performance-intensive Framer Motion animations
-        */}
-        <div
-          className={`scroll-aware-spacer-container ${className}`}
-          style={{
-            ...combinedContainerStyle,
-            top: isVisible ? topOffset : -height - 20,
-            transition: `top ${transitionDuration}s ease`,
-          }}
-        >
-          {children}
-        </div>
-      </>
-    );
-  }
+        /* Hide scrollbars */
+        .anti-scroll-element * {
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+        .anti-scroll-element *::-webkit-scrollbar {
+          display: none !important;
+          width: 0 !important;
+          height: 0 !important;
+        }
+        
+        /* Touch and selection prevention */
+        .anti-scroll-element * {
+          touch-action: none !important;
+          pointer-events: auto !important;
+          user-select: none !important;
+          -webkit-user-select: none !important;
+          -moz-user-select: none !important;
+          -ms-user-select: none !important;
+        }
+        
+        /* Ensure interactive elements can receive focus */
+        .anti-scroll-element a,
+        .anti-scroll-element button,
+        .anti-scroll-element [role="button"],
+        .anti-scroll-element [tabindex],
+        .anti-scroll-element input,
+        .anti-scroll-element select,
+        .anti-scroll-element textarea {
+          pointer-events: auto !important;
+          touch-action: auto !important; /* Allow tapping on interactive elements */
+        }
+        
+        /* Strong focus styles for keyboard navigation */
+        .anti-scroll-element a:focus-visible,
+        .anti-scroll-element button:focus-visible,
+        .anti-scroll-element [role="button"]:focus-visible,
+        .anti-scroll-element [tabindex]:focus-visible,
+        .anti-scroll-element input:focus-visible,
+        .anti-scroll-element select:focus-visible,
+        .anti-scroll-element textarea:focus-visible {
+          outline: 3px solid var(--color-primary) !important;
+          outline-offset: 2px !important;
+          box-shadow: 0 0 0 3px var(--color-glow) !important;
+          position: relative !important;
+          z-index: 1001 !important;
+        }
+        
+        /* Basic focus styles for all browsers */
+        .anti-scroll-element a:focus,
+        .anti-scroll-element button:focus,
+        .anti-scroll-element [role="button"]:focus,
+        .anti-scroll-element [tabindex]:focus,
+        .anti-scroll-element input:focus,
+        .anti-scroll-element select:focus,
+        .anti-scroll-element textarea:focus {
+          outline: 1px solid #4285f4 !important;
+        }
+        
+        /* Prevent text highlighting */
+        .anti-scroll-element *::selection {
+          background: transparent !important;
+          color: inherit !important;
+        }
+      `;
+      
+      document.head.appendChild(styleEl);
+      
+      return () => {
+        document.head.removeChild(styleEl);
+      };
+    }
+  }, [preventAllScrolling, allowKeyboardNavigation]);
   
-  // Desktop version with full animations
   return (
     <>
-      {/* 
-        Invisible spacer div that maintains document flow
-        This ensures content below the spacer is properly pushed down
-      */}
+      {/* Sentinel element that will be observed */}
       <div 
-        className={`scroll-aware-spacer ${spacerClassName}`}
-        style={combinedSpacerStyle}
+        ref={sentinelRef}
+        style={{
+          height: '1px',
+          width: '100%',
+          position: 'relative',
+          top: 0,
+          pointerEvents: 'none',
+          touchAction: 'none',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          MozUserSelect: 'none',
+          msUserSelect: 'none',
+          outline: 'none',
+        }}
+        aria-hidden="true"
+        tabIndex={-1}
+        onWheel={(e) => e.preventDefault()}
       />
       
-      {/* 
-        Motion-enhanced container with scroll effects
-        This is the visible element with all animations
+      {/*
+        Spacer div that maintains document flow
+        This ensures content below is properly positioned
       */}
-      <motion.div
+      {!isIntersecting && (
+        <div 
+          style={spacerStyle} 
+          aria-hidden="true" 
+          tabIndex={-1}
+          onWheel={(e) => e.preventDefault()}
+        />
+      )}
+      
+      {/*
+        Container for the navigation element
+        Position switches between relative and fixed based on scroll
+      */}
+      <div 
         ref={containerRef}
-        className={`scroll-aware-spacer-container ${className}`}
-        style={{
-          ...combinedContainerStyle,
-          opacity,
-          scale,
+        className={`intersection-spacer-container ${className} ${preventAllScrolling ? 'anti-scroll-element' : ''}`}
+        style={containerStyle}
+        // Remove tabIndex={-1} to allow tab navigation to child elements
+        aria-hidden="false" // Allow screen readers to access the navigation
+        // React synthetic event handlers for mouse/touch
+        onScroll={(e) => {
+          if (preventAllScrolling) {
+            e.preventDefault();
+            e.stopPropagation();
+            // Force scroll position to 0
+            if (e.currentTarget) {
+              e.currentTarget.scrollTop = 0;
+              e.currentTarget.scrollLeft = 0;
+            }
+          }
         }}
-        initial="visible"
-        animate={isVisible ? "visible" : "hidden"}
-        variants={variants}
-        transition={{ duration: transitionDuration }}
+        onClick={(e) => {
+          // Prevent double-click selection
+          if (preventAllScrolling && e.detail > 1) {
+            e.preventDefault();
+          }
+        }}
+        // Prevent selection
+        onMouseDown={(e) => {
+          if (preventAllScrolling) {
+            // Only prevent default if this is a selection attempt
+            if (e.detail > 1 || e.button === 0) {
+              e.preventDefault();
+            }
+          }
+        }}
+        // Only prevent focus if keyboard navigation is disabled
+        onFocus={(e) => {
+          // Check if the focused element is the container itself, not its children
+          if (preventAllScrolling && !allowKeyboardNavigation && e.target === e.currentTarget) {
+            e.currentTarget.blur();
+          }
+        }}
       >
         {children}
-      </motion.div>
+      </div>
     </>
   );
-});
+};
 
-// Display name for React DevTools
-ScrollAwareSpacer.displayName = 'ScrollAwareSpacer';
+// Smart document-level event listeners that preserve UI navigation
+const setupDocumentEventListeners = () => {
+  if (typeof window === 'undefined') return;
 
-export default ScrollAwareSpacer;
+  // Track mouse state for selection prevention
+  let isMouseDown = false;
+  
+  // Detect all scrolling attempts within the document and prevent them if they target our component
+  document.addEventListener('wheel', (e) => {
+    const target = e.target as HTMLElement;
+    if (target?.closest?.('.anti-scroll-element')) {
+      e.preventDefault();
+      return false;
+    }
+  }, { passive: false, capture: true });
+  
+  // Track mouse down to prevent selection
+  document.addEventListener('mousedown', (e) => {
+    const target = e.target as HTMLElement;
+    if (target?.closest?.('.anti-scroll-element')) {
+      isMouseDown = true;
+    }
+  }, { capture: true });
+  
+  // Prevent selection on mousemove after mousedown
+  document.addEventListener('mousemove', (e) => {
+    if (isMouseDown) {
+      const target = e.target as HTMLElement;
+      if (target?.closest?.('.anti-scroll-element')) {
+        e.preventDefault();
+        // Cancel any ongoing selection
+        if (window.getSelection) {
+          const selection = window.getSelection();
+          if (selection) {
+            selection.removeAllRanges();
+          }
+        }
+      }
+    }
+  }, { passive: false, capture: true });
+  
+  // Reset mouse state
+  document.addEventListener('mouseup', () => {
+    isMouseDown = false;
+  }, { capture: true });
+  
+  // Sophisticated keyboard event handler that preserves UI navigation
+  document.addEventListener('keydown', (e) => {
+    // Never interfere with Tab navigation
+    if (e.key === 'Tab') {
+      return true;
+    }
+    
+    const target = e.target as HTMLElement;
+    if (target?.closest?.('.anti-scroll-element')) {
+      // Check if target is an interactive element or has an interactive role
+      const tagName = target.tagName.toLowerCase();
+      const role = target.getAttribute('role');
+      
+      // List of elements and roles that should handle their own keyboard navigation
+      const interactiveElements = [
+        'select', 'option', 'input', 'textarea', 'button', 'a', 
+        'menuitem', 'menu', 'menubar', 'listbox', 'combobox', 'radio', 'tab'
+      ];
+      
+      // If this is an interactive element, let it handle its own keyboard events
+      if (interactiveElements.includes(tagName) || 
+          (role && interactiveElements.includes(role)) ||
+          target.hasAttribute('aria-haspopup') ||
+          target.hasAttribute('aria-expanded') ||
+          target.getAttribute('contenteditable') === 'true') {
+        
+        // Allow all keyboard navigation for interactive elements
+        return true;
+      }
+      
+      // For non-interactive elements, prevent scrolling keys
+      if (!e.altKey && !e.ctrlKey && !e.metaKey) {
+        const scrollKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 
+                           'PageUp', 'PageDown', 'Home', 'End', 'Space'];
+        if (scrollKeys.includes(e.key)) {
+          e.preventDefault();
+          return false;
+        }
+      }
+      
+      // Prevent text selection with Shift+Arrow keys
+      if (e.shiftKey && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+        return false;
+      }
+    }
+    
+    return true;
+  }, { passive: false, capture: true });
+};
+
+// Set up the document-level event listeners
+if (typeof window !== 'undefined') {
+  // Initialize once
+  setupDocumentEventListeners();
+}
+
+export default IntersectionObserverSpacer;
