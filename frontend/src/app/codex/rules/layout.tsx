@@ -61,8 +61,8 @@ export default function Layout({
         externalToggleRef={sidebarToggleRef}  // Use our local ref that connects to the context
         pushContent={true}
         contentSelector="#main-content"
-        expandedWidth="240px"
-        collapsedWidth="64px"
+        expandedWidth="180px"
+        collapsedWidth="45px"
       />
       
       {/* Main Content Area */}

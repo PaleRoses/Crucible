@@ -26,10 +26,10 @@ const sidebarItems: SidebarItems = [
     items: [
       { label: 'Motivations', href: '/codex/rules/motivations' },
       { label: 'Actions', href: '/codex/rules/actions' },
-      { label: 'Harm', href: '/codex/harm' },
-      { label: 'Equipment', href: '/codex/equipment' },
-      { label: 'Moves', href: '/codex/moves' },
-      { label: 'Experience', href: '/codex/experience' },
+      { label: 'Harm', href: '/codex/rules/harm' },
+      { label: 'Equipment', href: '/codex/rules/equipment' },
+      { label: 'Moves', href: '/codex/rules/moves' },
+      { label: 'Experience', href: '/codex/rules/experience' },
     ]
   },
   {

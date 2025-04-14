@@ -1162,6 +1162,8 @@ export const headerStyles = css({
 
 // Default layout for header content (if not using custom `headerContent`)
 export const headerContentContainerStyles = css({
+  paddingTop: '5rem', // Padding for top spacing
+
   display: 'flex',
   justifyContent: 'space-between', // Space out title and right content
   alignItems: 'left', // Align items to the left (per example)
@@ -1285,9 +1287,9 @@ export const contentColumnStyles = css({
 // --- Desktop Navigation Styles ---
 // Wrapper for the desktop sidebar navigation
 export const navWrapperStyles = css({
+  paddingTop: '5rem',
   display: { base: 'none', md: 'block' }, // Only show on medium screens and up
   width: { md: '64' }, // Fixed width on desktop (using theme spacing token)
-  borderLeft: '1px solid', // Separator line on the left
   borderColor: 'border',
   bg: 'background',
   order: 2, // Place it after content in the flex row
@@ -1483,7 +1485,6 @@ export const headerTextStyles = css({ // Text/Quote type
   p: '4',
   fontStyle: 'italic',
   color: 'text',
-  borderLeft: '4px solid', // Accent border on the left
   borderColor: 'primary',
   bg: 'background', // Use slightly different bg if needed, e.g., 'blue.50'
 });
