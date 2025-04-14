@@ -46,6 +46,24 @@ interface IndicatorStyle {
 // --- ANIMATION VARIANTS ---
 
 const ANIMATIONS = {
+  // Mobile-specific animations
+  mobile: {
+    content: {
+      hidden: { opacity: 0, x: 20 },
+      visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: [0.25, 0.1, 0.25, 1.0] } },
+      exit: { opacity: 0, x: -20, transition: { duration: 0.2, ease: [0.25, 0.1, 0.25, 1.0] } }
+    },
+    list: {
+      hidden: { opacity: 0 },
+      visible: { opacity: 1, transition: { staggerChildren: 0.05, duration: 0.3, ease: [0.25, 0.1, 0.25, 1.0] } },
+      exit: { opacity: 0, transition: { duration: 0.2, ease: [0.25, 0.1, 0.25, 1.0] } }
+    },
+    backButton: {
+      hidden: { opacity: 0, x: -10 },
+      visible: { opacity: 1, x: 0, transition: { duration: 0.2, ease: [0.25, 0.1, 0.25, 1.0] } },
+      exit: { opacity: 0, x: -10, transition: { duration: 0.15, ease: [0.25, 0.1, 0.25, 1.0] } }
+    }
+  },
   drawer: {
     hidden: { opacity: 0, x: -20 },
     visible: { opacity: 1, x: 0, transition: { duration: 0.3, ease: [0.25, 0.1, 0.25, 1.0] } },
@@ -95,6 +113,40 @@ const containerStyle = css({
   background: 'var(--colors-background)',
   position: 'relative',
   boxSizing: 'border-box', // Ensure consistent box model
+});
+
+// Top Bar styles (mobile primary navigation)
+const topBarStyle = css({
+  width: '100%',
+  height: '60px',
+  display: { base: 'flex', md: 'none' }, // Only show on mobile
+  alignItems: 'center',
+  padding: '0 0.5rem',
+  borderBottom: '1px solid',
+  borderColor: 'var(--colors-border)',
+  background: 'var(--colors-background)',
+  overflowX: 'auto',
+  overflowY: 'hidden',
+  position: 'relative',
+  zIndex: 2,
+  flexShrink: 0,
+  '&::-webkit-scrollbar': { height: '4px' },
+  '&::-webkit-scrollbar-track': { background: 'transparent' },
+  '&::-webkit-scrollbar-thumb': { background: 'var(--colors-border)', borderRadius: '4px' },
+  '&::-webkit-scrollbar-thumb:hover': { background: 'var(--colors-primary)' },
+  // Add smooth scrolling behavior
+  scrollBehavior: 'smooth',
+  WebkitOverflowScrolling: 'touch', // iOS momentum scrolling
+});
+
+// Mobile main content area styles
+const mainContentAreaStyle = css({
+  display: { base: 'flex', md: 'none' }, // Only show on mobile
+  flexDirection: 'column',
+  flexGrow: 1,
+  height: 'calc(100% - 60px)', // Full height minus top bar
+  overflow: 'hidden',
+  position: 'relative',
 });
 
 // Main header styles
@@ -418,6 +470,65 @@ const markStyle = css({
   fontWeight: '200', // Slightly higher weight for highlighted text to ensure readability
 });
 
+// Mobile primary nav item styles
+const topNavItemStyle = css({
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '6px 12px',
+  margin: '0 4px',
+  whiteSpace: 'nowrap',
+  borderRadius: 'md',
+  color: 'var(--colors-textMuted)',
+  fontFamily: 'heading',
+  fontWeight: '100',
+  cursor: 'pointer',
+  transitionProperty: 'color, background-color, transform',
+  transitionDuration: 'fast',
+  transitionTimingFunction: 'ease-in-out',
+  _active: { // For touch devices
+    backgroundColor: 'var(--colors-glow)',
+    transform: 'scale(0.98)',
+  },
+});
+
+// Mobile primary nav active item styles
+const topNavActiveItemStyle = css({
+  color: 'var(--colors-primary)',
+  fontWeight: '200',
+  borderBottom: '2px solid',
+  borderColor: 'var(--colors-primary)',
+});
+
+// Mobile back button styles
+const mobileBackButtonStyle = css({
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingLeft: '8px',
+  paddingRight: '12px',
+  marginRight: '8px',
+  height: '36px',
+  borderRadius: 'md',
+  background: 'none',
+  border: '1px solid',
+  borderColor: 'var(--colors-border)',
+  color: 'var(--colors-text)',
+  fontSize: 'sm',
+  fontFamily: 'heading',
+  fontWeight: '100',
+  cursor: 'pointer',
+  transitionProperty: 'color, background-color, border-color, box-shadow',
+  transitionDuration: 'fast',
+  transitionTimingFunction: 'ease-in-out',
+  _active: { // For touch devices
+    backgroundColor: 'var(--colors-glow)',
+    borderColor: 'var(--colors-primary)',
+    color: 'var(--colors-primary)',
+    transform: 'scale(0.98)',
+  },
+});
+
 // Content title styles
 const contentTitleStyle = css({
   fontSize: { base: 'xl', md: '2xl' },
@@ -499,15 +610,27 @@ function useDrawerLayout(initialMode: 'split' | 'focus' = 'split') {
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
   const layoutControls: AnimationControls = useAnimation();
 
-  const toggleLayoutMode = useCallback((mode?: 'split' | 'focus') => {
+  const toggleLayoutMode = useCallback((mode?: 'split' | 'focus', onModeChange?: () => void) => {
     setIsAnimating(true);
+    
+    // Determine if the mode is actually changing
+    const newMode = mode || (layoutMode === 'split' ? 'focus' : 'split');
+    const isChanging = newMode !== layoutMode;
+    
+    // Set the new mode
     if (mode && (mode === 'split' || mode === 'focus')) {
       setLayoutMode(mode);
     } else {
       setLayoutMode(prev => prev === 'split' ? 'focus' : 'split');
     }
+    
+    // Execute callback if provided and the mode is actually changing
+    if (isChanging && onModeChange) {
+      onModeChange();
+    }
+    
     setTimeout(() => setIsAnimating(false), 300);
-  }, []);
+  }, [layoutMode]);
 
   const isSplitView = layoutMode === 'split';
   const isFocusView = layoutMode === 'focus';
@@ -963,6 +1086,18 @@ function useDrawerInterface(
   ]);
 
 
+  // --- Connect Layout Toggle with Navigation State ---
+  // Create enhanced toggleLayoutMode that resets secondary selection
+  const enhancedToggleLayoutMode = useCallback((mode?: 'split' | 'focus') => {
+    // Use the updated toggleLayoutMode that supports a callback
+    layout.toggleLayoutMode(mode, () => {
+      // When layout mode changes, reset secondary selection to prevent render issues
+      if (navigation.activeSecondaryItem !== null) {
+        navigation.selectSecondaryItem(null);
+      }
+    });
+  }, [layout.toggleLayoutMode, navigation.activeSecondaryItem, navigation.selectSecondaryItem]);
+
   // --- Return combined API for the component ---
   // Consolidate state, setters, refs, and derived values into a single object
   return {
@@ -975,7 +1110,8 @@ function useDrawerInterface(
     secondaryRefs, // Expose the mutable ref object for item elements
     filteredSecondaryItems, // Expose derived filtered list
     showSecondaryDrawer, // Expose derived boolean flag
-    selectedItemContent // Expose derived content object
+    selectedItemContent, // Expose derived content object
+    toggleLayoutMode: enhancedToggleLayoutMode, // Override with enhanced version
   };
 }
 
@@ -992,6 +1128,72 @@ interface DrawerInterfaceProps {
   title?: string; // Optional title for the interface
 }
 
+/**
+ * PrimaryTopNavItems Component
+ * Renders a horizontal scrolling list of primary items for mobile view
+ */
+function PrimaryTopNavItems({
+  items,
+  activePrimaryItem,
+  selectPrimaryItem,
+  highlightText
+}: {
+  items: PrimaryItem[];
+  activePrimaryItem: string | null;
+  selectPrimaryItem: (id: string) => void;
+  highlightText: (text: string) => React.ReactNode;
+}) {
+  // Ref for scrolling container to auto-scroll to active item
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const activeItemRef = useRef<HTMLDivElement>(null);
+
+  // Effect to scroll to active item when it changes
+  useEffect(() => {
+    if (scrollContainerRef.current && activeItemRef.current && activePrimaryItem) {
+      const container = scrollContainerRef.current;
+      const activeItem = activeItemRef.current;
+      
+      // Calculate the position to scroll the active item to the center
+      const containerWidth = container.offsetWidth;
+      const itemLeft = activeItem.offsetLeft;
+      const itemWidth = activeItem.offsetWidth;
+      const scrollPosition = itemLeft - (containerWidth / 2) + (itemWidth / 2);
+      
+      // Smooth scroll to position
+      container.scrollTo({
+        left: Math.max(0, scrollPosition),
+        behavior: 'smooth'
+      });
+    }
+  }, [activePrimaryItem]);
+
+  return (
+    <div ref={scrollContainerRef} className={topBarStyle}>
+      {items.map((item, index) => {
+        const isActive = item.id === activePrimaryItem;
+        return (
+          <motion.div
+            key={item.id}
+            ref={isActive ? activeItemRef : null}
+            className={cx(
+              topNavItemStyle,
+              isActive && topNavActiveItemStyle
+            )}
+            onClick={() => selectPrimaryItem(item.id)}
+            variants={ANIMATIONS.item}
+            initial="hidden"
+            animate="visible"
+            custom={index}
+            whileTap="tap"
+          >
+            {highlightText(item.name)}
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
 // Default export of the main component
 export default function DrawerInterface({
   primaryItems,
@@ -1001,6 +1203,9 @@ export default function DrawerInterface({
 }: DrawerInterfaceProps) {
   // Use the main hook to get all state, setters, and derived values
   const drawer = useDrawerInterface(primaryItems, secondaryItemDetails, initialMode);
+  
+  // State to track if we're on a mobile screen
+  const [isMobile, setIsMobile] = useState(false);
 
   // Hook to track current screen size for responsive animations/styles
   const useScreenSize = () => {
@@ -1008,9 +1213,18 @@ export default function DrawerInterface({
     useEffect(() => {
       const checkSize = () => {
         // Update screen size based on window width breakpoints
-        if (window.innerWidth < 768) setScreenSize('base'); // Small
-        else if (window.innerWidth < 1024) setScreenSize('md'); // Medium
-        else setScreenSize('lg'); // Large
+        if (window.innerWidth < 768) {
+          setScreenSize('base'); // Small
+          setIsMobile(true);
+        }
+        else if (window.innerWidth < 1024) {
+          setScreenSize('md'); // Medium
+          setIsMobile(false);
+        }
+        else {
+          setScreenSize('lg'); // Large
+          setIsMobile(false);
+        }
       };
       checkSize(); // Check on initial mount
       window.addEventListener('resize', checkSize); // Re-check on resize
@@ -1030,6 +1244,23 @@ export default function DrawerInterface({
   }, []); // Run only once on mount
 
   // --- Render Functions ---
+
+  // Renders an initial placeholder for mobile view
+  const renderInitialPlaceholder = () => {
+    return (
+      <motion.div
+        key="initial-placeholder"
+        className={placeholderStyle}
+        variants={ANIMATIONS.mobile.content}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+      >
+        <h2>Select a Category</h2>
+        <p>Choose a category from the top bar to view available items.</p>
+      </motion.div>
+    );
+  };
 
   // Renders the list of primary items in the primary drawer
   const renderPrimaryItems = () => {
@@ -1115,13 +1346,13 @@ export default function DrawerInterface({
     });
   };
 
-  // Renders the list of secondary items within the main content area (Focus Mode)
+  // Renders the list of secondary items within the main content area (Focus Mode or Mobile view)
   const renderSecondaryItemsInContent = () => {
     return (
       <motion.div
         // Key ensures re-animation if the primary item (and thus the list) changes
         key={`focus-list-${drawer.activePrimaryItem}`}
-        variants={ANIMATIONS.content} // Use content animation
+        variants={isMobile ? ANIMATIONS.mobile.content : ANIMATIONS.content} // Use mobile or desktop animations
         initial="hidden"
         animate="visible"
         exit="exit"
@@ -1134,7 +1365,11 @@ export default function DrawerInterface({
         {/* Check if there are items to display */}
         {drawer.filteredSecondaryItems.length > 0 ? (
           // Render the list if items exist
-          <div role="list" aria-label={`Items in ${drawer.activePrimaryData?.name || 'selected category'}`}>
+          <motion.div 
+            role="list" 
+            aria-label={`Items in ${drawer.activePrimaryData?.name || 'selected category'}`}
+            variants={isMobile ? ANIMATIONS.mobile.list : undefined} // Apply list animation only on mobile
+          >
             {drawer.filteredSecondaryItems.map((item: SecondaryItem, index: number) => (
               <motion.div
                 key={item.id}
@@ -1142,7 +1377,7 @@ export default function DrawerInterface({
                 initial="hidden"
                 animate="visible"
                 custom={index}
-                whileHover="hover"
+                whileHover={!isMobile ? "hover" : undefined} // Only apply hover on non-mobile
                 whileTap="tap"
                 layout
                 role="listitem"
@@ -1153,7 +1388,17 @@ export default function DrawerInterface({
                      if (el) drawer.secondaryRefs.current[item.id] = el;
                      else delete drawer.secondaryRefs.current[item.id];
                   }}
-                  className={itemStyle} // Use base item style, no active style visually needed here
+                  className={cx(
+                    itemStyle, 
+                    isMobile && css({ // Add mobile-specific styling
+                      padding: '12px 16px',
+                      margin: '8px 0',
+                      borderRadius: 'md',
+                      backgroundColor: 'var(--colors-background)',
+                      border: '1px solid var(--colors-border)',
+                      fontSize: { base: 'md' }
+                    })
+                  )}
                   onClick={() => drawer.selectSecondaryItem(item.id)} // Select on click
                   onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
                       // Select on Enter or Space
@@ -1171,7 +1416,7 @@ export default function DrawerInterface({
                 </div>
               </motion.div>
             ))}
-          </div>
+          </motion.div>
         ) : (
           // Show placeholder if no items are found (e.g., due to search)
           <div className={placeholderStyle}>
@@ -1190,7 +1435,7 @@ export default function DrawerInterface({
         <motion.div
           key="placeholder-select" // Key for AnimatePresence
           className={placeholderStyle}
-          variants={ANIMATIONS.content}
+          variants={isMobile ? ANIMATIONS.mobile.content : ANIMATIONS.content}
           initial="hidden"
           animate="visible"
           exit="exit"
@@ -1208,39 +1453,56 @@ export default function DrawerInterface({
         <motion.div
           // Key ensures re-animation when content changes
           key={`content-${drawer.activeSecondaryItem}`}
-          variants={ANIMATIONS.content}
+          variants={isMobile ? ANIMATIONS.mobile.content : ANIMATIONS.content}
           initial="hidden"
           animate="visible"
           exit="exit"
           layout
         >
-          {/* *** ADDED: Back Button for Focus Mode *** */}
-          <AnimatePresence>
-            {drawer.isFocusView && drawer.activeSecondaryItem && (
-              <motion.button
-                key="focus-back-button" // Add key for AnimatePresence
-                className={cx(buttonStyle, css({ marginBottom: '1rem', display: 'inline-flex', alignItems: 'center' }))} // Combine styles, add margin
-                onClick={() => drawer.selectSecondaryItem(null)} // Action: Deselect secondary item
-                variants={ANIMATIONS.backButton} // Use back button animations
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                layout // Animate layout shifts
-              >
-                {/* Simple SVG Arrow */}
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '0.25rem' }}>
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                </svg>
-                 Back
-              </motion.button>
-            )}
-          </AnimatePresence>
+          {/* Back Button for Focus Mode (Desktop Only) - Mobile has back in top bar */}
+          {!isMobile && (
+            <AnimatePresence>
+              {drawer.isFocusView && drawer.activeSecondaryItem && (
+                <motion.button
+                  key="focus-back-button" // Add key for AnimatePresence
+                  className={cx(buttonStyle, css({ marginBottom: '1rem', display: 'inline-flex', alignItems: 'center' }))} // Combine styles, add margin
+                  onClick={() => drawer.selectSecondaryItem(null)} // Action: Deselect secondary item
+                  variants={ANIMATIONS.backButton} // Use back button animations
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  layout // Animate layout shifts
+                >
+                  {/* Simple SVG Arrow */}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '0.25rem' }}>
+                      <polyline points="15 18 9 12 15 6"></polyline>
+                  </svg>
+                   Back
+                </motion.button>
+              )}
+            </AnimatePresence>
+          )}
 
-          {/* Existing content title */}
-          <h2 className={contentTitleStyle}>{content.title}</h2>
+          {/* Content title */}
+          <h2 className={cx(
+            contentTitleStyle,
+            isMobile && css({ 
+              fontSize: { base: 'lg', md: 'xl' },
+              marginBottom: '1rem'
+            })
+          )}>
+            {content.title}
+          </h2>
+          
           {/* Split content by newlines and render each as a paragraph */}
           {content.content.split('\n').map((paragraph: string, index: number) => (
-             <p key={index} className={contentParagraphStyle}>
+             <p key={index} className={cx(
+               contentParagraphStyle,
+               isMobile && css({
+                 fontSize: { base: 'sm', md: 'md' },
+                 lineHeight: 'relaxed'
+               })
+             )}>
                {/* Use non-breaking space for empty lines to preserve spacing */}
                {paragraph.trim() === '' ? '\u00A0' : paragraph}
              </p>
@@ -1253,7 +1515,7 @@ export default function DrawerInterface({
         <motion.div
           key={`placeholder-missing-${drawer.activeSecondaryItem}`}
           className={placeholderStyle}
-          variants={ANIMATIONS.content}
+          variants={isMobile ? ANIMATIONS.mobile.content : ANIMATIONS.content}
           initial="hidden"
           animate="visible"
           exit="exit"
@@ -1276,157 +1538,224 @@ export default function DrawerInterface({
       {/* Main Application Header */}
       <header className={mainHeaderStyle}>{title}</header>
 
-      {/* Main Content Container (holds drawers and content panel) */}
-      <div className={contentContainerStyle}>
+      {isMobile ? (
+        // --- MOBILE LAYOUT ---
+        <>
+          {/* Top Bar (Primary Navigation) - Always visible on mobile */}
+          <PrimaryTopNavItems
+            items={drawer.filteredPrimaryItems}
+            activePrimaryItem={drawer.activePrimaryItem}
+            selectPrimaryItem={drawer.selectPrimaryItem}
+            highlightText={drawer.highlightText}
+          />
 
-        {/* Primary Drawer (Categories) */}
-        <motion.div
-          className={primaryDrawerStyle}
-          variants={ANIMATIONS.drawer}
-          initial="hidden"
-          animate="visible"
-          layout // Animate width changes
-          role="navigation"
-          aria-label="Primary Categories Navigation"
-        >
-          {/* Primary Drawer Header */}
-          <h2
-            ref={drawer.primaryHeaderRef} // Ref for height measurement
-            className={headerStyle}
-            id="primary-drawer-header" // For aria-labelledby
-          >
-            Categories
-          </h2>
-          {/* Primary Items List Container */}
-          <div
-            ref={drawer.primaryListRef} // Ref for the list container itself
-            className={listStyle}
-            // Updated to account for fixed header height
-            style={{ height: 'calc(100% - 60px)' }}
-            role="list"
-            aria-labelledby="primary-drawer-header"
-          >
-            {/* Moving Indicator Line (visual decoration) */}
-            <div
-              className={indicatorLineStyle}
-              style={drawer.primaryIndicatorStyle} // Apply dynamic styles for position/visibility
-              aria-hidden="true"
-            />
-            {/* Render the list items */}
-            {renderPrimaryItems()}
-          </div>
-        </motion.div>
+          {/* Mobile Search & Back Button Area (conditional) */}
+          {drawer.activePrimaryItem && drawer.activeSecondaryItem && (
+            <div className={css({
+              display: 'flex',
+              alignItems: 'center',
+              padding: '8px 12px',
+              borderBottom: '1px solid',
+              borderColor: 'var(--colors-border)',
+              backgroundColor: 'var(--colors-background)',
+            })}>
+              <motion.button
+                className={mobileBackButtonStyle}
+                onClick={() => drawer.selectSecondaryItem(null)}
+                variants={ANIMATIONS.mobile.backButton}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                {/* Simple SVG Arrow */}
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '0.25rem' }}>
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                Back
+              </motion.button>
 
-        {/* Right Panel (contains App Header and Content Area) */}
-        <div className={rightPanelStyle}>
-          {/* App Header within Right Panel (View Options + Search) */}
-          <div className={appHeaderStyle}>
-            {/* View Mode Toggle Buttons */}
-            <div className={viewOptionsStyle} role="tablist" aria-label="Layout View Options">
-              <button
-                className={cx(buttonStyle, drawer.isSplitView && activeButtonStyle)}
-                onClick={() => drawer.toggleLayoutMode('split')}
-                aria-selected={drawer.isSplitView}
-                role="tab"
-                aria-controls="content-area"
-              >
-                Split
-              </button>
-              <button
-                className={cx(buttonStyle, drawer.isFocusView && activeButtonStyle)}
-                onClick={() => drawer.toggleLayoutMode('focus')}
-                aria-selected={drawer.isFocusView}
-                role="tab"
-                aria-controls="content-area"
-              >
-                Focus
-              </button>
-            </div>
-            {/* Search Input */}
-            <div>
+              {/* Show search input after back button */}
               <input
-                ref={drawer.searchInputRef} // Ref for focusing
+                ref={drawer.searchInputRef}
                 type="search"
-                placeholder="Search... (Ctrl+F)"
-                className={searchInputStyle}
+                placeholder="Search..."
+                className={cx(searchInputStyle, css({ flexGrow: 1, maxWidth: '200px', marginLeft: '8px' }))}
                 value={drawer.searchTerm}
                 onChange={(e) => drawer.setSearchTerm(e.target.value)}
                 aria-label="Search categories and items"
               />
             </div>
+          )}
+
+          {/* Main Content Area (Mobile) */}
+          <div className={mainContentAreaStyle}>
+            <div className={contentBodyStyle}>
+              <AnimatePresence mode="wait">
+                {/* Mobile conditional rendering logic */}
+                {drawer.activeSecondaryItem ? 
+                  renderContent() :
+                  drawer.activePrimaryItem ? 
+                    renderSecondaryItemsInContent() : 
+                    renderInitialPlaceholder()
+                }
+              </AnimatePresence>
+            </div>
           </div>
+        </>
+      ) : (
+        // --- DESKTOP LAYOUT ---
+        <div className={contentContainerStyle}>
+          {/* Primary Drawer (Categories) */}
+          <motion.div
+            className={primaryDrawerStyle}
+            variants={ANIMATIONS.drawer}
+            initial="hidden"
+            animate="visible"
+            layout // Animate width changes
+            role="navigation"
+            aria-label="Primary Categories Navigation"
+          >
+            {/* Primary Drawer Header */}
+            <h2
+              ref={drawer.primaryHeaderRef} // Ref for height measurement
+              className={headerStyle}
+              id="primary-drawer-header" // For aria-labelledby
+            >
+              Categories
+            </h2>
+            {/* Primary Items List Container */}
+            <div
+              ref={drawer.primaryListRef} // Ref for the list container itself
+              className={listStyle}
+              // Updated to account for fixed header height
+              style={{ height: 'calc(100% - 60px)' }}
+              role="list"
+              aria-labelledby="primary-drawer-header"
+            >
+              {/* Moving Indicator Line (visual decoration) */}
+              <div
+                className={indicatorLineStyle}
+                style={drawer.primaryIndicatorStyle} // Apply dynamic styles for position/visibility
+                aria-hidden="true"
+              />
+              {/* Render the list items */}
+              {renderPrimaryItems()}
+            </div>
+          </motion.div>
 
-          {/* Content Area (holds Secondary Drawer and Main Content Display) */}
-          <div className={contentAreaStyle} id="content-area" role="tabpanel" aria-label="Content Display Area">
-
-            {/* Secondary Drawer (Items - Conditionally Rendered) */}
-            <AnimatePresence> {/* Needed for exit animations */}
-              {drawer.showSecondaryDrawer && ( // Render only when conditions met
-                <motion.div
-                  key="secondary-drawer" // Key for AnimatePresence
-                  className={secondaryDrawerStyle}
-                  variants={ANIMATIONS.secondaryDrawer}
-                  custom={currentScreenSize} // Pass screen size for responsive animation
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit" // Exit animation
-                  layout // Animate width changes
-                  role="navigation"
-                  aria-label="Secondary Items Navigation"
+          {/* Right Panel (contains App Header and Content Area) */}
+          <div className={rightPanelStyle}>
+            {/* App Header within Right Panel (View Options + Search) */}
+            <div className={appHeaderStyle}>
+              {/* View Mode Toggle Buttons */}
+              <div className={viewOptionsStyle} role="tablist" aria-label="Layout View Options">
+                <button
+                  className={cx(buttonStyle, drawer.isSplitView && activeButtonStyle)}
+                  onClick={() => drawer.toggleLayoutMode('split')}
+                  aria-selected={drawer.isSplitView}
+                  role="tab"
+                  aria-controls="content-area"
+                  title="Split view shows navigation and content simultaneously"
                 >
-                  {/* Secondary Drawer Header */}
-                  <h2
-                    ref={drawer.secondaryHeaderRef} // Ref for height measurement
-                    className={headerStyle}
-                    id="secondary-drawer-header" // For aria-labelledby
-                  >
-                    {/* Display active primary category name */}
-                    {drawer.activePrimaryData?.name || 'Items'}
-                  </h2>
-                  {/* Secondary Items List Container */}
-                  <div
-                    ref={drawer.secondaryListRef} // Ref for the list container
-                    className={listStyle}
-                    // Updated to account for fixed header height
-                    style={{ height: 'calc(100% - 60px)' }}
-                    role="list"
-                    aria-labelledby="secondary-drawer-header"
-                  >
-                     {/* Moving Indicator Line */}
-                    <div
-                      className={indicatorLineStyle}
-                      style={drawer.secondaryIndicatorStyle} // Apply dynamic styles
-                      aria-hidden="true"
-                    />
-                    {/* Render list items */}
-                    {renderSecondaryItems()}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  Split
+                </button>
+                <button
+                  className={cx(buttonStyle, drawer.isFocusView && activeButtonStyle)}
+                  onClick={() => drawer.toggleLayoutMode('focus')}
+                  aria-selected={drawer.isFocusView}
+                  role="tab"
+                  aria-controls="content-area"
+                  title="Focus view shows only one panel at a time for more space"
+                >
+                  Focus
+                </button>
+              </div>
+              {/* Search Input */}
+              <div>
+                <input
+                  ref={drawer.searchInputRef} // Ref for focusing
+                  type="search"
+                  placeholder="Search... (Ctrl+F)"
+                  className={searchInputStyle}
+                  value={drawer.searchTerm}
+                  onChange={(e) => drawer.setSearchTerm(e.target.value)}
+                  aria-label="Search categories and items"
+                />
+              </div>
+            </div>
 
-            {/* Main Content Display Area */}
-            <div className={contentDisplayStyle}>
-              {/* Scrollable body for the content */}
-              <div className={contentBodyStyle}>
-                {/* AnimatePresence controls transitions between content states */}
-                <AnimatePresence mode="wait"> {/* 'wait' ensures exit animation finishes first */}
-                  {
-                    // Conditional rendering based on view mode and selection state
-                    drawer.isFocusView && !drawer.activeSecondaryItem && drawer.activePrimaryItem ? (
-                      // Focus Mode: Show secondary list in content area if primary is selected but secondary is not
-                      renderSecondaryItemsInContent()
-                    ) : (
-                      // Split Mode OR Focus Mode with secondary selected: Show main content (placeholder or details)
-                      renderContent()
-                    )
-                  }
-                </AnimatePresence>
+            {/* Content Area (holds Secondary Drawer and Main Content Display) */}
+            <div className={contentAreaStyle} id="content-area" role="tabpanel" aria-label="Content Display Area">
+
+              {/* Secondary Drawer (Items - Conditionally Rendered) */}
+              <AnimatePresence> {/* Needed for exit animations */}
+                {drawer.showSecondaryDrawer && ( // Render only when conditions met
+                  <motion.div
+                    key="secondary-drawer" // Key for AnimatePresence
+                    className={secondaryDrawerStyle}
+                    variants={ANIMATIONS.secondaryDrawer}
+                    custom={currentScreenSize} // Pass screen size for responsive animation
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit" // Exit animation
+                    layout // Animate width changes
+                    role="navigation"
+                    aria-label="Secondary Items Navigation"
+                  >
+                    {/* Secondary Drawer Header */}
+                    <h2
+                      ref={drawer.secondaryHeaderRef} // Ref for height measurement
+                      className={headerStyle}
+                      id="secondary-drawer-header" // For aria-labelledby
+                    >
+                      {/* Display active primary category name */}
+                      {drawer.activePrimaryData?.name || 'Items'}
+                    </h2>
+                    {/* Secondary Items List Container */}
+                    <div
+                      ref={drawer.secondaryListRef} // Ref for the list container
+                      className={listStyle}
+                      // Updated to account for fixed header height
+                      style={{ height: 'calc(100% - 60px)' }}
+                      role="list"
+                      aria-labelledby="secondary-drawer-header"
+                    >
+                       {/* Moving Indicator Line */}
+                      <div
+                        className={indicatorLineStyle}
+                        style={drawer.secondaryIndicatorStyle} // Apply dynamic styles
+                        aria-hidden="true"
+                      />
+                      {/* Render list items */}
+                      {renderSecondaryItems()}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Main Content Display Area */}
+              <div className={contentDisplayStyle}>
+                {/* Scrollable body for the content */}
+                <div className={contentBodyStyle}>
+                  {/* AnimatePresence controls transitions between content states */}
+                  <AnimatePresence mode="wait"> {/* 'wait' ensures exit animation finishes first */}
+                    {
+                      // Conditional rendering based on view mode and selection state
+                      drawer.isFocusView && !drawer.activeSecondaryItem && drawer.activePrimaryItem ? (
+                        // Focus Mode: Show secondary list in content area if primary is selected but secondary is not
+                        renderSecondaryItemsInContent()
+                      ) : (
+                        // Split Mode OR Focus Mode with secondary selected: Show main content (placeholder or details)
+                        renderContent()
+                      )
+                    }
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

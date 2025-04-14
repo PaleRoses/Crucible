@@ -7,7 +7,7 @@ import { NextPage } from 'next'
 // Dynamically import the ItemNavigation component with SSR disabled
 // This ensures proper hydration in Next.js
 const ItemNavigation = dynamic(
-  () => import('@/components/navbars/ItemNavivation'),
+  () => import('@/components/navbars/ItemNavigation'),
   { 
     ssr: false,
     loading: () => (
