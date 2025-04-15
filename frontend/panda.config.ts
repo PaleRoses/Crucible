@@ -500,10 +500,6 @@ export default defineConfig({
         },
         
         fontSizes: {
-          // Existing (if any)
-          // ...
-
-          // Added for Navbar
           tooltip: { value: '0.75rem' },
           desktopSubmenuDescription: { value: '0.8rem' },
           desktopSubmenuItem: { value: '0.85rem' },
@@ -511,15 +507,14 @@ export default defineConfig({
           desktopNavItem: { value: '0.95rem' },
           mobileNavItem: { value: '1.1rem' },
           desktopSubmenuHeader: { value: '1.25rem' },
-
-          
-
           sm: { value: '0.875rem' },
           base: { value: '1rem' },
           lg: { value: '1.125rem' },
           xl: { value: '1.25rem' },
-          '2xl': { value: '1.5rem' },
-          
+          '3xl': { value: '1.875rem' },  // 30px
+          '4xl': { value: '2.25rem' },   // 36px
+          '5xl': { value: '3rem' },      // 48px
+          '6xl': { value: '3.75rem' },   // 60px          
         },
 
         
@@ -645,11 +640,12 @@ export default defineConfig({
       
       // Adding standard responsive breakpoints
       breakpoints: {
-        sm: '640px',
-        md: '768px',
-        lg: '1024px',
-        xl: '1280px',
-        '2xl': '1536px',
+        sm: '480px',    // Small mobile devices
+        md: '768px',    // Tablets/larger phones
+        lg: '1024px',   // Small laptops/desktops
+        xl: '1440px',   // Standard desktop
+        '2xl': '1920px', // Large desktop
+        '3xl': '2200px', // Maximum size - our upper bound
       },
       // @ts-ignore
       recipes,
@@ -657,6 +653,15 @@ export default defineConfig({
       // Adding custom media queries      
       // Adding keyframe animations
       keyframes: {
+
+        
+        ripple: { // <-- Add this definition
+          'to': {
+            transform: 'scale(4)',
+            opacity: '0'
+          }
+        },
+
         fadeIn: {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' }
