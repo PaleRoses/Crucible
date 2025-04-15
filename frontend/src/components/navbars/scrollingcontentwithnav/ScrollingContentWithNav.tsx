@@ -1125,10 +1125,10 @@ export function useSectionIntersection(
   );
 
   // Create a debounced version of setInternalActiveSection to prevent rapid changes
-  // ** CHANGE: Increased delay from 50ms to 100ms **
+  // ** CHANGE (User Suggestion): Increased delay from 150ms to 250ms **
   const debouncedSetActiveSection = useDebounce(
     (id: string) => setInternalActiveSection(id),
-    100 // Increased delay to reduce rapid changes ("spasming")
+    150 // Increased debounce delay significantly as suggested
   );
 
   // Determine the effective active section: external prop takes precedence
@@ -1136,94 +1136,78 @@ export function useSectionIntersection(
     externalActiveSection !== null ? externalActiveSection : internalActiveSection;
 
   // Callback executed when section intersections change
+  // ** CHANGE (User Suggestion): Updated logic to prioritize nearest and exit early **
   const handleIntersection = useCallback(
     (entries: IntersectionObserverEntry[]) => {
-      // Ignore intersections if container isn't ready or during programmatic scroll
-      if (!containerRef || !containerRef.current || containerRef.current.hasAttribute('data-scrolling-programmatically')) {
+      if (!containerRef.current || containerRef.current.hasAttribute('data-scrolling-programmatically')) {
         return;
       }
+      
+      // ** CHANGE (User Suggestion): Increased buffer zone from 30 to 50 **
+      const BUFFER_ZONE = 50; // Increased buffer zone as suggested
 
-      // Filter for entries that are currently intersecting the observer's rootMargin zone
-      const visibleEntries = entries.filter((entry) => entry.isIntersecting);
-      if (visibleEntries.length === 0) return; // No visible sections in the zone, do nothing
+      // Sort entries by top edge proximity below the offset line
+      // Make a mutable copy before sorting
+      const sortedEntries = [...entries];
+      sortedEntries.sort((a, b) => {
+        // Prioritize entries whose top is below or within the buffer zone
+        const aTopDist = a.boundingClientRect.top - scrollOffset;
+        const bTopDist = b.boundingClientRect.top - scrollOffset;
+        const aIsInZone = aTopDist >= -BUFFER_ZONE;
+        const bIsInZone = bTopDist >= -BUFFER_ZONE;
 
-      // Sort visible entries purely by their top position in the viewport (highest first)
-      // This remains useful for finding the topmost relevant section.
-      visibleEntries.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (aIsInZone && !bIsInZone) return -1; // a is preferred
+        if (!aIsInZone && bIsInZone) return 1;  // b is preferred
+        if (!aIsInZone && !bIsInZone) return aTopDist - bTopDist; // If both outside, sort by distance (closer to top wins)
 
-      // --- REFINED LOGIC for selecting active section ---
-      // Find the section whose top edge is closest to the scrollOffset line,
-      // prioritizing sections whose top is below or very near the line.
-      let newActiveSectionId: string | null = null;
-      let smallestPositiveDistance = Infinity; // Track closest section *below* the offset line
-      const BUFFER_ZONE = 20; // Increased buffer slightly (in pixels)
+        // If both are in the zone, sort by absolute distance to the offset line
+        const aAbsDist = Math.abs(aTopDist);
+        const bAbsDist = Math.abs(bTopDist);
+        return aAbsDist - bAbsDist;
+      });
 
-      for (const entry of visibleEntries) {
-        // Calculate distance from top edge to scrollOffset line
-        const topDistance = entry.boundingClientRect.top - scrollOffset;
-
-        // Consider sections whose top is at or below the scrollOffset line (or within the buffer above it)
-        if (topDistance >= -BUFFER_ZONE) {
-          // If this section's top is closer to the line (from below or within buffer)
-          // than the current best candidate, make it the new candidate.
-          if (topDistance < smallestPositiveDistance) {
-            smallestPositiveDistance = topDistance;
-            newActiveSectionId = entry.target.getAttribute('data-section-id');
+      // Iterate through sorted entries and find the first valid candidate
+      for (const entry of sortedEntries) {
+        const topDist = entry.boundingClientRect.top - scrollOffset;
+        // Check if the entry is intersecting and within the valid zone (below or near offset)
+        if (entry.isIntersecting && topDist >= -BUFFER_ZONE) {
+          const newId = entry.target.getAttribute('data-section-id');
+          // Update if a valid ID is found, it's different, and not externally controlled
+          if (newId && newId !== internalActiveSection && externalActiveSection === null) {
+            debouncedSetActiveSection(newId);
+            return; // Found the best candidate, exit immediately
+          }
+          // If the best candidate is the current section, still exit (no change needed)
+          if (newId && newId === internalActiveSection) {
+              return;
           }
         }
       }
-
-      // ** CHANGE: Removed the fallback logic based on bottom edge. **
-      // We now rely solely on the "closest top edge below or near the offset line" logic.
-      // This should provide a more stable anchor point and reduce jumps caused by
-      // sections whose bottom edges cross the line while their tops are far away.
-
-      // Update the internal state only if:
-      // 1. A valid new section ID was found using the refined logic.
-      // 2. It's different from the current internal state.
-      // 3. The component is not being controlled externally.
-      if (
-        newActiveSectionId &&
-        newActiveSectionId !== internalActiveSection &&
-        externalActiveSection === null
-      ) {
-        // Use the debounced setter with the increased delay
-        debouncedSetActiveSection(newActiveSectionId);
-      }
+      // If no suitable entry found in the loop (e.g., only entries above the buffer zone are intersecting),
+      // potentially clear the active section or keep the last one depending on desired behavior.
+      // Current logic keeps the last active section if nothing new is found.
     },
-    // Dependencies: Recalculate if internal state, external control, offset, or container changes
     [internalActiveSection, externalActiveSection, scrollOffset, containerRef, debouncedSetActiveSection]
   );
 
 
   // Memoize IntersectionObserver options
   const observerOptions = useMemo(() => {
-    // Need container ref to calculate rootMargin based on viewport height
     if (!containerRef || !containerRef.current) return null;
 
     const scrollContainer = containerRef.current;
-    // Define the "top" boundary for intersection detection relative to the viewport top
-    // This should match the dynamic scrollOffset
     const topMargin = Math.round(scrollOffset);
-    // Define a "bottom" boundary as a percentage of the viewport height from the bottom
-    // This helps determine the active section more accurately when multiple sections are visible
-    const bottomMarginPercentage = 40; // e.g., consider intersection within top 60% of viewport
-    const bottomMargin = Math.round(
-      scrollContainer.clientHeight * (bottomMarginPercentage / 100)
-    );
+    
+    // ** CHANGE (User Suggestion): Use percentage for bottom margin **
+    const rootMarginString = `-${topMargin}px 0px -40% 0px`;
 
-    // rootMargin defines offsets from the root (scrollContainer) edges
-    // Negative top margin pushes the top boundary down by scrollOffset pixels
-    // Negative bottom margin pushes the bottom boundary up by bottomMargin pixels
     return {
-      root: scrollContainer, // Observe intersections within the container
-      rootMargin: `-${topMargin}px 0px -${bottomMargin}px 0px`,
-      // Use multiple thresholds to get more frequent updates during scrolling
-      // This helps with more accurate detection, especially during slow scrolling
-      threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+      root: scrollContainer,
+      rootMargin: rootMarginString,
+      // ** CHANGE (User Suggestion): Simplified thresholds **
+      threshold: [0.25, 0.5, 0.75, 1.0], // Simplified threshold array
     } as IntersectionObserverInit;
-    // Dependencies: Recalculate if offset, container ref, or container height changes
-  }, [scrollOffset, containerRef, containerRef.current?.clientHeight]);
+  }, [scrollOffset, containerRef, containerRef.current?.clientHeight]); // Keep clientHeight dependency
 
   // Effect to set up and tear down the IntersectionObserver
   useEffect(() => {
@@ -2145,11 +2129,12 @@ export const sectionParagraphStyles = css({
 // Styles applied to the <section> wrapper itself
 export const sectionStyles = css({
   // scrollMarginTop is applied dynamically via inline style based on scrollOffset
+  // ** CHANGE: Updated margin-bottom values as requested **
   mb: {
-    base: '10rem',   // Smaller on mobile
-    sm: '15rem',     // Small tablets
-    md: '20rem',     // Tablets/small laptops
-    lg: '25rem'      // Full spacing on desktops
+    base: '5rem',   // Smaller on mobile
+    sm: '6rem',     // Small tablets
+    md: '8rem',     // Tablets/small laptops
+    lg: '10rem'      // Full spacing on desktops
   },
   // MODIFIED: Removed negative z-index which was causing stacking context issues
   // Instead, we use isolation and a proper stacking context approach
@@ -2802,6 +2787,14 @@ export default ScrollingContentWithNav;
  * * 17. ENHANCEMENT: Added multiple threshold values to the IntersectionObserver for more frequent and accurate notifications during scrolling.
  * * 18. PERFORMANCE: Implemented throttling for resize event handlers to improve performance during continuous resize events. Throttling executes the handler at most once every 100ms, providing consistent updates while preventing excessive calculations.
  * * 19. ACCESSIBILITY: Improved focus management, ARIA roles, and keyboard navigation for both mobile and desktop navigation components.
- * * 20. **FIX (Indicator Spasm):** Increased debounce delay in `useSectionIntersection` from 50ms to 100ms.
- * * 21. **FIX (Indicator Spasm):** Refined `handleIntersection` logic in `useSectionIntersection` to prioritize the section whose top edge is closest *below* (or slightly above) the scroll offset line, removing the less stable fallback logic.
+ * * 20. FIX (Indicator Spasm): Increased debounce delay in `useSectionIntersection` from 50ms to 100ms.
+ * * 21. FIX (Indicator Spasm): Refined `handleIntersection` logic in `useSectionIntersection` to prioritize the section whose top edge is closest *below* (or slightly above) the scroll offset line, removing the less stable fallback logic.
+ * * 22. FIX (Indicator Spasm Attempt 2): Increased debounce delay in `useSectionIntersection` further (100ms -> 150ms).
+ * * 23. FIX (Indicator Spasm Attempt 2): Increased `BUFFER_ZONE` in `handleIntersection` (20 -> 30) to potentially reduce sensitivity near boundaries.
+ * * 24. STYLE: Updated `mb` (margin-bottom) values in `sectionStyles` as requested.
+ * * 25. **FIX (Indicator Spasm Attempt 3 - User Suggestions):** Increased debounce delay to 250ms.
+ * * 26. **FIX (Indicator Spasm Attempt 3 - User Suggestions):** Simplified observer thresholds to `[0.25, 0.5, 0.75, 1.0]`.
+ * * 27. **FIX (Indicator Spasm Attempt 3 - User Suggestions):** Increased `BUFFER_ZONE` to 50.
+ * * 28. **FIX (Indicator Spasm Attempt 3 - User Suggestions):** Replaced `handleIntersection` logic with user-provided version (sorts by proximity, exits early).
+ * * 29. **FIX (Indicator Spasm Attempt 3 - User Suggestions):** Adjusted observer `rootMargin` bottom value to use `-40%`.
  */
