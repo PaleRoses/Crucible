@@ -1374,7 +1374,11 @@ export const footerStyles = css({
 });
 
 export const footerTitleStyles = css({
-  fontSize: { base: 'lg', xl: 'xl', '2xl': '3xl' },
+  fontSize: { 
+    base: 'lg', 
+    xl: 'xl', 
+    '2xl': '3xl' 
+  },
   fontWeight: '200',
   color: 'primary',
   marginBottom: {
@@ -1390,10 +1394,10 @@ export const footerTitleStyles = css({
 
 export const headerTitleStyles = css({
   fontSize: {
-    base: 'lg',
-    lg: 'xl',
-    xl: '3xl',
-    '2xl': '5xl'
+    base: 'md',
+    lg: 'lg',
+    xl: '2xl',
+    '2xl': '4xl'
   },
   fontWeight: '200',
   textAlign: 'left',
@@ -1427,8 +1431,14 @@ export const mobileNavTriggerStyles = css({
   justifyContent: 'space-between',
   alignItems: 'center',
   width: 'full',
-  p: { base: '2', sm: '3' },
-  fontSize: { base: 'mobileSubmenuItem', sm: 'mobileNavItem' },
+  p: { 
+    base: '2', 
+    sm: '3' 
+  },
+  fontSize: { 
+    base: 'mobileSubmenuItem', 
+    sm: 'mobileNavItem' 
+  },
   fontWeight: '200',
   color: 'text',
   cursor: 'pointer',
@@ -1447,7 +1457,10 @@ export const mobileNavDropdownStyles = css({
   borderColor: 'border',
   boxShadow: 'lg',
   height: 'auto',
-  maxH: { base: 'calc(50vh - 40px)', sm: 'calc(50vh - 60px)' },
+  maxH: { 
+    base: 'calc(50vh - 40px)', 
+    sm: 'calc(50vh - 60px)' 
+  },
   overflowY: 'hidden',
   zIndex: 19,
   transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
@@ -1455,21 +1468,37 @@ export const mobileNavDropdownStyles = css({
 
 export const mobileNavListStyles = css({
   listStyle: 'none',
-  padding: { base: '1', sm: '2' },
+  padding: { 
+    base: '1', 
+    sm: '2' 
+  },
   margin: 0,
 });
 
 // --- Main Content Area Styles ---
 export const mainContainerStyles = css({
   display: 'flex',
-  flexDirection: { base: 'column', md: 'row' },
+  flexDirection: { 
+    base: 'column', 
+    md: 'row' 
+  },
   flex: '1',
   width: 'full',
   overflowY: 'auto',
   overflowX: 'hidden',
   scrollBehavior: 'smooth',
-  paddingRight: { base: '1', sm: '2', lg: '3', xl: '4' },
-  paddingLeft: { base: '2', sm: '3', lg: '4', xl: '5' },
+  paddingRight: { 
+    base: '1', 
+    sm: '2', 
+    lg: '3', 
+    xl: '4' 
+  },
+  paddingLeft: { 
+    base: '2', 
+    sm: '3', 
+    lg: '4', 
+    xl: '5' 
+  },
   outline: 'none', // Hide default focus outline
   _focusVisible: { // Custom focus style for accessibility
     outline: '2px solid',
@@ -1482,7 +1511,15 @@ export const contentWrapperStyles = css({
   flex: '1',
   order: 1,
   minWidth: 0, // Prevent flex overflow
-  padding: { base: '3', sm: '4', md: '5', lg: '6', xl: '7', '2xl': '8', '3xl': '9' },
+  padding: { 
+    base: '3', 
+    sm: '4', 
+    md: '5', 
+    lg: '6', 
+    xl: '7', 
+    '2xl': '8', 
+    '3xl': '9' 
+  },
   '@media (min-width: 2200px)': { // Custom styles for largest breakpoint
     paddingTop: '0.5rem',
     paddingLeft: 'calc(9 * 0.25rem + 0.5rem)'
@@ -1492,14 +1529,28 @@ export const contentWrapperStyles = css({
 export const contentColumnStyles = css({
   width: 'full',
   margin: '0 auto', // Center content column
-  maxWidth: { base: '100%', lg: '60rem', xl: '70rem', '2xl': '80rem', '3xl': '90rem' },
+  maxWidth: { 
+    base: '100%', 
+    lg: '60rem', 
+    xl: '70rem', 
+    '2xl': '80rem', 
+    '3xl': '90rem' 
+  },
 });
 
 // --- Desktop Navigation Styles ---
 export const navWrapperStyles = css({
-  display: { base: 'none', md: 'block' },
+  display: { 
+    base: 'none', 
+    md: 'block' 
+  },
   order: 2, // Show on desktop, place after content
-  width: { md: '56', lg: '64', xl: '72', '2xl': '80' }, // Responsive width
+  width: { 
+    md: '56', 
+    lg: '64', 
+    xl: '72', 
+    '2xl': '80' 
+  }, // Responsive width
   borderColor: 'border',
   bg: 'background',
   position: 'sticky',
@@ -1510,24 +1561,45 @@ export const navWrapperStyles = css({
   flexShrink: 0,
   isolation: 'isolate',
   zIndex: 3,
-  paddingTop: { md: '3rem', lg: '4rem', xl: '5rem' },
+  paddingTop: { 
+    md: '3rem', 
+    lg: '4rem', 
+    xl: '5rem' 
+  },
 });
 
 export const navScrollContainerStyles = css({
-  padding: { md: '3', lg: '4', xl: '5' },
+  padding: { 
+    md: '3', 
+    lg: '4', 
+    xl: '5' 
+  },
   display: 'flex',
   flexDirection: 'column',
   height: '100%',
-  paddingBottom: { md: '6rem', lg: '8rem' } // Bottom padding for scroll visibility
+  paddingBottom: { 
+    md: '6rem', 
+    lg: '8rem' 
+  } // Bottom padding for scroll visibility
 });
 
 export const navHeaderStyles = css({
-  fontSize: { md: 'desktopSubmenuItem', lg: 'desktopNavItem', xl: 'base' },
+  fontSize: { 
+    md: 'desktopSubmenuItem', 
+    lg: 'desktopNavItem', 
+    xl: 'base' 
+  },
   fontWeight: '200',
-  mb: { md: '3', lg: '4' },
+  mb: { 
+    md: '3', 
+    lg: '4' 
+  },
   color: 'primary',
   textAlign: 'left',
-  px: { md: '1', lg: '2' },
+  px: { 
+    md: '1', 
+    lg: '2' 
+  },
   flexShrink: 0,
 });
 
@@ -1535,7 +1607,11 @@ export const navListContainerStyles = css({
   position: 'relative',
   flex: '1',
   minHeight: 0, // For indicator positioning and flex grow
-  pl: { md: '3', lg: '4', xl: '5' },
+  pl: { 
+    md: '3', 
+    lg: '4', 
+    xl: '5' 
+  },
 });
 
 export const navListStyles = css({
@@ -1544,7 +1620,11 @@ export const navListStyles = css({
   listStyle: 'none',
   padding: 0,
   margin: 0,
-  gap: { md: '1', lg: '2', xl: '3' }, // Spacing between nav items
+  gap: { 
+    md: '1', 
+    lg: '2', 
+    xl: '3' 
+  }, // Spacing between nav items
 });
 
 // Base styles for both mobile and desktop nav buttons
@@ -1553,11 +1633,25 @@ export const navButtonBaseStyles = css({
   display: 'block',
   width: 'full',
   textAlign: 'left',
-  pl: { md: '2', lg: '3' }, // Desktop padding
-  pr: { md: '1', lg: '2' }, // Desktop padding
-  py: { md: '1', lg: '1.5', xl: '2' }, // Desktop padding
+  pl: { 
+    md: '2', 
+    lg: '3' 
+  }, // Desktop padding
+  pr: { 
+    md: '1', 
+    lg: '2' 
+  }, // Desktop padding
+  py: { 
+    md: '1', 
+    lg: '1.5', 
+    xl: '2' 
+  }, // Desktop padding
   rounded: 'md',
-  fontSize: { md: 'desktopSubmenuItem', lg: 'desktopNavItem', xl: 'base' }, // Desktop font size
+  fontSize: { 
+    md: 'desktopSubmenuItem', 
+    lg: 'desktopNavItem', 
+    xl: 'base' 
+  }, // Desktop font size
   fontWeight: 'light',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
@@ -1568,13 +1662,21 @@ export const navButtonBaseStyles = css({
   transitionProperty: 'colors, background-color, box-shadow',
   transitionDuration: 'fast',
   transitionTimingFunction: 'ease-in-out',
-  _focusVisible: { outline: 'none', boxShadow: `0 0 0 2px var(--colors-primary)`, bg: 'glow' },
-  _hover: { bgColor: 'glow' },
+  _focusVisible: { 
+    outline: 'none', 
+    boxShadow: `0 0 0 2px var(--colors-primary)`, 
+    bg: 'glow' 
+  },
+  _hover: { 
+    bgColor: 'glow' 
+  },
 });
 
 export const navButtonInactiveStyles = css({
   color: 'textMuted',
-  _hover: { color: 'text' },
+  _hover: { 
+    color: 'text' 
+  },
 });
 
 export const navButtonActiveStyles = css({
@@ -1588,8 +1690,14 @@ export const lineTrackStyles = css({ // Background track
   top: '0',
   bg: 'border',
   rounded: 'full',
-  left: { md: '1', lg: '2' },
-  width: { md: '1px', lg: '2px' },
+  left: { 
+    md: '1', 
+    lg: '2' 
+  },
+  width: { 
+    md: '1px', 
+    lg: '2px' 
+  },
   transition: 'height 0.3s ease-in-out',
 });
 
@@ -1597,7 +1705,12 @@ export const lineIndicatorStyles = css({ // Active indicator
   position: 'absolute',
   left: '0',
   bg: 'primary',
-  width: { md: '3px', lg: '4px', xl: '5px', '2xl': '6px' },
+  width: { 
+    md: '3px', 
+    lg: '4px', 
+    xl: '5px', 
+    '2xl': '6px' 
+  },
   borderRadius: '0 3px 3px 0',
   boxShadow: '0 0 6px var(--colors-primary)', // Glow effect
   transitionProperty: 'top, height, opacity, transform',
@@ -1612,11 +1725,13 @@ export const headerElementStyles = css({ // Wrapper
   borderRadius: 'md',
   overflow: 'hidden',
 });
+
 export const headerImageStyles = css({ // Image
   width: 'full',
   maxHeight: '240px',
   objectFit: 'cover',
 });
+
 export const headerCardStyles = css({ // Card
   p: '4',
   border: '1px solid',
@@ -1625,6 +1740,7 @@ export const headerCardStyles = css({ // Card
   boxShadow: 'sm',
   bg: 'background',
 });
+
 export const headerCodeStyles = css({ // Code
   p: '4',
   fontFamily: 'mono',
@@ -1634,6 +1750,7 @@ export const headerCodeStyles = css({ // Code
   borderRadius: 'md',
   overflow: 'auto',
 });
+
 export const headerTextStyles = css({ // Text/Quote
   p: '4',
   fontStyle: 'italic',
@@ -1644,26 +1761,62 @@ export const headerTextStyles = css({ // Text/Quote
 
 // --- Section Content Styles ---
 export const sectionHeadingStyles = css({ // H2 within section
-  fontSize: 'clamp(1.125rem, calc(1.125rem + ((1vw - 4.8px) * 2.366)), 3rem)', // Fluid typography
+  fontSize: 'clamp(1rem, calc(1rem + ((1vw - 4.8px) * 1.8)), 2.5rem)', // Reduced fluid typography
   fontWeight: 'semibold',
   color: 'primary',
-  mb: { base: '3', md: '4', lg: '5' },
+  mb: { 
+    base: '3', 
+    md: '4', 
+    lg: '5' 
+  },
 });
 
 export const sectionParagraphStyles = css({ // P within section
-  lineHeight: 'calc(1.5em + 0.2 * (1vw - 4.8px))', // Fluid line height
-  fontSize: 'clamp(0.85rem, calc(0.85rem + ((1vw - 4.8px) * 0.5)), 1.25rem)', // Fluid typography
+  lineHeight: 'calc(1.5em + 0.15 * (1vw - 4.8px))', // Slightly reduced fluid line height
+  fontSize: 'clamp(0.8rem, calc(0.8rem + ((1vw - 4.8px) * 0.4)), 1.5rem)', // Smaller fluid typography
   color: 'text',
-  mb: { base: '3', md: '4', lg: '5' },
+  mb: { 
+    base: '3', 
+    md: '4', 
+    lg: '5' 
+  },
 });
 
 export const sectionStyles = css({ // <section> wrapper
-  mb: { base: '5rem', sm: '6rem', md: '8rem', lg: '10rem' }, // Bottom margin between sections
+  mb: { 
+    base: '5rem', 
+    sm: '6rem', 
+    md: '8rem', 
+    lg: '10rem' 
+  }, // Bottom margin between sections
   isolation: 'isolate', // Stacking context
   position: 'relative',
-  paddingLeft: { base: '1rem', sm: '1.5rem', md: '2rem', lg: '2.5rem', xl: '3rem', '2xl': '3.5rem', '3xl': '4rem' },
-  paddingRight: { base: '1rem', sm: '2rem', md: '3rem', lg: '4rem', xl: '5rem', '2xl': '6rem', '3xl': '6.5rem' },
-  py: { base: '1', md: '2', lg: '3', xl: '4', '2xl': '5', '3xl': '5' },
+  paddingLeft: { 
+    base: '1rem', 
+    sm: '1.5rem', 
+    md: '2rem', 
+    lg: '2.5rem', 
+    xl: '3rem', 
+    '2xl': '3.5rem', 
+    '3xl': '4rem' 
+  },
+  paddingRight: { 
+    base: '1rem', 
+    sm: '2rem', 
+    md: '3rem', 
+    lg: '4rem', 
+    xl: '5rem', 
+    '2xl': '6rem', 
+    '3xl': '6.5rem' 
+  },
+  py: { 
+    base: '1', 
+    md: '2', 
+    lg: '3', 
+    xl: '4', 
+    '2xl': '5', 
+    '3xl': '5' 
+  },
   '@media (min-width: 2200px)': { // Styles for largest breakpoint
     paddingTop: '2rem',
     '& > h2:first-of-type': { marginLeft: '0.25rem' }
@@ -1672,13 +1825,28 @@ export const sectionStyles = css({ // <section> wrapper
   '& h1, & h2, & h3': {
     fontWeight: 'thin',
     color: 'primary',
-    fontSize: { base: 'lg', md: 'xl', lg: '3xl', '2xl': '4xl', '3xl': '5xl' },
+    fontSize: { 
+      base: 'lg', 
+      md: 'xl', 
+      lg: '2xl', 
+      '2xl': '3xl', 
+      '3xl': '4xl' 
+    },
   },
   '& ul, & ol': {
-    marginBottom: { base: '3', md: '4' },
-    paddingLeft: { base: '4', md: '6' }
+    marginBottom: { 
+      base: '3', 
+      md: '4' 
+    },
+    paddingLeft: { 
+      base: '4', 
+      md: '6' 
+    }
   },
-  '& img': { maxWidth: '100%', height: 'auto' } // Responsive images
+  '& img': { 
+    maxWidth: '100%', 
+    height: 'auto' 
+  } // Responsive images
 });
 
 // --- Section Header Sub-Component ---
@@ -2034,7 +2202,12 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
               className={mobileNavDropdownStyles}
               aria-label={navTitle}
             >
-              <div className={css({ padding: '2', textAlign: 'center', fontSize: 'xs', color: 'textMuted', })}>
+              <div className={css({ 
+                padding: '2', 
+                textAlign: 'center', 
+                fontSize: 'xs', 
+                color: 'textMuted', 
+              })}>
                  Swipe up to dismiss
               </div>
               <ul className={mobileNavListStyles}>
