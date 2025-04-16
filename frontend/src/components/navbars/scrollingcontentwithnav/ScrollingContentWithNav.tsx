@@ -81,7 +81,7 @@ export function useWindowSize() {
  */
 export function useUserScrollDetection(
   targetRef: RefObject<HTMLElement | null>,
-  delay: number = 150
+  delay: number = 250
 ): boolean {
   const [isScrollingByUser, setIsScrollingByUser] = useState<boolean>(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -1404,7 +1404,7 @@ export const headerTitleStyles = css({
     lg: '5',
     xl: '5',
     '2xl': '6',
-    '3xl': '7'
+    '3xl': '8'
   },
 });
 
