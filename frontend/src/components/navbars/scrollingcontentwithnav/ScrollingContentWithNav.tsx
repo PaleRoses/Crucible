@@ -4,15 +4,15 @@
 
 /**
  * ScrollingContentWithNav Component
- * * A responsive component that provides section-based content with automatic
- * navigation. Features include:
+ * A responsive component that provides section-based content with automatic navigation.
+ * Features include:
  * - Sticky side navigation (desktop) and collapsible top navigation (mobile)
  * - Automatic section detection using Intersection Observer
  * - Smooth scrolling between sections
  * - Support for custom section headers
  * - Flexible content rendering through props or data (including render props for scroll awareness)
  * - Optional autofocus on the main scrollable container on mount for keyboard scrolling.
- * * Color theme uses 5 standardized colors:
+ * Color theme uses 5 standardized colors:
  * - primary: Used for active elements and accents
  * - text: Main text color
  * - textMuted: Secondary text color
@@ -28,23 +28,28 @@ import React, {
   useCallback,
   ReactNode,
   useMemo,
-  RefObject, // Added RefObject for the new hook
+  RefObject,
 } from 'react';
 
+// Next.js App Router imports
+import { useRouter, usePathname } from 'next/navigation';
+
 // Adjust the import path based on your project structure and PandaCSS output directory
-import { css, cx } from '../../../../styled-system/css'; // Requires PandaCSS setup - UNCOMMENTED THIS LINE
+import { css, cx } from '../../../../styled-system/css';
 
 /**
  * Hook to track window size for responsive behavior
  * @returns Object with current window width and height
  */
 export function useWindowSize() {
+  // Set initial size to 0,0 to avoid hydration mismatches
   const [windowSize, setWindowSize] = useState({
-    width: typeof window !== 'undefined' ? window.innerWidth : 0,
-    height: typeof window !== 'undefined' ? window.innerHeight : 0,
+    width: 0,
+    height: 0,
   });
 
   useEffect(() => {
+    // This runs only on client-side after hydration
     const handleResize = throttle(() => {
       setWindowSize({
         width: window.innerWidth,
@@ -52,30 +57,16 @@ export function useWindowSize() {
       });
     }, 100);
 
-    window.addEventListener('resize', handleResize);
-    
-    // Initial call
+    // Set initial size
     handleResize();
     
+    window.addEventListener('resize', handleResize);
+
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   return windowSize;
 }
-
-// Utility function for consistent breakpoint usage
-export const getBreakpointValue = (breakpoint: string): number => {
-  const breakpoints = {
-    sm: 480,
-    md: 768,
-    lg: 1024,
-    xl: 1440,
-    '2xl': 1920,
-    '3xl': 2200
-  };
-  
-  return breakpoints[breakpoint as keyof typeof breakpoints] || 0;
-};
 
 // --- Custom Hooks ---
 
@@ -90,54 +81,36 @@ export const getBreakpointValue = (breakpoint: string): number => {
  */
 export function useUserScrollDetection(
   targetRef: RefObject<HTMLElement | null>,
-  delay: number = 150 // Default delay
+  delay: number = 150
 ): boolean {
-  // State to track if the user is actively scrolling
   const [isScrollingByUser, setIsScrollingByUser] = useState<boolean>(false);
-
-  // Ref to store the timeout ID
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Get the target element from the ref
     const element = targetRef.current;
+    if (!element) return;
 
-    // Ensure the element exists before adding listener
-    if (!element) {
-      return;
-    }
-
-    // Handler function executed on scroll events
     const handleScroll = () => {
-      // Set scrolling state to true immediately
       setIsScrollingByUser(true);
-
-      // Clear any existing timeout
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
-
-      // Set a new timeout to detect when scrolling stops
       timeoutRef.current = setTimeout(() => {
         setIsScrollingByUser(false);
-        timeoutRef.current = null; // Clear the ref after timeout fires
-      }, delay); // Use the delay prop
+        timeoutRef.current = null;
+      }, delay);
     };
 
-    // Add the passive scroll event listener
     element.addEventListener('scroll', handleScroll, { passive: true });
 
-    // --- Cleanup function ---
-    // This runs when the component unmounts or dependencies change
+    // Cleanup function
     return () => {
       element.removeEventListener('scroll', handleScroll);
-      // Also clear the timeout on cleanup, crucial for preventing state
-      // updates on unmounted components or during rapid changes.
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [targetRef, delay]); // Dependencies: Re-run effect if ref or delay changes
+  }, [targetRef, delay]);
 
   return isScrollingByUser;
 }
@@ -185,11 +158,8 @@ export function useTouchGestures({
   style: React.CSSProperties;
   resetStyle: () => void;
 } {
-  // Track touch positions
   const touchStartRef = useRef<{x: number, y: number} | null>(null);
   const touchMoveRef = useRef<{x: number, y: number} | null>(null);
-
-  // State for dynamic styling during touch
   const [style, setStyle] = useState<React.CSSProperties>({});
 
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLElement>) => {
@@ -213,25 +183,20 @@ export function useTouchGestures({
 
     touchMoveRef.current = { x: currentX, y: currentY };
 
-    // Calculate distances
     const distanceX = startX - currentX;
     const distanceY = startY - currentY;
-
-    // Determine dominant direction
     const isHorizontal = Math.abs(distanceX) > Math.abs(distanceY);
 
     // Apply visual feedback based on direction
     if (isHorizontal) {
-      if (distanceX > 0) {
-        // Swiping left
+      if (distanceX > 0) { // Swiping left
         const translateX = Math.min(distanceX * dampening, maxTranslation);
         setStyle({
           transform: `translateX(-${translateX}px)`,
           opacity: 1 - translateX / opacityFactor,
           transition: 'none',
         });
-      } else {
-        // Swiping right
+      } else { // Swiping right
         const translateX = Math.min(-distanceX * dampening, maxTranslation);
         setStyle({
           transform: `translateX(${translateX}px)`,
@@ -240,16 +205,14 @@ export function useTouchGestures({
         });
       }
     } else {
-      if (distanceY > 0) {
-        // Swiping up
+      if (distanceY > 0) { // Swiping up
         const translateY = Math.min(distanceY * dampening, maxTranslation);
         setStyle({
           transform: `translateY(-${translateY}px)`,
           opacity: 1 - translateY / opacityFactor,
           transition: 'none',
         });
-      } else {
-        // Swiping down
+      } else { // Swiping down
         const translateY = Math.min(-distanceY * dampening, maxTranslation);
         setStyle({
           transform: `translateY(${translateY}px)`,
@@ -275,8 +238,6 @@ export function useTouchGestures({
     if (startPosition && endPosition) {
       const distanceX = startPosition.x - endPosition.x;
       const distanceY = startPosition.y - endPosition.y;
-
-      // Check which direction had the largest movement
       const isHorizontal = Math.abs(distanceX) > Math.abs(distanceY);
 
       if (isHorizontal) {
@@ -359,15 +320,14 @@ export function useKeyboardNavigation<T>({
   getItemProps: (index: number) => {
     onKeyDown: (e: React.KeyboardEvent) => void;
     tabIndex: number;
-    role: "menuitem" | "option"; // Make this a literal union instead of generic string
-    'aria-current'?: "page" | "location" | "true"; // Make this a literal union
+    role: "menuitem" | "option";
+    'aria-current'?: "page" | "location" | "true";
   };
   containerProps: {
-    role: "menubar" | "listbox"; // Make this a literal union
-    'aria-orientation': "horizontal" | "vertical"; // Make this a literal union
+    role: "menubar" | "listbox";
+    'aria-orientation': "horizontal" | "vertical";
   };
 } {
-  // For type-ahead search functionality
   const [typeAheadString, setTypeAheadString] = useState<string>('');
   const typeAheadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -377,7 +337,6 @@ export function useKeyboardNavigation<T>({
     let nextIndex = currentIndex;
     let handled = false;
 
-    // Handle primary navigation keys (arrows)
     const prevKey = isHorizontal ? 'ArrowLeft' : 'ArrowUp';
     const nextKey = isHorizontal ? 'ArrowRight' : 'ArrowDown';
 
@@ -423,7 +382,7 @@ export function useKeyboardNavigation<T>({
           event.preventDefault();
           handled = true;
           onEscape();
-          return; // Exit early, no navigation needed
+          return; // Exit early
         }
         break;
 
@@ -437,27 +396,19 @@ export function useKeyboardNavigation<T>({
         break;
 
       default:
-        // Type-ahead functionality for single character keys
+        // Type-ahead functionality
         if (event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey) {
-          // Clear existing timeout if any
           if (typeAheadTimeoutRef.current) {
             clearTimeout(typeAheadTimeoutRef.current);
           }
-
-          // Update type-ahead string
           const newTypeAheadString = typeAheadString + event.key.toLowerCase();
           setTypeAheadString(newTypeAheadString);
 
-          // Try to find a matching item
           const startSearchIndex = (currentIndex + 1) % items.length;
           for (let i = 0; i < items.length; i++) {
             const idx = (startSearchIndex + i) % items.length;
             const item = items[idx];
-
-            // This assumes items have a 'label' or 'title' property. Adjust as needed.
-            const itemText = (item as any).title ||
-                             (item as any).label ||
-                             String(item);
+            const itemText = (item as any).title || (item as any).label || String(item);
 
             if (itemText.toLowerCase().startsWith(newTypeAheadString)) {
               nextIndex = idx;
@@ -466,7 +417,6 @@ export function useKeyboardNavigation<T>({
             }
           }
 
-          // Set timeout to clear the type-ahead string
           typeAheadTimeoutRef.current = setTimeout(() => {
             setTypeAheadString('');
             typeAheadTimeoutRef.current = null;
@@ -474,7 +424,6 @@ export function useKeyboardNavigation<T>({
         }
     }
 
-    // If we handled a key and the index changed, notify the parent
     if (handled && nextIndex !== currentIndex) {
       onNavigate(nextIndex);
     }
@@ -486,22 +435,20 @@ export function useKeyboardNavigation<T>({
 
   const getItemProps = useCallback((index: number) => {
     const isCurrent = index === activeIndex;
-
     return {
       onKeyDown: (e: React.KeyboardEvent) => handleKeyDown(e, index),
-      tabIndex: isCurrent ? 0 : -1, // Only the active item is in the tab order
-      role: isHorizontal ? "menuitem" as const : "option" as const, // Use const assertion
-      'aria-current': isCurrent ? "location" as const : undefined // Use const assertion
+      tabIndex: isCurrent ? 0 : -1,
+      role: isHorizontal ? "menuitem" as const : "option" as const,
+      'aria-current': isCurrent ? "location" as const : undefined
     };
   }, [activeIndex, handleKeyDown, isHorizontal]);
 
   const containerProps = useMemo(() => ({
-    role: isHorizontal ? "menubar" as const : "listbox" as const, // Use const assertion
-    'aria-orientation': isHorizontal ? "horizontal" as const : "vertical" as const // Use const assertion
+    role: isHorizontal ? "menubar" as const : "listbox" as const,
+    'aria-orientation': isHorizontal ? "horizontal" as const : "vertical" as const
   }), [isHorizontal]);
 
-  // Clean up the timeout on unmount
-  useEffect(() => {
+  useEffect(() => { // Clean up type-ahead timeout
     return () => {
       if (typeAheadTimeoutRef.current) {
         clearTimeout(typeAheadTimeoutRef.current);
@@ -524,7 +471,7 @@ export function useSmoothScroll({
   containerRef,
   baseOffset = 0,
   stickyElementRef = null,
-  scrollDuration = 300, // Default duration
+  scrollDuration = 300,
 }: {
   containerRef: React.RefObject<HTMLDivElement | null>;
   baseOffset?: number;
@@ -533,149 +480,93 @@ export function useSmoothScroll({
 }): {
   scrollOffset: number;
   scrollToId: (id: string) => void;
-  isScrollingProgrammatically: boolean; // <-- ADDED: Return scrolling state
+  isScrollingProgrammatically: boolean;
 } {
-  // State to hold the calculated scroll offset
   const [scrollOffset, setScrollOffset] = useState<number>(baseOffset);
-  // State to track if programmatic scrolling is currently active
-  const [isScrollingProgrammatically, setIsScrollingProgrammatically] = useState<boolean>(false); // <-- ADDED
+  const [isScrollingProgrammatically, setIsScrollingProgrammatically] = useState<boolean>(false);
 
-  // Callback to calculate the total scroll offset including sticky element height
   const calculateAndSetScrollOffset = useCallback(() => {
     let internalStickyHeight = 0;
-
-    // Check if sticky element exists, is rendered, and get its height
     if (stickyElementRef && stickyElementRef.current) {
       const computedStyle = window.getComputedStyle(stickyElementRef.current);
       if (computedStyle.display !== 'none') {
         internalStickyHeight = stickyElementRef.current.offsetHeight;
       }
     }
-
-    // Add a small buffer for safety margin during scrolling
-    const buffer = 10;
+    const buffer = 10; // Safety margin
     setScrollOffset(baseOffset + internalStickyHeight + buffer);
-  }, [baseOffset, stickyElementRef]); // Dependencies: Recalculate if base offset or sticky ref changes
+  }, [baseOffset, stickyElementRef]);
 
-  // Effect to calculate offset on mount and add/remove resize listener
-  useEffect(() => {
-    // Initial calculation on mount
+  useEffect(() => { // Calculate offset on mount and resize
     calculateAndSetScrollOffset();
-
-    // Create a throttled version of the resize handler
-    // Throttle to execute at most once every 100ms for better performance
     const throttledResizeHandler = throttle(calculateAndSetScrollOffset, 100, true, true);
-
-    // Attach the throttled handler to resize events
     window.addEventListener('resize', throttledResizeHandler);
-    
-    // Cleanup listener on unmount
-    return () => {
-      window.removeEventListener('resize', throttledResizeHandler);
-    };
-  }, [calculateAndSetScrollOffset]); // Dependency: The calculation function itself
+    return () => window.removeEventListener('resize', throttledResizeHandler);
+  }, [calculateAndSetScrollOffset]);
 
-  // Callback to perform the smooth scroll animation
   const performSmoothScroll = useCallback(
     (element: HTMLElement) => {
-      // Ensure the container ref is available
-      if (!containerRef || !containerRef.current) {
-        console.warn('Smooth scroll: Container ref not available.');
-        return;
-      }
+      if (!containerRef || !containerRef.current) return;
 
-      setIsScrollingProgrammatically(true); // <-- ADDED: Set scrolling true
-
+      setIsScrollingProgrammatically(true);
       const container = containerRef.current;
-      // Store original scroll behavior to restore it later
       const originalScrollBehavior = container.style.scrollBehavior;
-      // Disable native smooth scrolling during our animation
       container.style.scrollBehavior = 'auto';
-      // Set a flag to indicate programmatic scrolling (used by IntersectionObserver)
       container.setAttribute('data-scrolling-programmatically', 'true');
 
-      // Calculate target scroll position based on element's offsetTop relative
-      // to the container and the calculated dynamic scrollOffset.
       let targetPosition = element.offsetTop - scrollOffset;
-      // Prevent scrolling above the very top of the container
       targetPosition = Math.max(0, targetPosition);
 
       const startPosition = container.scrollTop;
       const distance = targetPosition - startPosition;
       let startTime: number | null = null;
 
-      // Easing function (easeOutQuint) for a smooth deceleration
       const easeOutQuint = (t: number): number => 1 - Math.pow(1 - t, 5);
 
-      // Animation loop using requestAnimationFrame
       const scrollAnimation = (currentTime: number) => {
         if (startTime === null) startTime = currentTime;
         const timeElapsed = currentTime - startTime;
-        // Calculate progress (0 to 1), capped at 1
         const progress = Math.min(timeElapsed / scrollDuration, 1);
-        // Apply easing function to progress
         const easedProgress = easeOutQuint(progress);
 
-        // Update scroll position
         if (container) {
           container.scrollTop = startPosition + distance * easedProgress;
         }
 
-        // Continue animation if duration not reached
         if (timeElapsed < scrollDuration) {
           requestAnimationFrame(scrollAnimation);
         } else {
-          // Ensure final position is exact
           if (container) {
-            container.scrollTop = targetPosition;
-            // Cleanup: Remove flag and restore original scroll behavior after a short delay
-            setTimeout(() => {
+            container.scrollTop = targetPosition; // Ensure final position
+            setTimeout(() => { // Cleanup after animation
               container.removeAttribute('data-scrolling-programmatically');
               container.style.scrollBehavior = originalScrollBehavior;
-              setIsScrollingProgrammatically(false); // <-- ADDED: Set scrolling false
+              setIsScrollingProgrammatically(false);
             }, 100);
           } else {
-              setIsScrollingProgrammatically(false); // <-- ADDED: Ensure state is reset even if container disappears
+              setIsScrollingProgrammatically(false); // Reset state if container disappears
           }
         }
       };
-      // Start the animation loop
       requestAnimationFrame(scrollAnimation);
     },
-    // Dependencies: Recalculate if container, offset, or duration changes
     [containerRef, scrollOffset, scrollDuration]
   );
 
-  // Public function returned by the hook to initiate scrolling to an element by its ID
   const scrollToId = useCallback(
     (id: string) => {
-      // Ensure container ref is available
-      if (!containerRef || !containerRef.current) {
-        console.warn(
-          `Smooth scroll: Cannot find element, container ref not available.`
-        );
-        return;
-      }
-
-      // Find the target element within the specified container using ID or data-attribute
+      if (!containerRef || !containerRef.current) return;
       const targetElement = containerRef.current.querySelector<HTMLElement>(
         `#${CSS.escape(id)}, [data-section-id="${CSS.escape(id)}"]`
       );
-      // If found, initiate the scroll animation
       if (targetElement) {
         performSmoothScroll(targetElement);
-      } else {
-        console.warn(
-          `Smooth scroll: Failed to find section element with ID: ${id}`
-        );
       }
     },
-    // Dependencies: Recalculate if container or the internal scroll function changes
     [containerRef, performSmoothScroll]
   );
 
-  // Return the calculated offset, the scrolling function, and the scrolling state
-  return { scrollOffset, scrollToId, isScrollingProgrammatically }; // <-- UPDATED RETURN
+  return { scrollOffset, scrollToId, isScrollingProgrammatically };
 }
 
 /**
@@ -687,67 +578,32 @@ export function useSmoothScroll({
 export function useAutofocus({
   targetRef,
   shouldFocus,
-  delay = 500, // Default delay
+  delay = 500,
+  isMounted = false,
 }: {
   targetRef: React.RefObject<HTMLElement | null>;
   shouldFocus: boolean;
   delay?: number;
-}): void { // No return value needed, performs a side effect
+  isMounted?: boolean; // Flag indicating component is mounted client-side
+}): void {
   useEffect(() => {
-    // Proceed only if focus is requested and the target ref is currently valid
+    // Only run on client-side after mount
+    if (!isMounted) return;
+    
     if (shouldFocus && targetRef && targetRef.current) {
-      const targetElement = targetRef.current; // Capture current ref value in closure
-
-      console.log(
-        `[useAutofocus] Scheduling focus for element after ${delay}ms:`,
-        targetElement
-      );
-
-      // Set timeout to attempt focus after the specified delay
+      const targetElement = targetRef.current;
       const timerId = setTimeout(() => {
-        // Double-check if the element still exists when the timeout runs
         if (targetElement) {
-          console.log(
-            '[useAutofocus] Attempting to focus element:',
-            targetElement
-          );
-          // Focus the element, preventing the browser from scrolling to it
           targetElement.focus({ preventScroll: true });
-
-          // Verify if focus was successful immediately after attempt
-          if (document.activeElement === targetElement) {
-            console.log(
-              '[useAutofocus] CONFIRMED: Element successfully focused.'
-            );
-          } else {
-            // Log a warning if focus was moved elsewhere immediately after
-            console.warn(
-              '[useAutofocus] FAILED: Focus may have been moved elsewhere. Active element:',
-              document.activeElement
-            );
-          }
-        } else {
-          // Log a warning if the element reference was lost before focus could occur
-          console.warn(
-            '[useAutofocus] FAILED: Target element reference was lost before focus could be applied.'
-          );
         }
       }, delay);
 
-      // Cleanup function: Clear the timeout if the component unmounts or
-      // dependencies change before the timeout executes.
+      // Cleanup timer
       return () => {
-        console.log('[useAutofocus] Clearing scheduled focus timer.');
         clearTimeout(timerId);
       };
-    } else if (shouldFocus) {
-      // Log a warning if autofocus is enabled but the ref isn't ready yet
-      console.warn(
-        '[useAutofocus] Autofocus enabled, but targetRef.current is not available yet.'
-      );
     }
-    // Effect dependencies: Rerun if the target, focus flag, or delay changes
-  }, [targetRef, shouldFocus, delay]);
+  }, [targetRef, shouldFocus, delay, isMounted]);
 }
 
 /**
@@ -759,118 +615,89 @@ export function useAutofocus({
 export function useMobileNavigation({
   onNavItemClick,
   sections,
+  isMounted = false,
 }: {
   onNavItemClick: (id: string) => void;
-  sections: Section[]; // New parameter for keyboard navigation
+  sections: Section[];
+  isMounted?: boolean; // Flag indicating component is mounted client-side
 }): {
   isMobileNavOpen: boolean;
   toggleMobileNav: () => void;
   mobileNavProps: {
-    ref: React.RefObject<HTMLDivElement | null>; // Ref for the sticky wrapper
+    ref: React.RefObject<HTMLDivElement | null>;
   };
-  triggerProps: { // Props for the button that opens/closes the nav
+  triggerProps: {
     ref: React.RefObject<HTMLButtonElement | null>;
     onClick: () => void;
     'aria-expanded': boolean;
     'aria-controls': string;
     'aria-haspopup': 'menu';
   };
-  dropdownProps: { // Props for the dropdown container
+  dropdownProps: {
     id: string;
-    style: React.CSSProperties; // For dynamic styles (touch gestures)
+    style: React.CSSProperties;
     role: 'menu';
     'aria-orientation': 'vertical';
     onTouchStart: (e: React.TouchEvent<HTMLElement>) => void;
     onTouchMove: (e: React.TouchEvent<HTMLElement>) => void;
     onTouchEnd: () => void;
   };
-  getItemProps: ( // Function to get props for each navigation item button
+  getItemProps: (
     id: string,
     index: number
   ) => {
-    // Removed 'key' from return type to match implementation
     onClick: () => void;
     role: 'menuitem';
     tabIndex: number;
     onKeyDown: (e: React.KeyboardEvent<HTMLButtonElement>) => void;
   };
 } {
-  // State for mobile navigation open/closed status
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-
-  // Refs for the mobile nav wrapper and toggle button
   const mobileNavRef = useRef<HTMLDivElement>(null);
   const mobileNavToggleRef = useRef<HTMLButtonElement>(null);
-
-  // State for active item for keyboard navigation
   const [activeItemIndex, setActiveItemIndex] = useState(0);
 
-  // Use the useTouchGestures hook for touch gesture handling
-  const {
-    touchProps,
-    style: touchStyle,
-    resetStyle
-  } = useTouchGestures({
+  const { touchProps, style: touchStyle, resetStyle } = useTouchGestures({
     onSwipeUp: () => {
-      // Close the nav after a short delay
-      setTimeout(() => {
-        setIsMobileNavOpen(false);
-      }, 50);
+      setTimeout(() => setIsMobileNavOpen(false), 50); // Close nav on swipe up
     },
-    threshold: 50,
-    dampening: 0.5,
-    maxTranslation: 100,
-    opacityFactor: 150,
-    returnTransitionDuration: 300
+    threshold: 50, dampening: 0.5, maxTranslation: 100,
+    opacityFactor: 150, returnTransitionDuration: 300
   });
 
-  // Callback to toggle the mobile navigation state
   const toggleMobileNav = useCallback(() => {
     setIsMobileNavOpen((prev) => !prev);
-    resetStyle(); // Reset any temporary touch styles when toggling
+    resetStyle();
   }, [resetStyle]);
 
-  // Callback wrapper for handling clicks on individual nav items
   const handleMobileNavItemClick = useCallback(
     (id: string) => {
-      onNavItemClick(id); // Execute the provided callback (e.g., scroll)
-      setIsMobileNavOpen(false); // Close the nav
-      resetStyle(); // Reset touch styles
+      onNavItemClick(id);
+      setIsMobileNavOpen(false);
+      resetStyle();
     },
     [onNavItemClick, resetStyle]
   );
 
-  // Effect for managing focus when the mobile nav opens or closes
-  useEffect(() => {
+  useEffect(() => { // Manage focus on open/close
     if (isMobileNavOpen) {
-      // When opened, focus the active item after a short delay
-      setTimeout(() => {
+      setTimeout(() => { // Focus active item when opened
         const mobileNavButtons = document.querySelectorAll<HTMLButtonElement>(
           '#mobile-nav-list button'
         );
-        if (mobileNavButtons && mobileNavButtons[activeItemIndex]) {
-          mobileNavButtons[activeItemIndex].focus();
-        }
-      }, 50); // Delay allows elements to render
+        mobileNavButtons[activeItemIndex]?.focus();
+      }, 50);
     } else if (document.activeElement instanceof HTMLButtonElement &&
                document.activeElement.closest('#mobile-nav-list')) {
-      // If focus is in the dropdown when it closes, return to toggle button
-      if (mobileNavToggleRef.current) {
-        mobileNavToggleRef.current.focus();
-      }
+      // Return focus to toggle button when closed
+      mobileNavToggleRef.current?.focus();
     }
-  }, [isMobileNavOpen, activeItemIndex]); // Added activeItemIndex as dependency
+  }, [isMobileNavOpen, activeItemIndex]);
 
-  // Use the keyboard navigation hook
-  const {
-    getItemProps: getKeyboardProps,
-    containerProps
-  } = useKeyboardNavigation({
+  const { getItemProps: getKeyboardProps } = useKeyboardNavigation({
     items: sections,
     activeIndex: activeItemIndex,
-    onNavigate: (newIndex) => {
-      setActiveItemIndex(newIndex);
-    },
+    onNavigate: setActiveItemIndex,
     onActivate: (_item, index) => {
       if (sections[index]) {
         handleMobileNavItemClick(sections[index].id);
@@ -883,15 +710,12 @@ export function useMobileNavigation({
     }
   });
 
-  // Combined props getter function
   const getItemProps = useCallback(
     (id: string, index: number) => {
       const keyboardProps = getKeyboardProps(index);
-
-      // Return props WITHOUT a key property - key will be applied directly in JSX
       return {
         onClick: () => handleMobileNavItemClick(id),
-        role: 'menuitem' as const, // Use const assertion for literal type
+        role: 'menuitem' as const,
         tabIndex: keyboardProps.tabIndex,
         onKeyDown: keyboardProps.onKeyDown as (e: React.KeyboardEvent<HTMLButtonElement>) => void
       };
@@ -899,24 +723,20 @@ export function useMobileNavigation({
     [handleMobileNavItemClick, getKeyboardProps]
   );
 
-  // Memoize dropdownProps to avoid prop conflicts
   const dropdownProps = useMemo(() => {
     return {
       id: 'mobile-nav-list',
       style: touchStyle,
-      role: 'menu' as const, // Use const assertion for literal type
-      'aria-orientation': 'vertical' as const, // Use const assertion for literal type
-      ...touchProps // Include touch props from useTouchGestures
+      role: 'menu' as const,
+      'aria-orientation': 'vertical' as const,
+      ...touchProps
     };
   }, [touchStyle, touchProps]);
 
-  // Return all state and props needed by the component
   return {
     isMobileNavOpen,
     toggleMobileNav,
-    mobileNavProps: {
-      ref: mobileNavRef,
-    },
+    mobileNavProps: { ref: mobileNavRef },
     triggerProps: {
       ref: mobileNavToggleRef,
       onClick: toggleMobileNav,
@@ -939,26 +759,23 @@ export function useMobileNavigation({
 export function useDesktopIndicator({
   navListRef,
   activeSection,
-  sections, // Keep sections dependency in case list items aren't direct children or order changes
+  sections,
+  isMounted = false,
 }: {
   navListRef: React.RefObject<HTMLUListElement | null>;
   activeSection: string | null;
-  sections: Section[]; // Array of section data
+  sections: Section[];
+  isMounted?: boolean; // Flag indicating component is mounted client-side
 }): {
   indicatorStyle: { top: number; height: number; opacity: number };
   trackHeight: number;
 } {
-  // State for the indicator's style and the background track height
-  const [indicatorStyle, setIndicatorStyle] = useState({
-    top: 0,
-    height: 0,
-    opacity: 0,
-  });
+  const [indicatorStyle, setIndicatorStyle] = useState({ top: 0, height: 0, opacity: 0 });
   const [trackHeight, setTrackHeight] = useState(0);
 
-  // Effect to calculate styles when active section or layout changes
-  useEffect(() => {
-    // Ensure the nav list ref is available
+  useEffect(() => { // Calculate indicator styles
+    // Only run on client-side after mount
+    if (!isMounted) return;
     if (!navListRef || !navListRef.current) {
       setTrackHeight(0);
       setIndicatorStyle({ top: 0, height: 0, opacity: 0 });
@@ -966,60 +783,43 @@ export function useDesktopIndicator({
     }
 
     const navListElement = navListRef.current;
-
     let calculatedTrackHeight = 0;
     let activeIndicatorOpacity = 0;
     let activeIndicatorTop = 0;
     let activeIndicatorHeight = 0;
 
-    // Get list items to calculate dimensions
     const listItems = Array.from(navListElement.children) as HTMLLIElement[];
     const firstListItem = listItems[0];
 
-    // Calculate total height of the track based on first and last items
+    // Calculate track height
     if (listItems.length > 0) {
       const lastListItem = listItems[listItems.length - 1];
       if (firstListItem && lastListItem) {
-        // Height is distance from top of first item to bottom of last item
-        calculatedTrackHeight =
-          lastListItem.offsetTop + lastListItem.offsetHeight - firstListItem.offsetTop;
-        // Ensure minimum height is at least one item's height
-        calculatedTrackHeight = Math.max(
-          calculatedTrackHeight,
-          firstListItem.offsetHeight
-        );
+        calculatedTrackHeight = lastListItem.offsetTop + lastListItem.offsetHeight - firstListItem.offsetTop;
+        calculatedTrackHeight = Math.max(calculatedTrackHeight, firstListItem.offsetHeight);
       }
     }
     setTrackHeight(calculatedTrackHeight);
 
-    // Calculate position and height of the active indicator
+    // Calculate active indicator position
     if (activeSection && firstListItem) {
-      // Find the list item corresponding to the active section ID
       const activeListItem = navListElement.querySelector<HTMLLIElement>(
         `li[data-section-id="${CSS.escape(activeSection)}"]`
       );
       if (activeListItem) {
-        // Calculate top position relative to the first item
         activeIndicatorTop = activeListItem.offsetTop - firstListItem.offsetTop;
         activeIndicatorHeight = activeListItem.offsetHeight;
-        activeIndicatorOpacity = 1; // Make it visible
+        activeIndicatorOpacity = 1;
       } else {
-        activeIndicatorOpacity = 0; // Hide if active item not found
+        activeIndicatorOpacity = 0;
       }
     } else {
-      activeIndicatorOpacity = 0; // Hide if no active section
+      activeIndicatorOpacity = 0;
     }
 
-    // Update the state with calculated styles
-    setIndicatorStyle({
-      top: activeIndicatorTop,
-      height: activeIndicatorHeight,
-      opacity: activeIndicatorOpacity,
-    });
-    // Dependencies: Rerun if active section, sections data, or nav list ref changes
+    setIndicatorStyle({ top: activeIndicatorTop, height: activeIndicatorHeight, opacity: activeIndicatorOpacity });
   }, [activeSection, sections, navListRef]);
 
-  // Return calculated styles
   return { indicatorStyle, trackHeight };
 }
 
@@ -1040,29 +840,20 @@ function throttle<T extends (...args: any[]) => any>(
   let lastTime: number = 0;
   let timer: NodeJS.Timeout | null = null;
   let lastArgs: Parameters<T> | null = null;
-  
+
   return function throttled(...args: Parameters<T>): void {
     const now = Date.now();
     const elapsed = now - lastTime;
-    
-    // Store the latest arguments for potential trailing execution
-    lastArgs = args;
-    
-    // If enough time has passed, execute the function immediately
-    if (elapsed >= limit) {
-      if (timer) {
-        clearTimeout(timer);
-        timer = null;
-      }
-      
+    lastArgs = args; // Store latest args
+
+    if (elapsed >= limit) { // Execute immediately if limit passed
+      if (timer) { clearTimeout(timer); timer = null; }
       if (leading || elapsed > limit) {
         fn(...args);
         lastTime = now;
         lastArgs = null;
       }
-    } 
-    // Otherwise, set up a timer for trailing execution if needed
-    else if (trailing && !timer) {
+    } else if (trailing && !timer) { // Setup trailing execution
       timer = setTimeout(() => {
         if (lastArgs) {
           fn(...lastArgs);
@@ -1086,15 +877,9 @@ function useDebounce<T extends (...args: any[]) => any>(
   delay: number
 ): (...args: Parameters<T>) => void {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Create and memoize the debounced function
+
   return useCallback((...args: Parameters<T>) => {
-    // Clear any existing timer
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-    }
-    
-    // Set a new timer
+    if (timerRef.current) { clearTimeout(timerRef.current); }
     timerRef.current = setTimeout(() => {
       fn(...args);
       timerRef.current = null;
@@ -1111,175 +896,207 @@ function useDebounce<T extends (...args: any[]) => any>(
  * @param enableAutoDetection Flag to enable/disable the IntersectionObserver
  * @returns [activeSection, setActiveSection] - Tuple containing the current active section ID and a function to manually set it
  */
-export function useSectionIntersection(
-  containerRef: React.RefObject<HTMLDivElement | null>,
-  sections: Array<{ id: string }>,
-  scrollOffset: number,
-  externalActiveSection: string | null = null,
-  enableAutoDetection: boolean = true
-): [string | null, (id: string) => void] {
-  // Internal state for the active section (used only if not externally controlled)
+/**
+ * Custom hook for scroll spying, section detection, and URL hash synchronization
+ * specifically designed to work with Next.js App Router
+ */
+export function useScrollSpy({
+  containerRef,
+  sectionIds,
+  offsetTop = 0,         // Default offset to 0
+  enableHashSync = true, // Default to enabling hash sync
+  scrollToOnLoad = true, // Default to scrolling on load
+  externalActiveSection = null, // External control for active section
+  isMounted = false,     // Flag indicating component is mounted on client
+}: {
+  containerRef: React.RefObject<HTMLElement | null>; // Updated type to accept null
+  sectionIds: string[];                     // Array of all section IDs to observe
+  offsetTop?: number;                       // Offset for sticky elements (e.g., nav height)
+  enableHashSync?: boolean;                 // Flag to enable/disable URL hash updates
+  scrollToOnLoad?: boolean;                 // Flag to scroll to hash on initial load
+  externalActiveSection?: string | null;    // Optional externally controlled active section
+  isMounted?: boolean;                     // Flag indicating if component is mounted client-side
+}): string | null { // Returns the active section ID or null
+
+  const router = useRouter(); // Get router instance from next/navigation
+  const pathname = usePathname(); // Get current pathname
   const [internalActiveSection, setInternalActiveSection] = useState<string | null>(
-    // Initialize with external value or first section ID
-    externalActiveSection || (sections.length > 0 ? sections[0].id : null)
+    externalActiveSection || (sectionIds.length > 0 ? sectionIds[0] : null)
   );
+  const observerRef = useRef<IntersectionObserver | null>(null); // Ref to store the observer instance
+  const initialScrollDoneRef = useRef<boolean>(false); // Ref to track if initial scroll has happened
+  
+  // Debounce state updates to prevent rapid changes during scroll
+  const debouncedSetActiveSection = useDebounce(setInternalActiveSection, 150);
+  
+  // Determine the active section (external control takes precedence)
+  const activeSection = externalActiveSection ?? internalActiveSection;
 
-  // Create a debounced version of setInternalActiveSection to prevent rapid changes
-  // ** CHANGE (User Suggestion): Increased delay from 150ms to 250ms **
-  const debouncedSetActiveSection = useDebounce(
-    (id: string) => setInternalActiveSection(id),
-    150 // Increased debounce delay significantly as suggested
-  );
-
-  // Determine the effective active section: external prop takes precedence
-  const activeSection =
-    externalActiveSection !== null ? externalActiveSection : internalActiveSection;
-
-  // Callback executed when section intersections change
-  // ** CHANGE (User Suggestion): Updated logic to prioritize nearest and exit early **
-  const handleIntersection = useCallback(
-    (entries: IntersectionObserverEntry[]) => {
-      if (!containerRef.current || containerRef.current.hasAttribute('data-scrolling-programmatically')) {
-        return;
-      }
-      
-      // ** CHANGE (User Suggestion): Increased buffer zone from 30 to 50 **
-      const BUFFER_ZONE = 50; // Increased buffer zone as suggested
-
-      // Sort entries by top edge proximity below the offset line
-      // Make a mutable copy before sorting
-      const sortedEntries = [...entries];
-      sortedEntries.sort((a, b) => {
-        // Prioritize entries whose top is below or within the buffer zone
-        const aTopDist = a.boundingClientRect.top - scrollOffset;
-        const bTopDist = b.boundingClientRect.top - scrollOffset;
-        const aIsInZone = aTopDist >= -BUFFER_ZONE;
-        const bIsInZone = bTopDist >= -BUFFER_ZONE;
-
-        if (aIsInZone && !bIsInZone) return -1; // a is preferred
-        if (!aIsInZone && bIsInZone) return 1;  // b is preferred
-        if (!aIsInZone && !bIsInZone) return aTopDist - bTopDist; // If both outside, sort by distance (closer to top wins)
-
-        // If both are in the zone, sort by absolute distance to the offset line
-        const aAbsDist = Math.abs(aTopDist);
-        const bAbsDist = Math.abs(bTopDist);
-        return aAbsDist - bAbsDist;
-      });
-
-      // Iterate through sorted entries and find the first valid candidate
-      for (const entry of sortedEntries) {
-        const topDist = entry.boundingClientRect.top - scrollOffset;
-        // Check if the entry is intersecting and within the valid zone (below or near offset)
-        if (entry.isIntersecting && topDist >= -BUFFER_ZONE) {
-          const newId = entry.target.getAttribute('data-section-id');
-          // Update if a valid ID is found, it's different, and not externally controlled
-          if (newId && newId !== internalActiveSection && externalActiveSection === null) {
-            debouncedSetActiveSection(newId);
-            return; // Found the best candidate, exit immediately
-          }
-          // If the best candidate is the current section, still exit (no change needed)
-          if (newId && newId === internalActiveSection) {
-              return;
-          }
-        }
-      }
-      // If no suitable entry found in the loop (e.g., only entries above the buffer zone are intersecting),
-      // potentially clear the active section or keep the last one depending on desired behavior.
-      // Current logic keeps the last active section if nothing new is found.
-    },
-    [internalActiveSection, externalActiveSection, scrollOffset, containerRef, debouncedSetActiveSection]
-  );
-
-
-  // Memoize IntersectionObserver options
-  const observerOptions = useMemo(() => {
-    if (!containerRef || !containerRef.current) return null;
-
-    const scrollContainer = containerRef.current;
-    const topMargin = Math.round(scrollOffset);
+  // --- Internal Scroll Function (for initial load ONLY) ---
+  const scrollToIdOnLoad = useCallback((id: string) => {
+    // Only run on client side
+    if (!isMounted) return;
     
-    // ** CHANGE (User Suggestion): Use percentage for bottom margin **
-    const rootMarginString = `-${topMargin}px 0px -40% 0px`;
+    const container = containerRef.current;
+    if (!container) return;
 
-    return {
-      root: scrollContainer,
-      rootMargin: rootMarginString,
-      // ** CHANGE (User Suggestion): Simplified thresholds **
-      threshold: [0.25, 0.5, 0.75, 1.0], // Simplified threshold array
-    } as IntersectionObserverInit;
-  }, [scrollOffset, containerRef, containerRef.current?.clientHeight]); // Keep clientHeight dependency
+    // Find the target element using ID or data-attribute
+    const target = container.querySelector<HTMLElement>(
+      `#${CSS.escape(id)}, [data-section-id="${CSS.escape(id)}"]`
+    );
+    if (!target) return;
 
-  // Effect to set up and tear down the IntersectionObserver
+    console.log(`[useScrollSpy] Initial scroll triggered for: #${id}`);
+    const top = target.offsetTop - offsetTop; // Calculate position including offset
+    container.scrollTo({ top, behavior: 'auto' }); // Use 'auto' for instant jump on load
+
+    // Immediately set the active section state AFTER the initial scroll/jump
+    if (externalActiveSection === null) {
+      setInternalActiveSection(id);
+    }
+  }, [containerRef, offsetTop, isMounted, externalActiveSection]);
+
+  // --- Effect 1: Scroll to Hash on Initial Load ---
   useEffect(() => {
-    // Conditions to skip observer setup:
-    if (
-      !enableAutoDetection || // Auto detection disabled
-      externalActiveSection !== null || // Externally controlled
-      !containerRef || // Container ref not ready
-      !containerRef.current ||
-      sections.length === 0 || // No sections to observe
-      !observerOptions // Options not calculated yet
-    ) {
-      return; // Do nothing
+    // Only run on client side after mounted
+    if (!isMounted || !scrollToOnLoad || initialScrollDoneRef.current || externalActiveSection !== null) {
+      return;
     }
 
-    // Create the observer instance
-    const observer = new IntersectionObserver(handleIntersection, observerOptions);
-    // Map to keep track of observed elements (optional, for debugging)
-    const sectionRefs = new Map<string, HTMLElement | null>();
+    // Get hash from window.location instead of router
+    const hash = window.location.hash.substring(1);
+
+    if (hash && sectionIds.includes(hash)) {
+      // Use setTimeout to ensure the layout is stable before scrolling
+      const timerId = setTimeout(() => {
+        scrollToIdOnLoad(hash);
+        initialScrollDoneRef.current = true; // Mark initial scroll as done
+      }, 150);
+
+      return () => clearTimeout(timerId); // Cleanup timeout
+    } else {
+      // If no valid hash, mark initial scroll as done anyway
+      initialScrollDoneRef.current = true;
+    }
+  }, [scrollToOnLoad, sectionIds, scrollToIdOnLoad, isMounted, externalActiveSection]);
+
+  // --- Effect 2: Setup IntersectionObserver ---
+  useEffect(() => {
+    // Only run on client side and if auto-detection is enabled
+    if (!isMounted || externalActiveSection !== null) return;
+    
+    const container = containerRef.current;
+    // Ensure container exists and we have section IDs to observe
+    if (!container || sectionIds.length === 0) {
+      return;
+    }
+
+    // Disconnect any previous observer instance before creating a new one
+    observerRef.current?.disconnect();
+
+    const BUFFER_ZONE = 50; // Pixels above the offset line to consider "active"
+
+    // Create the IntersectionObserver instance
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Ignore observer if scrolling programmatically
+        if (containerRef.current?.hasAttribute('data-scrolling-programmatically')) {
+          console.log('[useScrollSpy] Observer ignored: Programmatic scroll detected.');
+          return;
+        }
+
+        // Sort entries: prioritize those intersecting below or near the offset line,
+        // then sort by proximity to the offset line.
+        const sortedEntries = [...entries]; // Mutable copy
+        sortedEntries.sort((a, b) => {
+          const aTopDist = a.boundingClientRect.top - offsetTop;
+          const bTopDist = b.boundingClientRect.top - offsetTop;
+          const aIsInZone = aTopDist >= -BUFFER_ZONE;
+          const bIsInZone = bTopDist >= -BUFFER_ZONE;
+
+          if (aIsInZone && !bIsInZone) return -1; // a preferred
+          if (!aIsInZone && bIsInZone) return 1;  // b preferred
+          if (!aIsInZone && !bIsInZone) return aTopDist - bTopDist; // Both above, closer to top wins
+
+          // Both in zone, sort by absolute distance to offset line
+          return Math.abs(aTopDist) - Math.abs(bTopDist);
+        });
+
+        // Find the first valid candidate in the sorted list
+        for (const entry of sortedEntries) {
+          const topDist = entry.boundingClientRect.top - offsetTop;
+          if (entry.isIntersecting && topDist >= -BUFFER_ZONE) {
+            const newId = entry.target.getAttribute('data-section-id');
+            // Update state if a new, valid section is found and not externally controlled
+            if (newId && newId !== internalActiveSection) {
+              debouncedSetActiveSection(newId);
+              return; // Found best candidate, exit
+            }
+            // If the best candidate is already active, no need to update, exit
+            if (newId && newId === internalActiveSection) {
+              return;
+            }
+          }
+        }
+        // If no suitable intersecting entry found below the buffer zone, keep the last active section.
+      },
+      {
+        root: container,
+        rootMargin: `-${offsetTop}px 0px -40% 0px`,
+        threshold: [0, 0.1, 0.25, 0.5, 0.75, 1.0],
+      }
+    );
 
     // Observe each section element
-    sections.forEach((section) => {
-      if (containerRef.current) {
-        // Find the element by ID or data-attribute within the container
-        const element = containerRef.current.querySelector<HTMLElement>(
-          `#${CSS.escape(section.id)}, [data-section-id="${CSS.escape(
-            section.id
-          )}"]`
-        );
-
-        if (element) {
-          observer.observe(element); // Start observing
-          sectionRefs.set(section.id, element);
-        } else {
-          // Warn if a section element couldn't be found
-          console.warn(
-            `Observer could not find element for section: ${section.id}`
-          );
-        }
+    sectionIds.forEach((id) => {
+      const el = container.querySelector<HTMLElement>(
+        `#${CSS.escape(id)}, [data-section-id="${CSS.escape(id)}"]`
+      );
+      if (el) {
+        // Ensure the element has the data-section-id attribute for the observer callback
+        el.setAttribute('data-section-id', id);
+        observer.observe(el);
+      } else {
+        console.warn(`[useScrollSpy] Could not find element for section ID: ${id}`);
       }
     });
 
-    // Cleanup function: Disconnect the observer when component unmounts or dependencies change
-    return () => observer.disconnect();
-  }, [
-    // Dependencies: Rerun setup if any of these change
-    enableAutoDetection,
-    externalActiveSection,
-    sections,
-    handleIntersection, // The intersection callback
-    observerOptions, // The observer options
-    containerRef,
-  ]);
+    // Store the observer instance
+    observerRef.current = observer;
 
-  // Manual setter function for the active section (used by navigation clicks/keys)
-  const setActiveSection = useCallback(
-    (id: string) => {
-      // Only update internal state if the component is not externally controlled
-      if (externalActiveSection === null) {
-        setInternalActiveSection(id);
-      }
-      // If externally controlled, this function effectively does nothing,
-      // relying on the parent component to update the externalActiveSection prop.
-    },
-    [externalActiveSection] // Dependency: External control status
-  );
+    // Cleanup function
+    return () => {
+      console.log('[useScrollSpy] Disconnecting observer.');
+      observer.disconnect();
+    };
+  }, [sectionIds, containerRef, offsetTop, internalActiveSection, isMounted, externalActiveSection, debouncedSetActiveSection]);
 
-  // Return the current active section ID and the manual setter function
-  return [activeSection, setActiveSection];
+  // --- Effect 3: Sync URL Hash with Active Section ---
+  useEffect(() => {
+    // Only run on client side when mounted
+    if (!isMounted) return;
+    
+    // Only run if hash sync is enabled and we have a valid active section
+    if (!enableHashSync || !activeSection || !initialScrollDoneRef.current) {
+      return;
+    }
+
+    // Get current hash directly from window.location
+    const currentHash = window.location.hash.substring(1);
+
+    // Update URL only if the active section ID is different from the current hash
+    if (currentHash !== activeSection) {
+      console.log(`[useScrollSpy] Syncing hash: #${activeSection}`);
+      
+      // Use the new router.replace from next/navigation
+      router.replace(`${pathname}#${activeSection}`, { scroll: false });
+    }
+  }, [activeSection, enableHashSync, router, pathname, isMounted, initialScrollDoneRef]);
+
+  return activeSection;
 }
 
-// --- NEW HOOK: useDesktopNavigation ---
+// --- Hook: useDesktopNavigation ---
 /**
  * Hook to manage state and interactions for the desktop sidebar navigation.
  * Encapsulates active item state, keyboard navigation, and indicator styling.
@@ -1297,107 +1114,79 @@ export function useDesktopNavigation({
   activeSection,
   onNavClick,
   navTitle,
+  isMounted = false,
 }: {
   navListRef: React.RefObject<HTMLUListElement | null>;
   sections: Section[];
   activeSection: string | null;
   onNavClick: (id: string) => void;
   navTitle: string;
+  isMounted?: boolean; // Flag indicating component is mounted client-side
 }) {
-  // State for the index of the currently active/focused item in the desktop nav
   const [activeDesktopIndex, setActiveDesktopIndex] = useState(
-    // Initialize based on the initial activeSection
-    sections.findIndex(s => s.id === activeSection) || 0
+    sections.findIndex(s => s.id === activeSection) || 0 // Initialize based on activeSection
   );
 
-  // Effect to synchronize the internal active index with the externally determined activeSection
+  // Sync internal index with external activeSection changes
   useEffect(() => {
     const index = sections.findIndex(s => s.id === activeSection);
     if (index !== -1 && index !== activeDesktopIndex) {
-      // Update only if the section is found and the index is different
       setActiveDesktopIndex(index);
     }
-    // If activeSection becomes null (e.g., scrolled out of view),
-    // we might want to keep the last active index or reset to 0.
-    // Current behavior: keeps the last valid index.
-  }, [activeSection, sections, activeDesktopIndex]); // Add activeDesktopIndex to prevent unnecessary updates
+  }, [activeSection, sections, activeDesktopIndex]);
 
-  // Setup keyboard navigation for the desktop list
-  const {
-    getItemProps: getDesktopKeyboardProps,
-    containerProps: desktopContainerProps
-  } = useKeyboardNavigation({
+  // Keyboard navigation setup
+  const { getItemProps: getDesktopKeyboardProps, containerProps: desktopContainerProps } = useKeyboardNavigation({
     items: sections,
     activeIndex: activeDesktopIndex,
-    isHorizontal: false, // Desktop nav is vertical
-    onNavigate: (newIndex) => {
-      // When keyboard navigation changes the index:
-      setActiveDesktopIndex(newIndex); // Update the internal state
+    isHorizontal: false, // Vertical navigation
+    onNavigate: (newIndex) => { // Handle keyboard navigation
+      setActiveDesktopIndex(newIndex);
       const sectionId = sections[newIndex]?.id;
-      if (sectionId) {
-        onNavClick(sectionId); // Trigger the navigation action (scroll)
-      }
-      // Optionally focus the newly navigated button
-      if (navListRef.current) {
-        const navButtons = navListRef.current.querySelectorAll<HTMLButtonElement>('button');
-        if (navButtons && navButtons[newIndex]) {
-          // Use a short timeout to ensure the button is focusable after potential DOM updates
-          setTimeout(() => navButtons[newIndex]?.focus(), 0);
-        }
-      }
+      if (sectionId) { onNavClick(sectionId); }
+      // Focus the newly navigated button
+      setTimeout(() => {
+          navListRef.current?.querySelectorAll<HTMLButtonElement>('button')[newIndex]?.focus();
+      }, 0);
     },
-    onActivate: (_item, index) => {
-      // When Enter/Space is pressed on an item:
+    onActivate: (_item, index) => { // Handle activation (Enter/Space)
       const sectionId = sections[index]?.id;
-      if (sectionId) {
-        onNavClick(sectionId); // Trigger the navigation action (scroll)
-      }
+      if (sectionId) { onNavClick(sectionId); }
     }
   });
 
-  // Setup the visual indicator line for the active item
-  const { indicatorStyle, trackHeight } = useDesktopIndicator({
-    navListRef,
-    activeSection,
+  // Active indicator setup
+  const { indicatorStyle, trackHeight } = useDesktopIndicator({ 
+    navListRef, 
+    activeSection, 
     sections,
+    isMounted // Pass isMounted flag for client-side rendering
   });
 
-  // Memoize the container props for the desktop navigation list (UL)
-  const desktopNavProps = useMemo(() => {
-    return {
-      role: desktopContainerProps.role,
-      'aria-orientation': desktopContainerProps['aria-orientation'],
-      'aria-label': navTitle // Add aria-label for accessibility
-    };
-  }, [desktopContainerProps, navTitle]);
+  // Memoized container props for the desktop nav list
+  const desktopNavProps = useMemo(() => ({
+    role: desktopContainerProps.role,
+    'aria-orientation': desktopContainerProps['aria-orientation'],
+    'aria-label': navTitle
+  }), [desktopContainerProps, navTitle]);
 
-  // Function to get props for each individual desktop navigation item (button)
+  // Props getter for individual desktop nav items
   const getDesktopItemProps = useCallback(
     (section: Section, index: number) => {
       const keyboardProps = getDesktopKeyboardProps(index);
       const isActive = activeSection === section.id;
       return {
-        ...keyboardProps, // Include keyboard props (onKeyDown, tabIndex, role)
-        onClick: () => onNavClick(section.id), // Handle click events
-        className: cx(
-          navButtonBaseStyles, // Base button styles
-          isActive ? navButtonActiveStyles : navButtonInactiveStyles // Active/inactive styles
-        ),
-        'aria-current': isActive ? 'location' as const : undefined, // ARIA current state
-        // Add data-section-id for easier querying if needed
-        'data-section-id': section.id,
+        ...keyboardProps,
+        onClick: () => onNavClick(section.id),
+        className: cx( navButtonBaseStyles, isActive ? navButtonActiveStyles : navButtonInactiveStyles ),
+        'aria-current': isActive ? 'location' as const : undefined,
+        'data-section-id': section.id, // For indicator lookup
       };
     },
-    [getDesktopKeyboardProps, activeSection, onNavClick] // Dependencies for the item props getter
+    [getDesktopKeyboardProps, activeSection, onNavClick]
   );
 
-  // Return all necessary values and functions
-  return {
-    desktopNavProps,      // Props for the main UL container
-    getDesktopItemProps,  // Function to get props for each LI's button
-    indicatorStyle,       // Style object for the active indicator line
-    trackHeight,          // Height for the indicator track line
-  };
+  return { desktopNavProps, getDesktopItemProps, indicatorStyle, trackHeight };
 }
 
 
@@ -1407,181 +1196,129 @@ export function useDesktopNavigation({
  * Represents a content section within the ScrollingContentWithNav component
  */
 export interface Section {
-  id: string; // Unique identifier for the section (used for linking and keys)
-  title: string; // Short title used for the navigation links
-  svgIcon?: React.ReactNode; // Optional SVG icon component/element to display at the top
-  headerElement?: { // Optional structured header element for the section
-    type: 'image' | 'card' | 'code' | 'text'; // Type of header
-    content?: string[]; // Text content (for card, text types)
-    src?: string; // Image source (for image type)
-    code?: string; // Code content (for code type)
-    bgColor?: string; // Optional background color (use theme colors ideally)
+  id: string; // Unique identifier for the section
+  title: string; // Short title for navigation links
+  svgIcon?: React.ReactNode; // Optional SVG icon
+  headerElement?: { // Optional structured header
+    type: 'image' | 'card' | 'code' | 'text';
+    content?: string[]; // Text content (for card, text)
+    src?: string; // Image source (for image)
+    code?: string; // Code content (for code)
+    bgColor?: string; // Optional background color
   };
-  // --- UPDATED TYPE: Expects a function for render props ---
-  customComponentAbove?: (props: { isScrolling: boolean }) => React.ReactNode;
-  sectionTitle?: string; // Optional longer title displayed above the section content
+  customComponentAbove?: (props: { isScrolling: boolean }) => React.ReactNode; // Render prop
+  sectionTitle?: string; // Optional longer title displayed in content
   content?: string[]; // Array of paragraphs for simple text content
-  // --- UPDATED TYPE: Expects a function for render props ---
-  customComponent?: (props: { isScrolling: boolean }) => React.ReactNode;
+  customComponent?: (props: { isScrolling: boolean }) => React.ReactNode; // Render prop
 }
 
 /**
  * Props for the main ScrollingContentWithNav component
  */
 export interface ScrollingContentWithNavProps {
-  sections: Section[]; // Array of section data objects
-  children?: ReactNode; // Optional: Render children directly instead of using sections data
-  activeSection?: string | null; // Optional: Externally control the active section
-  onNavClick?: (id: string) => void; // Optional: Callback when a nav item is clicked
-  navTitle?: string; // Title displayed in navigation areas (default: 'Contents')
+  sections: Section[];
+  children?: ReactNode; // Optional: Render children directly
+  activeSection?: string | null; // Optional: Externally control active section
+  onNavClick?: (id: string) => void; // Optional: Callback for nav clicks
+  navTitle?: string; // Title for navigation areas (default: 'Contents')
 
-  // Header options for the top header bar within the component
-  headerTitle?: string; // Simple title text
-  headerRightContent?: ReactNode; // Optional content for the right side (e.g., buttons)
-  headerContent?: ReactNode; // Optional: Full custom React node for the header (overrides title/right)
-  headerDescription?: ReactNode; // Optional: Description text displayed below the header (not part of navigable content)
+  // Header options
+  headerTitle?: string;
+  headerRightContent?: ReactNode;
+  headerContent?: ReactNode; // Overrides title/right content
+  headerDescription?: ReactNode; // Description below header
 
-  // Footer options for the content displayed at the bottom of the component
-  footerTitle?: string; // Optional: Title for the footer section
-  footerContent?: ReactNode; // Optional: Content to display in the footer area below all navigable sections
+  // Footer options
+  footerTitle?: string;
+  footerContent?: ReactNode;
 
-  // Optional class names for styling customization via PandaCSS/CSS
+  // Optional class names for styling customization
   containerClassName?: string;
   headerClassName?: string;
-  headerDescriptionClassName?: string; // Class name for the header description container
+  headerDescriptionClassName?: string;
   mainClassName?: string;
   contentColumnClassName?: string;
   navColumnClassName?: string;
   sectionHeadingClassName?: string;
   sectionParagraphClassName?: string;
-  svgIconWrapperClassName?: string; // <-- ADDED PROP for styling SVG wrapper
-  customComponentAboveWrapperClassName?: string; // <-- ADDED PROP for styling top custom component wrapper
-  customComponentWrapperClassName?: string; // Prop for styling bottom custom component wrapper
-  footerClassName?: string; // Class name for the footer container
-  footerTitleClassName?: string; // Class name for the footer title
+  svgIconWrapperClassName?: string;
+  customComponentAboveWrapperClassName?: string;
+  customComponentWrapperClassName?: string;
+  footerClassName?: string;
+  footerTitleClassName?: string;
 
   // Behavior control props
-  enableAutoDetection?: boolean; // Enable/disable IntersectionObserver (default: true)
-  offsetTop?: number; // External offset (e.g., height of a global navbar above this component)
-  useChildrenInsteadOfData?: boolean; // Render passed children instead of sections data (default: false)
-  autoFocusContainerOnMount?: boolean; // Autofocus the main scroll container on mount (default: false)
-  
+  enableAutoDetection?: boolean; // Default: true
+  offsetTop?: number; // External offset (default: 0)
+  useChildrenInsteadOfData?: boolean; // Default: false
+  autoFocusContainerOnMount?: boolean; // Default: false
+
   // Responsive design props
-  maxContentWidth?: string; // Optional max-width override for content container
+  maxContentWidth?: string; // Optional max-width override
   responsivePadding?: boolean; // Enable/disable responsive padding (default: true)
-  customBreakpoints?: Record<string, number>; // Optional custom breakpoints
 }
 
 // --- PandaCSS Style Definitions ---
-// Using PandaCSS `css` function to generate atomic CSS classes.
-// These definitions assume a theme is configured with tokens like
-// 'text', 'background', 'primary', 'border', 'glow', 'textMuted', etc.
+// Assumes a theme with tokens: 'text', 'background', 'primary', 'border', 'glow', 'textMuted', etc.
 
-// Fluid typography utility styles
-export const fluidFontSizeStyles = {
-  // Base fluid text styles with responsive scaling - updated with more aggressive scaling
-  bodyText: css({
-    fontSize: {
-      base: 'desktopSubmenuItem', // 0.85rem - slightly smaller
-      sm: 'desktopSubmenuItem',   // 0.85rem - slightly smaller
-      md: 'desktopNavItem',       // 0.95rem - slightly smaller than standard base
-      lg: 'base',                 // 1rem - still conservative
-      xl: 'lg',                   // 1.125rem - at 1440px, this becomes our new baseline
-      '2xl': 'xl',                // 1.25rem - more aggressive scaling at 1920px
-      '3xl': 'desktopSubmenuHeader' // 1.25rem - max size at 2200px
-    },
-    lineHeight: {
-      base: '1.5',
-      lg: '1.6',
-      xl: '1.7',
-      '2xl': '1.8'  // Even more generous line height at large screens
-    }
-  }),
-  
-  navTitle: css({
-    fontSize: {
-      base: 'desktopSubmenuItem',  // 0.85rem
-      md: 'desktopNavItem',        // 0.95rem
-      lg: 'base',                  // 1rem
-      xl: 'lg',                    // 1.125rem
-      '2xl': 'xl'                  // 1.25rem - more aggressive scaling
-    },
-    fontWeight: '200'
-  }),
-  
-  sectionHeading: css({
-    fontSize: {
-      base: 'lg',      // 1.125rem
-      md: 'xl',        // 1.25rem
-      xl: '3xl',       // 1.875rem
-      '2xl': '4xl',    // 2.25rem
-      '3xl': '5xl'     // 3rem - more aggressive at largest screens
-    }
-  })
-};
-
-// Outermost container div
 export const containerStyles = css({
   position: 'relative',
-  width: 'full',                  // Take full available width
-  height: '100vh',                // Ensure container takes full viewport height
+  width: 'full',
+  height: '100vh',
   display: 'flex',
-  flexDirection: 'column',        // Stack header, main content vertically
-  color: 'text',                  // Default text color from theme
-  fontFamily: 'body',             // Default font from theme
-  overflow: 'hidden',             // Prevent scroll on the container itself; scrolling happens inside `mainContainerStyles`
-  maxWidth: {                     // Responsive container width constraints
+  flexDirection: 'column',
+  color: 'text',
+  fontFamily: 'body',
+  overflow: 'hidden',
+  maxWidth: {
     base: '100%',
-    xl: '90rem',                  // ~1440px
-    '2xl': '110rem',              // ~1760px
-    '3xl': '120rem'               // ~1920px - upper bound below 2200px
+    xl: '90rem',
+    '2xl': '110rem',
+    '3xl': '120rem'
   },
-  margin: '0 auto',               // Center the container
+  margin: '0 auto',
 });
 
-// Header Styles (Optional top header bar within the component)
 export const headerStyles = css({
-  background: 'background',       // Background color from theme
+  background: 'background',
   width: '100%',
-  paddingBottom: { 
-    base: '1.2',                  // Smaller padding on mobile
-    md: '1.4',                    // Panda theme spacing token
-    xl: '1.6'                     // Larger padding on desktop
+  flexShrink: 0,
+  display: 'block',
+  paddingBottom: {
+    base: '1.2',
+    md: '1.4',
+    xl: '1.6'
   },
-  paddingLeft: { 
-    base: '2', 
+  paddingLeft: {
+    base: '2',
     md: '3',
     xl: '6',
-    '2xl': '12',
+    '2xl': '12'
   },
-  paddingRight: { 
-    base: '2', 
+  paddingRight: {
+    base: '2',
     md: '3',
     xl: '4'
   },
-  borderBottom: '1px solid',      // Separator line
-  borderColor: 'border',          // Border color from theme
-  flexShrink: 0,                  // Prevent header from shrinking
-  display: 'block',               // Ensure it takes full width
+  borderBottom: '1px solid',
+  borderColor: 'border',
 });
 
-// Default layout for header content (if not using custom `headerContent`)
 export const headerContentContainerStyles = css({
   paddingTop: {
-    base: '4rem',                 // Smaller padding on mobile
-    md: '6rem',                   // Medium padding on tablets
-    lg: '8rem',                   // Full padding on desktop
-    xl: '8rem',                   // Maintain at XL screens
-    '2xl': '10rem',               // Enhanced for 2XL screens
-    '3xl': '10rem'                // Keep consistent at largest breakpoint
+    base: '4rem',
+    md: '6rem',
+    lg: '8rem',
+    xl: '8rem',
+    '2xl': '10rem',
+    '3xl': '10rem'
   },
   display: 'flex',
-  justifyContent: 'space-between', // Space out title and right content
-  alignItems: 'left',             // Align items to the left (per example)
+  justifyContent: 'space-between',
+  alignItems: 'left',
   width: 'full',
 });
 
-// Style for the header description container
 export const headerDescriptionStyles = css({
   padding: {
     base: '3',
@@ -1610,14 +1347,8 @@ export const headerDescriptionStyles = css({
   backgroundColor: 'background',
 });
 
-// Style for the footer container
 export const footerStyles = css({
   width: 'full',
-  padding: {
-    base: '4',
-    md: '5',
-    lg: '6'
-  },
   marginTop: {
     base: '6',
     md: '8'
@@ -1630,20 +1361,20 @@ export const footerStyles = css({
   },
   color: 'text',
   backgroundColor: 'background',
+  padding: {
+    base: '4',
+    md: '5',
+    lg: '6'
+  },
   paddingBottom: {
-    base: '15rem',                // Less space on mobile
-    md: '20rem',                  // Medium space on tablets
-    lg: '25rem'                   // Full space on desktop
+    base: '15rem',
+    md: '20rem',
+    lg: '25rem'
   }
 });
 
-// Style for the footer title
 export const footerTitleStyles = css({
-  fontSize: {
-    base: 'lg',
-    xl: 'xl',
-    '2xl': '3xl'
-  },
+  fontSize: { base: 'lg', xl: 'xl', '2xl': '3xl' },
   fontWeight: '200',
   color: 'primary',
   marginBottom: {
@@ -1657,603 +1388,328 @@ export const footerTitleStyles = css({
   borderColor: 'border',
 });
 
-// Default styling for the header title
 export const headerTitleStyles = css({
   fontSize: {
-    base: 'lg',                   // Base size
-    lg: 'xl',                     // Medium size
-    xl: '3xl',                    // Large size for bigger screens
-    '2xl': '5xl'                  // Even larger at 1920px+
+    base: 'lg',
+    lg: 'xl',
+    xl: '3xl',
+    '2xl': '5xl'
   },
-  fontWeight: '200',              // Thin font weight
+  fontWeight: '200',
   textAlign: 'left',
+  background: 'background',
   paddingLeft: {
     base: '3',
     md: '4',
     lg: '5',
     xl: '5',
-    '2xl': '6',                   // Align with section padding at large screens
-    '3xl': '6'                    // Maintain alignment at largest breakpoint
+    '2xl': '6',
+    '3xl': '6'
   },
-  background: 'background',       // Ensure background matches
-});
-
-// Common styles for navigation lists (UL elements)
-export const navListCommonStyles = css({
-  listStyle: 'none',              // Remove default list bullets
-  padding: 0,
-  margin: 0,
 });
 
 // --- Mobile Navigation Styles ---
-// Wrapper for the entire mobile nav (button + dropdown)
 export const mobileNavWrapperStyles = css({
-  display: { base: 'block', md: 'none' }, // Only show on mobile (base)
-  position: 'sticky', // Stick to the top of the scrollable container
+  display: { base: 'block', md: 'none' },
+  position: 'sticky',
   top: '0',
-  bg: 'background', // Background color
-  borderColor: 'border', // Border color
-  flexShrink: 0, // Prevent shrinking
-  // MODIFIED: Improved stacking approach using both isolation and z-index
-  isolation: 'isolate', // Creates stacking context in a more predictable way
-  zIndex: 3, // Reduced from 20 but still ensures it's above content sections
-  borderBottom: '1px solid', // Separator line
-  boxShadow: '0 2px 8px rgba(0,0,0,0.08)', // Subtle shadow
+  bg: 'background',
+  borderColor: 'border',
+  flexShrink: 0,
+  isolation: 'isolate',
+  zIndex: 3,
+  borderBottom: '1px solid',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
 });
 
-// Trigger button for opening/closing mobile nav
 export const mobileNavTriggerStyles = css({
   display: 'flex',
-  justifyContent: 'space-between', // Space out title and expand/collapse text
+  justifyContent: 'space-between',
   alignItems: 'center',
   width: 'full',
-  p: { 
-    base: '2',  // Smaller padding on tiny screens
-    sm: '3'     // Normal padding on small screens and up
-  },
-  fontSize: { 
-    base: 'mobileSubmenuItem',  // Use 0.9rem on smaller screens
-    sm: 'mobileNavItem'         // Use 1.1rem on larger mobiles
-  },
-  fontWeight: '200', // Font weight
-  color: 'text', // Text color
+  p: { base: '2', sm: '3' },
+  fontSize: { base: 'mobileSubmenuItem', sm: 'mobileNavItem' },
+  fontWeight: '200',
+  color: 'text',
   cursor: 'pointer',
-  border: 'none', // Remove default button border
-  bg: 'transparent', // Transparent background
-  _hover: { // Hover style
-    bgColor: 'glow', // Glow color from theme
-  },
+  border: 'none',
+  bg: 'transparent',
+  _hover: { bgColor: 'glow' },
 });
 
-// Dropdown container for mobile nav items
 export const mobileNavDropdownStyles = css({
-  position: 'absolute', // Position below the trigger button
+  position: 'absolute',
   top: '100%',
   left: 0,
   right: 0,
   bg: 'background',
   borderBottom: '1px solid',
   borderColor: 'border',
-  boxShadow: 'lg', // Larger shadow for dropdown
+  boxShadow: 'lg',
   height: 'auto',
-  maxH: { 
-    base: 'calc(50vh - 40px)',  // Smaller on phones
-    sm: 'calc(50vh - 60px)'     // Larger on tablets
-  },
-  overflowY: 'hidden', // Prevent internal scrolling (use touch gestures)
-  zIndex: 19, // Just below the trigger button wrapper
-  // Transition for smooth open/close (can be overridden by touch gestures)
+  maxH: { base: 'calc(50vh - 40px)', sm: 'calc(50vh - 60px)' },
+  overflowY: 'hidden',
+  zIndex: 19,
   transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
 });
 
-// List element (UL) inside the mobile dropdown
 export const mobileNavListStyles = css({
   listStyle: 'none',
-  padding: { 
-    base: '1', 
-    sm: '2' 
-  },
+  padding: { base: '1', sm: '2' },
   margin: 0,
 });
 
 // --- Main Content Area Styles ---
-// This is the primary scrollable container
 export const mainContainerStyles = css({
-  // paddingTop: '50', // Removed: Mobile nav is sticky inside now
   display: 'flex',
-  // Column layout on mobile, row layout on desktop
   flexDirection: { base: 'column', md: 'row' },
-  flex: '1', // Allow this container to grow and fill remaining space
+  flex: '1',
   width: 'full',
-  overflowY: 'auto', // Enable vertical scrolling ONLY for this container
-  overflowX: 'hidden', // Hide horizontal overflow
-  // Enable native smooth scrolling for user interactions (clicking links, etc.)
-  // Our programmatic scroll temporarily disables this.
+  overflowY: 'auto',
+  overflowX: 'hidden',
   scrollBehavior: 'smooth',
-  // Responsive padding that scales with screen size
-  paddingRight: { 
-    base: '1',  // Less padding on mobile
-    sm: '2',    // Small padding on tablets
-    lg: '3',    // Medium padding on small desktops
-    xl: '4'     // Full padding on large screens
-  },
-  paddingLeft: {
-    base: '2',  // Less padding on mobile
-    sm: '3',    // Small padding on tablets
-    lg: '4',    // Medium padding on small desktops
-    xl: '5'     // Full padding on large screens
-  },
-  // Make it programmatically focusable (for autofocus hook) but hide the default outline
-  outline: 'none',
-  _focusVisible: {
-    // Improved focus styles for accessibility
+  paddingRight: { base: '1', sm: '2', lg: '3', xl: '4' },
+  paddingLeft: { base: '2', sm: '3', lg: '4', xl: '5' },
+  outline: 'none', // Hide default focus outline
+  _focusVisible: { // Custom focus style for accessibility
     outline: '2px solid',
     outlineColor: 'primary',
     outlineOffset: '2px',
   },
 });
 
-// Wrapper for the main content sections (left side on desktop)
 export const contentWrapperStyles = css({
-  flex: '1', // Allow content to take available space
-  padding: { 
-    base: '3',  // Smaller padding on mobile
-    sm: '4',    // Medium padding on tablets
-    md: '5',    // Larger padding on small desktops
-    lg: '6',    // Full padding on large screens
-    xl: '7',    // Enhanced padding for XL screens
-    '2xl': '8', // Extra padding for 2XL screens
-    '3xl': '9'  // Special exclusive padding for the largest breakpoint
-  },
-  order: 1, // Ensure content appears first on mobile (above desktop nav)
-  minWidth: 0, // Prevent flexbox overflow issues
-  
-  // Custom styles for largest breakpoint (3xl - 2200px)
-  '@media (min-width: 2200px)': {
-    paddingTop: '0.5rem',         // Fine-tune top padding at largest size
-    paddingLeft: 'calc(9 * 0.25rem + 0.5rem)'  // Precise padding adjustment
+  flex: '1',
+  order: 1,
+  minWidth: 0, // Prevent flex overflow
+  padding: { base: '3', sm: '4', md: '5', lg: '6', xl: '7', '2xl': '8', '3xl': '9' },
+  '@media (min-width: 2200px)': { // Custom styles for largest breakpoint
+    paddingTop: '0.5rem',
+    paddingLeft: 'calc(9 * 0.25rem + 0.5rem)'
   }
 });
 
-// Innermost column holding the actual section elements
 export const contentColumnStyles = css({
   width: 'full',
-  maxWidth: { 
-    base: '100%',
-    lg: '60rem',  // ~960px
-    xl: '70rem',  // ~1120px
-    '2xl': '80rem', // ~1280px
-    '3xl': '90rem'  // ~1440px
-  },
-  margin: '0 auto', // Center content if max-width is set
+  margin: '0 auto', // Center content column
+  maxWidth: { base: '100%', lg: '60rem', xl: '70rem', '2xl': '80rem', '3xl': '90rem' },
 });
 
 // --- Desktop Navigation Styles ---
-// Wrapper for the desktop sidebar navigation
 export const navWrapperStyles = css({
-  paddingTop: {
-    md: '3rem', 
-    lg: '4rem',
-    xl: '5rem'
-  },
-  display: { base: 'none', md: 'block' }, // Only show on medium screens and up
-  width: { 
-    md: '56',  // ~14rem - Smaller on tablets
-    lg: '64',  // ~16rem - Medium on small desktops
-    xl: '72',  // ~18rem - Larger on standard desktops
-    '2xl': '80' // ~20rem - Full size on large screens
-  },
+  display: { base: 'none', md: 'block' },
+  order: 2, // Show on desktop, place after content
+  width: { md: '56', lg: '64', xl: '72', '2xl': '80' }, // Responsive width
   borderColor: 'border',
   bg: 'background',
-  order: 2, // Place it after content in the flex row
-  position: 'sticky', // Stick to the top of the scrollable container
+  position: 'sticky',
   top: 0,
-  alignSelf: 'flex-start', // Align to the top of the flex container
-  maxHeight: '100vh', // Limit height to viewport height
-  overflowY: 'auto', // Allow sidebar itself to scroll if content exceeds height
-  flexShrink: 0, // Prevent sidebar from shrinking
-  // MODIFIED: Improved stacking approach using both isolation and z-index
-  isolation: 'isolate', // Creates stacking context in a more predictable way
-  zIndex: 3, // Reduced from 20 but still ensures it's above content sections
-  // Add a right border to clearly separate navigation from content
-  borderRight: { md: '1px solid' },
+  alignSelf: 'flex-start',
+  maxHeight: '100vh',
+  overflowY: 'auto',
+  flexShrink: 0,
+  isolation: 'isolate',
+  zIndex: 3,
+  paddingTop: { md: '3rem', lg: '4rem', xl: '5rem' },
 });
 
-// Inner container for padding within the desktop nav
 export const navScrollContainerStyles = css({
-  padding: {
-    md: '3',
-    lg: '4',
-    xl: '5' 
-  },
+  padding: { md: '3', lg: '4', xl: '5' },
   display: 'flex',
   flexDirection: 'column',
-  height: '100%', // Allow inner content to potentially fill height
-  // Add spacing at the bottom to ensure last nav items are visible
-  paddingBottom: {
-    md: '6rem',
-    lg: '8rem'
-  }
+  height: '100%',
+  paddingBottom: { md: '6rem', lg: '8rem' } // Bottom padding for scroll visibility
 });
 
-// Header text (e.g., "Contents") within the desktop nav
 export const navHeaderStyles = css({
-  fontSize: {
-    md: 'desktopSubmenuItem', // 0.85rem
-    lg: 'desktopNavItem',     // 0.95rem
-    xl: 'base'                // 1rem
-  },
+  fontSize: { md: 'desktopSubmenuItem', lg: 'desktopNavItem', xl: 'base' },
   fontWeight: '200',
-  mb: {
-    md: '3',
-    lg: '4'
-  },
-  color: 'primary', // Use primary color
+  mb: { md: '3', lg: '4' },
+  color: 'primary',
   textAlign: 'left',
-  px: {
-    md: '1',
-    lg: '2'
-  },
-  flexShrink: 0, // Prevent shrinking
+  px: { md: '1', lg: '2' },
+  flexShrink: 0,
 });
 
-// Container for the desktop navigation list and the indicator track/line
 export const navListContainerStyles = css({
-  position: 'relative', // Needed for absolute positioning of indicator lines
-  flex: '1', // Allow list to take remaining space
-  pl: {
-    md: '3',
-    lg: '4',
-    xl: '5'
-  },
-  minHeight: 0, // Prevent flexbox overflow
+  position: 'relative',
+  flex: '1',
+  minHeight: 0, // For indicator positioning and flex grow
+  pl: { md: '3', lg: '4', xl: '5' },
 });
 
-// The list (UL) itself in the desktop nav
 export const navListStyles = css({
   display: 'flex',
   flexDirection: 'column',
-  gap: {
-    md: '1',
-    lg: '2',
-    xl: '3'
-  },
   listStyle: 'none',
   padding: 0,
   margin: 0,
+  gap: { md: '1', lg: '2', xl: '3' }, // Spacing between nav items
 });
 
-// --- Common Button Styles ---
-// Base styles shared by mobile and desktop nav buttons
-export const buttonBaseStyles = css({
-  position: 'relative', // For potential pseudo-elements or absolute children
-  display: 'block',
-  width: 'full',
-  textAlign: 'left',
-  cursor: 'pointer',
-  border: 'none',
-  bg: 'transparent',
-  // Transition for hover/focus effects
-  transitionProperty: 'colors, background-color',
-  transitionDuration: 'fast',
-  transitionTimingFunction: 'ease-in-out',
-  // Focus visible style for accessibility
-  _focusVisible: {
-    outline: 'none', // Remove default outline
-    // Custom focus ring using box-shadow
-    boxShadow: `
-      0 0 0 1px var(--colors-background),
-      0 0 0 calc(1px + 2px) var(--colors-primary)
-    `,
-  },
-  _hover: { // Hover style
-    bgColor: 'glow',
-  },
-});
-
-// Specific styles for navigation buttons (adjusting padding, font size etc.)
+// Base styles for both mobile and desktop nav buttons
 export const navButtonBaseStyles = css({
   position: 'relative',
   display: 'block',
   width: 'full',
   textAlign: 'left',
-  pl: {
-    md: '2',
-    lg: '3'
-  },
-  pr: {
-    md: '1',
-    lg: '2'
-  },
-  py: {
-    md: '1',
-    lg: '1.5',
-    xl: '2'
-  },
-  rounded: 'md', // Rounded corners
-  fontSize: {
-    md: 'desktopSubmenuItem', // 0.85rem
-    lg: 'desktopNavItem',     // 0.95rem
-    xl: 'base'                // 1rem
-  },
-  fontWeight: 'light', // Lighter font weight
-  overflow: 'hidden', // Prevent text overflow issues
-  textOverflow: 'ellipsis', // Add ellipsis (...) if text is too long
-  whiteSpace: 'nowrap', // Keep text on a single line
+  pl: { md: '2', lg: '3' }, // Desktop padding
+  pr: { md: '1', lg: '2' }, // Desktop padding
+  py: { md: '1', lg: '1.5', xl: '2' }, // Desktop padding
+  rounded: 'md',
+  fontSize: { md: 'desktopSubmenuItem', lg: 'desktopNavItem', xl: 'base' }, // Desktop font size
+  fontWeight: 'light',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
   cursor: 'pointer',
   border: 'none',
   bg: 'transparent',
   transitionProperty: 'colors, background-color, box-shadow',
   transitionDuration: 'fast',
   transitionTimingFunction: 'ease-in-out',
-  _focusVisible: { // Custom focus style for nav buttons
-    outline: 'none',
-    boxShadow: `0 0 0 2px var(--colors-primary)`,
-    bg: 'glow',
-  },
-  _hover: { // Hover style
-    bgColor: 'glow',
-  },
+  _focusVisible: { outline: 'none', boxShadow: `0 0 0 2px var(--colors-primary)`, bg: 'glow' },
+  _hover: { bgColor: 'glow' },
 });
 
-// Styles for inactive navigation buttons
 export const navButtonInactiveStyles = css({
-  color: 'textMuted', // Muted text color from theme
-  _hover: {
-    color: 'text', // Change to default text color on hover
-  },
+  color: 'textMuted',
+  _hover: { color: 'text' },
 });
 
-// Styles for the active navigation button
 export const navButtonActiveStyles = css({
-  color: 'primary', // Use primary color for text
-  fontWeight: 'medium', // Slightly bolder font weight
+  color: 'primary',
+  fontWeight: 'medium',
 });
 
 // --- Desktop Indicator Line Styles ---
-// Background track for the indicator line
-export const lineTrackStyles = css({
+export const lineTrackStyles = css({ // Background track
   position: 'absolute',
-  left: {
-    md: '1',
-    lg: '2'
-  },
   top: '0',
-  width: {
-    md: '1px',
-    lg: '2px'
-  },
-  bg: 'border', // Use border color for the track
-  rounded: 'full', // Rounded ends
-  transition: 'height 0.3s ease-in-out', // Animate height changes
+  bg: 'border',
+  rounded: 'full',
+  left: { md: '1', lg: '2' },
+  width: { md: '1px', lg: '2px' },
+  transition: 'height 0.3s ease-in-out',
 });
 
-// The active indicator line itself
-export const lineIndicatorStyles = css({
+export const lineIndicatorStyles = css({ // Active indicator
   position: 'absolute',
-  left: '0', // Align to the very left of the container
-  width: { 
-    md: '3px',
-    lg: '4px',
-    xl: '5px',
-    '2xl': '6px'
-  },
-  bg: 'primary', // Use primary color
-  borderRadius: '0 3px 3px 0', // Rounded on the right side
-  boxShadow: '0 0 6px var(--colors-primary)', // Add a glow effect
-  // Animate position, height, and opacity changes
+  left: '0',
+  bg: 'primary',
+  width: { md: '3px', lg: '4px', xl: '5px', '2xl': '6px' },
+  borderRadius: '0 3px 3px 0',
+  boxShadow: '0 0 6px var(--colors-primary)', // Glow effect
   transitionProperty: 'top, height, opacity, transform',
-  transitionDuration: 'normal', // Theme transition duration
+  transitionDuration: 'normal',
   transitionTimingFunction: 'ease-in-out',
 });
 
-// --- Section Header Element Styles (within content) ---
-// Base styles for the wrapper div around section header elements
-export const headerElementBaseStyles = css({
-  mb: '6', // Margin bottom
-  width: 'full',
-  borderRadius: 'md', // Rounded corners
-  p: '4', // Padding (can be overridden by specific types)
-  overflow: 'hidden', // Prevent content spillover
-});
-
-// Specific styles for different header types
-export const headerElementStyles = css({ // General wrapper
+// --- Section Header Element Styles ---
+export const headerElementStyles = css({ // Wrapper
   mb: '6',
   width: 'full',
   borderRadius: 'md',
   overflow: 'hidden',
 });
-
-export const headerImageStyles = css({ // Image type
+export const headerImageStyles = css({ // Image
   width: 'full',
-  maxHeight: '240px', // Limit image height
-  objectFit: 'cover', // Ensure image covers the area well
+  maxHeight: '240px',
+  objectFit: 'cover',
 });
-
-export const headerCardStyles = css({ // Card type
+export const headerCardStyles = css({ // Card
   p: '4',
   border: '1px solid',
   borderColor: 'border',
   borderRadius: 'md',
-  boxShadow: 'sm', // Small shadow
-  bg: 'background', // Background color
+  boxShadow: 'sm',
+  bg: 'background',
 });
-
-export const headerCodeStyles = css({ // Code type
+export const headerCodeStyles = css({ // Code
   p: '4',
-  fontFamily: 'mono', // Monospace font from theme
+  fontFamily: 'mono',
   fontSize: 'sm',
-  bg: 'background', // Use slightly different bg if needed, e.g., 'gray.100'
+  bg: 'background',
   color: 'text',
   borderRadius: 'md',
-  overflow: 'auto', // Allow horizontal scrolling for long code lines
+  overflow: 'auto',
 });
-
-export const headerTextStyles = css({ // Text/Quote type
+export const headerTextStyles = css({ // Text/Quote
   p: '4',
   fontStyle: 'italic',
   color: 'text',
   borderColor: 'primary',
-  bg: 'background', // Use slightly different bg if needed, e.g., 'blue.50'
+  bg: 'background',
 });
 
 // --- Section Content Styles ---
-// Heading (H2) within a section
-export const sectionHeadingStyles = css({
-  // Fluid typography using clamp
-  fontSize: 'clamp(1.125rem, calc(1.125rem + ((1vw - 4.8px) * 2.366)), 3rem)',
-  fontWeight: 'semibold', // Font weight
-  mb: {
-    base: '3',
-    md: '4',
-    lg: '5'
-  },
-  color: 'primary', // Use primary color
+export const sectionHeadingStyles = css({ // H2 within section
+  fontSize: 'clamp(1.125rem, calc(1.125rem + ((1vw - 4.8px) * 2.366)), 3rem)', // Fluid typography
+  fontWeight: 'semibold',
+  color: 'primary',
+  mb: { base: '3', md: '4', lg: '5' },
 });
 
-// Paragraph (P) within a section - Modified with CSS clamp for fluid typography
-export const sectionParagraphStyles = css({
-  mb: {
-    base: '3',
-    md: '4',
-    lg: '5'
-  },
+export const sectionParagraphStyles = css({ // P within section
   lineHeight: 'calc(1.5em + 0.2 * (1vw - 4.8px))', // Fluid line height
-  
-  // Fluid typography using clamp instead of breakpoints
-  fontSize: 'clamp(0.85rem, calc(0.85rem + ((1vw - 4.8px) * 0.5)), 1.25rem)',
-  color: 'text', // Default text color
+  fontSize: 'clamp(0.85rem, calc(0.85rem + ((1vw - 4.8px) * 0.5)), 1.25rem)', // Fluid typography
+  color: 'text',
+  mb: { base: '3', md: '4', lg: '5' },
 });
 
-// Styles applied to the <section> wrapper itself
-export const sectionStyles = css({
-  // scrollMarginTop is applied dynamically via inline style based on scrollOffset
-  // ** CHANGE: Updated margin-bottom values as requested **
-  mb: {
-    base: '5rem',   // Smaller on mobile
-    sm: '6rem',     // Small tablets
-    md: '8rem',     // Tablets/small laptops
-    lg: '10rem'      // Full spacing on desktops
+export const sectionStyles = css({ // <section> wrapper
+  mb: { base: '5rem', sm: '6rem', md: '8rem', lg: '10rem' }, // Bottom margin between sections
+  isolation: 'isolate', // Stacking context
+  position: 'relative',
+  paddingLeft: { base: '1rem', sm: '1.5rem', md: '2rem', lg: '2.5rem', xl: '3rem', '2xl': '3.5rem', '3xl': '4rem' },
+  paddingRight: { base: '1rem', sm: '2rem', md: '3rem', lg: '4rem', xl: '5rem', '2xl': '6rem', '3xl': '6.5rem' },
+  py: { base: '1', md: '2', lg: '3', xl: '4', '2xl': '5', '3xl': '5' },
+  '@media (min-width: 2200px)': { // Styles for largest breakpoint
+    paddingTop: '2rem',
+    '& > h2:first-of-type': { marginLeft: '0.25rem' }
   },
-  // MODIFIED: Removed negative z-index which was causing stacking context issues
-  // Instead, we use isolation and a proper stacking context approach
-  isolation: 'isolate', // Create a new stacking context without relying on z-index
-  paddingLeft: {
-    base: '1rem',
-    sm: '1.5rem',
-    md: '2rem',
-    lg: '2.5rem',
-    xl: '3rem',
-    '2xl': '3.5rem',
-    '3xl': '4rem'    // Special padding just for the largest breakpoint
-  },
-  paddingRight: {
-    base: '1rem',
-    sm: '2rem',
-    md: '3rem',
-    lg: '4rem',
-    xl: '5rem',
-    '2xl': '6rem',
-    '3xl': '6.5rem'  // Special padding just for the largest breakpoint
-  },
-  py: {
-    base: '1',
-    md: '2',
-    lg: '3',
-    xl: '4',
-    '2xl': '5',
-    '3xl': '5'       // Consistent at largest breakpoint
-  },
-  position: 'relative', // For potential absolute positioning within a section
-  
-  // Custom styles for largest breakpoint (3xl - 2200px)
-  '@media (min-width: 2200px)': {
-    paddingTop: '2rem',           // Extra top padding just for the largest size
-    '& > h2:first-of-type': {     // First heading in each section
-      marginLeft: '0.25rem'       // Fine-tune the alignment at largest size
-    }
-  },
-  
-  // Style nested headings within sections
+  // Nested element styles within sections
   '& h1, & h2, & h3': {
-    fontWeight: 'thin', // Use thin weight (ensure font supports it)
+    fontWeight: 'thin',
     color: 'primary',
-    fontSize: {
-      base: 'lg',    // 1.125rem
-      md: 'xl',      // 1.25rem
-      lg: '3xl',     // 1.875rem
-      '2xl': '4xl',  // 2.25rem
-      '3xl': '5xl'   // 3rem at largest screens
-    },
+    fontSize: { base: 'lg', md: 'xl', lg: '3xl', '2xl': '4xl', '3xl': '5xl' },
   },
-  
-  // Improve spacing within sections for better readability
   '& ul, & ol': {
-    marginBottom: {
-      base: '3',
-      md: '4'
-    },
-    paddingLeft: {
-      base: '4',
-      md: '6'
-    }
+    marginBottom: { base: '3', md: '4' },
+    paddingLeft: { base: '4', md: '6' }
   },
-  
-  // Scale images responsively
-  '& img': {
-    maxWidth: '100%',
-    height: 'auto'
-  }
+  '& img': { maxWidth: '100%', height: 'auto' } // Responsive images
 });
 
 // --- Section Header Sub-Component ---
-// Renders the optional header element based on the `headerElement` prop in section data
 interface SectionHeaderProps {
-  headerElement: NonNullable<Section['headerElement']>; // Ensure headerElement is not null/undefined
+  headerElement: NonNullable<Section['headerElement']>;
 }
-
-interface HeaderWrapperProps {
-  children: React.ReactNode;
-}
+interface HeaderWrapperProps { children: React.ReactNode; }
 
 const SectionHeader: React.FC<SectionHeaderProps> = ({ headerElement }) => {
   const { type } = headerElement;
+  const customStyles = headerElement.bgColor ? { backgroundColor: headerElement.bgColor } : {};
 
-  // Apply custom background color if provided in section data
-  const customStyles = headerElement.bgColor
-    ? { backgroundColor: headerElement.bgColor }
-    : {};
+  const renderParagraphs = (content?: string[]) => content?.map((text, index) => (
+    <p key={index} style={{ marginBottom: index < (content.length - 1) ? '1rem' : 0, color: 'var(--colors-text)' }}>
+      {text}
+    </p>
+  ));
 
-  // Helper function to render paragraphs (used by card and text types)
-  const renderParagraphs = (content?: string[]) => {
-    return content?.map((text, index) => (
-      <p
-        key={index}
-        style={{
-          // Add margin between paragraphs, but not after the last one
-          marginBottom: index < (content.length - 1) ? '1rem' : 0,
-          color: 'var(--colors-text)', // Use CSS variable for text color
-        }}
-      >
-        {text}
-      </p>
-    ));
-  };
-
-  // Common wrapper div for consistent styling and structure
   const HeaderWrapper: React.FC<HeaderWrapperProps> = ({ children }) => (
-    <div className={headerElementStyles}>{children}</div>
+    <div className={headerElementStyles}>
+      {children}
+    </div>
   );
 
-  // Render different elements based on the header type
   switch (type) {
     case 'image':
       return (
         <HeaderWrapper>
           <img
-            src={headerElement.src || ''} // Use src, provide fallback empty string
-            alt="Section header" // Basic alt text
+            src={headerElement.src || ''}
+            alt="Section header"
             className={headerImageStyles}
           />
         </HeaderWrapper>
@@ -2262,7 +1718,6 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({ headerElement }) => {
     case 'card':
       return (
         <HeaderWrapper>
-          {/* Apply card styles and custom background */}
           <div className={headerCardStyles} style={customStyles}>
             {renderParagraphs(headerElement.content)}
           </div>
@@ -2272,9 +1727,10 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({ headerElement }) => {
     case 'code':
       return (
         <HeaderWrapper>
-            {/* Apply code styles and custom background */}
           <pre className={headerCodeStyles} style={customStyles}>
-            <code>{headerElement.code}</code>
+            <code>
+              {headerElement.code}
+            </code>
           </pre>
         </HeaderWrapper>
       );
@@ -2282,7 +1738,6 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({ headerElement }) => {
     case 'text':
       return (
         <HeaderWrapper>
-            {/* Apply text styles and custom background */}
           <div className={headerTextStyles} style={customStyles}>
             {renderParagraphs(headerElement.content)}
           </div>
@@ -2290,23 +1745,20 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({ headerElement }) => {
       );
 
     default:
-      return null; // Return null if type is unknown or not provided
+      return null;
   }
 };
 
 // --- ScrollingContentWithNav Component Implementation ---
 
-// Define the type for the props object passed to React.cloneElement when rendering children,
-// explicitly including 'data-section-id' which is a valid HTML data attribute.
 type ClonedElementProps = React.HTMLAttributes<HTMLElement> & {
   key: string;
   style: React.CSSProperties;
-  'data-section-id': string; // Explicitly declare the data attribute type
-  id: string; // Also include id
+  'data-section-id': string;
+  id: string;
 };
 
 const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
-  // Destructure props with defaults
   sections,
   children,
   activeSection: externalActiveSection = null,
@@ -2326,150 +1778,141 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
   navColumnClassName,
   sectionHeadingClassName,
   sectionParagraphClassName,
-  svgIconWrapperClassName, // <-- DESTRUCTURED PROP
-  customComponentAboveWrapperClassName, // <-- DESTRUCTURED PROP
+  svgIconWrapperClassName,
+  customComponentAboveWrapperClassName,
   customComponentWrapperClassName,
   footerClassName,
   footerTitleClassName,
   enableAutoDetection = true,
-  offsetTop = 0, // Default external offset to 0
+  offsetTop = 0,
   useChildrenInsteadOfData = false,
   autoFocusContainerOnMount = false,
-  // Responsive design props
   maxContentWidth,
   responsivePadding = true,
-  customBreakpoints,
 }) => {
   // --- Refs ---
-  const mainContainerRef = useRef<HTMLDivElement>(null); // Ref for the main scrollable container
-  const navListRef = useRef<HTMLUListElement>(null); // Ref for the desktop nav list (UL)
+  const mainContainerRef = useRef<HTMLDivElement>(null);
+  const navListRef = useRef<HTMLUListElement>(null);
   
-  // Track window size for responsive behavior
-  const windowSize = useWindowSize();
+  // --- Client-side mounting state ---
+  const [isMounted, setIsMounted] = useState(false);
+  
+  // Set isMounted to true after initial render
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
-  // --- State & Hooks ---
+  // --- Hooks ---
+  const windowSize = useWindowSize(); // For responsive calculations
 
-  // Hook for smooth scrolling - needed early to calculate offset for other hooks
+  // Smooth scrolling setup
   const {
-      scrollToId,
-      scrollOffset: finalScrollOffset,
-      isScrollingProgrammatically
+    scrollToId,
+    scrollOffset: finalScrollOffset,
+    isScrollingProgrammatically
   } = useSmoothScroll({
       containerRef: mainContainerRef,
       baseOffset: offsetTop,
-      // Pass mobileNavRef directly here if useMobileNavigation hook is defined above
-      // Otherwise, it needs to be passed later if useMobileNavigation is below
-      // stickyElementRef: mobileNavProps.ref, // <-- Potential dependency issue, handled below
+      // stickyElementRef is not needed here as offset includes mobile nav height via calculation
   });
 
-  // Hook for section intersection - depends on scrollOffset
-  const [activeSection, setActiveSection] = useSectionIntersection(
-      mainContainerRef,
-      sections,
-      finalScrollOffset, // Use the offset from useSmoothScroll
-      externalActiveSection,
-      enableAutoDetection
-  );
+  // ScrollSpy setup (replaces useSectionIntersection)
+  const activeSection = useScrollSpy({
+    containerRef: mainContainerRef,
+    sectionIds: sections.map(s => s.id),
+    offsetTop: finalScrollOffset,
+    enableHashSync: enableAutoDetection,
+    scrollToOnLoad: true,
+    externalActiveSection: externalActiveSection,
+    isMounted: isMounted
+  });
 
   // Combined navigation click handler
-  const handleNavClick = useCallback(
-    (id: string) => {
-      // Call external handler if provided
+  const handleNavClick = useCallback((id: string) => {
       if (externalOnNavClick) {
         externalOnNavClick(id);
       }
-      // Manually set the active section (if not externally controlled)
-      // This provides immediate feedback before the observer catches up
-      setActiveSection(id);
-      // Trigger the smooth scroll
-      scrollToId(id);
+      // No need to manually set active section - the observer will handle it
+      scrollToId(id); // Trigger smooth scroll
     },
-    [externalOnNavClick, setActiveSection, scrollToId] // Dependencies
+    [externalOnNavClick, scrollToId] // Dependencies
   );
 
-  // Hook for mobile navigation - depends on handleNavClick
+  // Mobile navigation setup
   const {
     isMobileNavOpen,
-    mobileNavProps, // Contains the ref for the mobile nav wrapper
+    mobileNavProps,
     triggerProps,
     dropdownProps,
-    getItemProps: getMobileItemProps, // Renamed to avoid naming clash
+    getItemProps: getMobileItemProps
   } = useMobileNavigation({
     onNavItemClick: handleNavClick,
     sections,
+    isMounted // Pass isMounted flag for client-side rendering
   });
 
-  // Re-run useSmoothScroll if mobileNavRef changes (this is slightly complex due to hook order)
-  // Alternatively, pass mobileNavProps.ref directly if hook order allows
-  // For simplicity, we assume mobileNavProps.ref is stable enough or recalculation is acceptable
-  // If performance issues arise, this dependency chain needs careful review.
-
-  // Hook for desktop navigation - depends on handleNavClick and activeSection
+  // Desktop navigation setup
   const {
     desktopNavProps,
     getDesktopItemProps,
     indicatorStyle,
-    trackHeight,
+    trackHeight
   } = useDesktopNavigation({
     navListRef,
     sections,
     activeSection,
     onNavClick: handleNavClick,
     navTitle,
+    isMounted // Pass isMounted flag for client-side rendering
   });
 
-  // Hook for autofocus - simple side effect
+  // Autofocus setup
   useAutofocus({
     targetRef: mainContainerRef,
     shouldFocus: autoFocusContainerOnMount,
+    isMounted // Pass isMounted flag for client-side rendering
   });
 
-  // Hook for detecting user scroll - independent
+  // User scroll detection setup
   const isScrollingByUser = useUserScrollDetection(mainContainerRef, 150);
 
-  // Combined scrolling state
+  // Combined scrolling state for render props
   const isScrolling = isScrollingProgrammatically || isScrollingByUser;
-
 
   // --- Child Rendering Logic ---
   const renderedSections = useMemo(() => {
-    // Calculate fluid typography sizes based on window dimensions
-    // Only compute this if useFluidHeadings is enabled
-    let headingFontSize = '';
-    let paragraphFontSize = '';
-    
-   
-    
-    // Option 1: Render children directly (less control over custom components)
+    // Option 1: Render provided children directly
     if (useChildrenInsteadOfData && React.Children.count(children) > 0) {
-      const childrenArray = React.Children.toArray(children);
-      return childrenArray.map((child, index) => {
+      return React.Children.map(children, (child, index) => {
           const section = sections[index];
-          if (!section || !React.isValidElement(child)) {
-            console.warn('[ScrollingContentWithNav] Child/Section mismatch at index', index);
-            return child;
-          }
-          const childProps = child.props as { className?: string; style?: React.CSSProperties; children?: ReactNode; [key: string]: any; };
-          const existingClassName = childProps.className || '';
-          const existingStyle = childProps.style || {};
-          const existingChildren = childProps.children;
-          const combinedClassName = cx(sectionStyles, existingClassName);
+          if (!section || !React.isValidElement(child)) return child; // Basic validation
+
+          const childProps = child.props as { className?: string; style?: React.CSSProperties; children?: ReactNode; };
+          const combinedClassName = cx(sectionStyles, childProps.className);
           const sectionInlineStyles = { scrollMarginTop: `${finalScrollOffset}px` };
+
           const clonedElementProps: ClonedElementProps = {
-            'data-section-id': section.id, id: section.id, className: combinedClassName,
-            style: { ...existingStyle, ...sectionInlineStyles }, key: section.id,
-            children: ( <> {section.headerElement && <SectionHeader headerElement={section.headerElement} />} {existingChildren} </> ),
+            'data-section-id': section.id,
+            id: section.id,
+            className: combinedClassName,
+            style: { ...childProps.style, ...sectionInlineStyles },
+            key: section.id,
+            children: (
+              <>
+                {section.headerElement && (
+                  <SectionHeader headerElement={section.headerElement} />
+                )}
+                {childProps.children}
+              </>
+            ),
           };
           return React.cloneElement(child, clonedElementProps);
       });
     }
 
-    // Option 2: Generate sections from the `sections` data array
+    // Option 2: Generate sections from `sections` data array
     return sections.map((section) => {
       const sectionInlineStyles = { scrollMarginTop: `${finalScrollOffset}px` };
-      
-      
-
       return (
         <section
           data-section-id={section.id}
@@ -2478,84 +1921,73 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
           style={sectionInlineStyles}
           key={section.id}
         >
-          {/* Render SVG Icon if provided */}
+
+          {/* Optional SVG Icon */}
           {section.svgIcon && (
             <div className={svgIconWrapperClassName}>
               {section.svgIcon}
             </div>
           )}
 
-          {/* Render optional header element */}
+          {/* Optional Header Element */}
           {section.headerElement && (
             <SectionHeader headerElement={section.headerElement} />
           )}
 
-          {/* Render Custom Component Above - FLATTENED, no wrapper with z-index */}
+          {/* Optional Custom Component Above (using render prop) */}
           {typeof section.customComponentAbove === 'function' && (
-            <div className={cx(
-              css({
-                display: 'block',
-                position: 'relative',
-                // Add responsive margins
-                marginBottom: {
-                  base: '3',
-                  md: '4',
-                  lg: '5'
-                }
-              }),
-              customComponentAboveWrapperClassName
-            )}>
+            <div
+              className={cx(
+                css({
+                  display: 'block',
+                  position: 'relative',
+                  mb: { base: '3', md: '4', lg: '5' }
+                }),
+                customComponentAboveWrapperClassName
+              )}
+            >
               {section.customComponentAbove({ isScrolling })}
             </div>
           )}
 
-          {/* Render default content structure (heading + paragraphs) */}
+          {/* Default Content (Title + Paragraphs) */}
           {(section.sectionTitle || section.content) && (
-              <>
-                {section.sectionTitle && (
-                    <h2 
-                      className={cx(sectionHeadingStyles, sectionHeadingClassName)}
-                    >
-                        {section.sectionTitle}
-                    </h2>
-                )}
-                {section.content?.map((paragraph, idx) => (
-                    <p
-                        key={`${section.id}-p-${idx}`}
-                        className={cx(
-                            sectionParagraphStyles,
-                            sectionParagraphClassName
-                        )}
-                    >
-                        {paragraph}
-                    </p>
-                ))}
-              </>
+            <>
+              {section.sectionTitle && (
+                <h2 className={cx(sectionHeadingStyles, sectionHeadingClassName)}>
+                  {section.sectionTitle}
+                </h2>
+              )}
+              {section.content?.map((paragraph, idx) => (
+                <p
+                  key={`${section.id}-p-${idx}`}
+                  className={cx(sectionParagraphStyles, sectionParagraphClassName)}
+                >
+                  {paragraph}
+                </p>
+              ))}
+            </>
           )}
 
-          {/* Render Custom Component Below - FLATTENED, no wrapper with z-index */}
+          {/* Optional Custom Component Below (using render prop) */}
           {typeof section.customComponent === 'function' && (
-            <div className={cx(
-              css({
-                display: 'block',
-                position: 'relative',
-                // Add responsive margins
-                marginTop: {
-                  base: '3',
-                  md: '4',
-                  lg: '5'
-                }
-              }),
-              customComponentWrapperClassName
-            )}>
+            <div
+              className={cx(
+                css({
+                  display: 'block',
+                  position: 'relative',
+                  mt: { base: '3', md: '4', lg: '5' }
+                 }),
+                customComponentWrapperClassName
+              )}
+            >
               {section.customComponent({ isScrolling })}
             </div>
           )}
         </section>
       );
     });
-  }, [
-    // Dependencies for memoization
+  }, [ // Dependencies for renderedSections useMemo
     sections,
     children,
     finalScrollOffset,
@@ -2566,44 +1998,30 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
     customComponentAboveWrapperClassName,
     customComponentWrapperClassName,
     isScrolling,
-    windowSize.width, // Recompute when window size changes
-    // sectionStyles, // Assuming sectionStyles is stable
+    windowSize.width // Re-render if width changes (affects fluid typography)
   ]);
 
   // --- JSX Output ---
   return (
-    // Outermost container
-    <div className={cx(
-      containerStyles, 
-      containerClassName,
-      // Apply custom max width if provided
-      maxContentWidth && css({ maxWidth: maxContentWidth })
-    )}>
+    <div
+      className={cx(
+        containerStyles,
+        containerClassName,
+        maxContentWidth && css({ maxWidth: maxContentWidth })
+      )}
+    >
 
       {/* Main Scrollable Container */}
       <div
-        ref={mainContainerRef} // Attach ref for scrolling and focus
+        ref={mainContainerRef}
         className={cx(
-          mainContainerStyles, 
+          mainContainerStyles,
           mainClassName,
-          // Apply responsive padding if enabled
-          responsivePadding && css({
-            paddingRight: { 
-              base: '1',  // Less padding on mobile
-              sm: '2',    // Small padding on tablets
-              lg: '3',    // Medium padding on small desktops
-              xl: '4'     // Full padding on large screens
-            },
-            paddingLeft: {
-              base: '2',  // Less padding on mobile
-              sm: '3',    // Small padding on tablets
-              lg: '4',    // Medium padding on small desktops
-              xl: '5'     // Full padding on large screens
-            },
-          })
+          responsivePadding && css({ /* Responsive padding styles */ })
         )}
-        tabIndex={-1} // Make programmatically focusable but not via tab key
+        tabIndex={-1}
       >
+
         {/* Mobile Navigation (Sticky inside scroll container) */}
         <div {...mobileNavProps} className={mobileNavWrapperStyles}>
           <button {...triggerProps} className={mobileNavTriggerStyles}>
@@ -2616,20 +2034,17 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
               className={mobileNavDropdownStyles}
               aria-label={navTitle}
             >
-              <div
-                className={css({ padding: '2', textAlign: 'center', fontSize: 'xs', color: 'textMuted', })}
-              >
-                Swipe up to dismiss
+              <div className={css({ padding: '2', textAlign: 'center', fontSize: 'xs', color: 'textMuted', })}>
+                 Swipe up to dismiss
               </div>
               <ul className={mobileNavListStyles}>
                 {sections.map((section, index) => {
                   const isActive = activeSection === section.id;
-                  // Use the renamed getter for mobile items
                   const itemProps = getMobileItemProps(section.id, index);
                   return (
                     <li key={`mobile-${section.id}`} role="none">
                       <button
-                        {...itemProps} // Use props from useMobileNavigation
+                        {...itemProps}
                         className={cx( navButtonBaseStyles, isActive ? navButtonActiveStyles : navButtonInactiveStyles )}
                         aria-current={isActive ? 'location' : undefined}
                       >
@@ -2644,109 +2059,89 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
         </div> {/* End Mobile Nav */}
 
         {/* Content Area Wrapper */}
-        <div className={cx(
-          contentWrapperStyles,
-          // Apply additional responsive padding if enabled
-          responsivePadding && css({
-            padding: { 
-              base: '3',  // Smaller padding on mobile
-              sm: '4',    // Medium padding on tablets
-              md: '5',    // Larger padding on small desktops
-              lg: '6'     // Full padding on large screens
-            }
-          })
-        )}>
+        <div className={cx( contentWrapperStyles, responsivePadding && css({ /* Responsive padding styles */ }) )}>
+
           {/* Optional Header Bar */}
           {(headerContent || headerTitle) && (
             <div className={cx(headerStyles, headerClassName)}>
-              {headerContent ? (
-                headerContent
-              ) : (
+              {headerContent ? headerContent : (
                 <div className={headerContentContainerStyles}>
-                  <h1 className={headerTitleStyles}>
-                    {headerTitle || navTitle}
-                  </h1>
+                  <h1 className={headerTitleStyles}>{headerTitle || navTitle}</h1>
                   {headerRightContent && (
                     <div className="header-right-content">
                       {headerRightContent}
                     </div>
-                  )}
+                   )}
                 </div>
               )}
             </div>
-          )} {/* End Optional Header Bar */}
+          )}
 
-          {/* Header Description (shown below header, not part of navigable content) */}
+          {/* Optional Header Description */}
           {headerDescription && (
             <div className={cx(headerDescriptionStyles, headerDescriptionClassName)}>
               {headerDescription}
             </div>
-          )} {/* End Header Description */}
+          )}
 
           {/* Inner Content Column */}
           <div
             className={cx(
-              contentColumnStyles, 
+              contentColumnStyles,
               contentColumnClassName,
-              maxContentWidth && css({ 
-                maxWidth: maxContentWidth
-              })
+              maxContentWidth && css({ maxWidth: maxContentWidth })
             )}
           >
-            {/* Render the memoized section elements */}
+
+            {/* Rendered Sections */}
             {renderedSections}
 
-            {/* Footer Content (displayed below all navigable sections) */}
+            {/* Optional Footer */}
             {(footerContent || footerTitle) && (
               <footer className={cx(footerStyles, footerClassName)}>
                 {footerTitle && (
                   <h2 className={cx(footerTitleStyles, footerTitleClassName)}>
                     {footerTitle}
                   </h2>
-                )}
+                 )}
                 {footerContent}
               </footer>
             )}
           </div>
         </div> {/* End Content Area Wrapper */}
 
-        {/* Desktop Navigation Sidebar (Sticky inside scroll container) */}
+        {/* Desktop Navigation Sidebar */}
         <div className={cx(navWrapperStyles, navColumnClassName)}>
           <div className={navScrollContainerStyles}>
-            {/* Container for List and Indicator Lines */}
+
+            {/* Desktop Nav List Container (with indicator lines) */}
             <div className={navListContainerStyles}>
-              {/* Background Track Line */}
+
+              {/* Background Track */}
               <div
                 className={lineTrackStyles}
-                style={{ height: `${trackHeight}px` }} // Use trackHeight from useDesktopNavigation
+                style={{ height: `${trackHeight}px` }}
                 aria-hidden="true"
-              ></div>
-              {/* Active Indicator Line */}
+              />
+
+              {/* Active Indicator */}
               <div
                 className={lineIndicatorStyles}
                 style={{
-                  transform: `translateY(${indicatorStyle.top}px)`, // Use indicatorStyle from useDesktopNavigation
+                  transform: `translateY(${indicatorStyle.top}px)`,
                   height: `${indicatorStyle.height}px`,
-                  opacity: indicatorStyle.opacity,
+                  opacity: indicatorStyle.opacity
                 }}
                 aria-hidden="true"
-              ></div>
-              {/* Desktop Navigation List */}
-              <ul
-                ref={navListRef} // Attach ref
-                className={navListStyles}
-                {...desktopNavProps} // Use container props from useDesktopNavigation
-              >
+              />
+
+              {/* Desktop Nav List */}
+              <ul ref={navListRef} className={navListStyles} {...desktopNavProps}>
                 {sections.map((section, index) => {
-                  // Use the item props getter from useDesktopNavigation
                   const itemProps = getDesktopItemProps(section, index);
                   return (
-                    <li
-                      key={section.id}
-                      data-section-id={section.id} // Keep data-id for indicator lookup
-                      role="none"
-                    >
-                      <button {...itemProps}> {/* Spread all props from the hook */}
+                    <li key={section.id} data-section-id={section.id} role="none">
+                      <button {...itemProps}>
                         {section.title}
                       </button>
                     </li>
@@ -2762,39 +2157,4 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
   );
 };
 
-// Export the component as default
 export default ScrollingContentWithNav;
-
-
-/**
- * COMPONENT OPTIMIZATION NOTES:
- * * 1. Color System Standardization: Assumes PandaCSS theme provides semantic color tokens (primary, text, background, etc.).
- * * 2. Style Reusability: Common button styles extracted; uses PandaCSS `css` function for atomic classes.
- * * 3. Component Structure: Logic separated into custom hooks; component focuses on layout and wiring.
- * * 4. Reduced Duplication: Hooks prevent repetition of scroll, offset, observer, indicator, autofocus logic.
- * * 5. TypeScript Fixes: Addressed potential issues with cloning children and data attributes.
- * * 6. Refactoring Fixes: Ensured correct handlers (`handleNavClick`) are used after hook extraction; removed redundant `useEffect`.
- * * 7. Hook Dependencies: Managed inter-hook dependencies with careful ordering and hook calls.
- * * 8. Type Error Fix (TS2345): Removed redundant useEffect block that caused the type error by potentially passing null to setActiveSection. Relies on useSectionIntersection's internal handling of scrollOffset changes.
- * * 9. Render Props for Scroll Awareness: Added isScrolling state (combining programmatic and user scroll) and updated Section interface and rendering logic to pass this state down to custom components via a function-as-child pattern.
- * * 10. REFACTOR: Extracted user scroll detection logic into `useUserScrollDetection` hook.
- * * 11. DOM Flattening: Removed unnecessary wrapper divs with problematic z-index values that were creating stacking context conflicts and blocking interactions.
- * * 12. Improved Stacking Context: Replaced negative z-index on sections with `isolation: isolate` for a more predictable stacking behavior.
- * * 13. Reduced z-index Values: Lowered z-index values for navigation elements to create a more consistent stacking hierarchy.
- * * 14. REFACTOR: Extracted desktop navigation state, keyboard handling, and indicator logic into `useDesktopNavigation` hook.
- * * 15. FIX: Refined `useSectionIntersection` handler logic with Top Edge Proximity Detection for more reliable section highlighting during slow scrolling.
- * * 16. IMPROVEMENT: Implemented debouncing in useSectionIntersection to prevent rapid section changes during slow scrolling.
- * * 17. ENHANCEMENT: Added multiple threshold values to the IntersectionObserver for more frequent and accurate notifications during scrolling.
- * * 18. PERFORMANCE: Implemented throttling for resize event handlers to improve performance during continuous resize events. Throttling executes the handler at most once every 100ms, providing consistent updates while preventing excessive calculations.
- * * 19. ACCESSIBILITY: Improved focus management, ARIA roles, and keyboard navigation for both mobile and desktop navigation components.
- * * 20. FIX (Indicator Spasm): Increased debounce delay in `useSectionIntersection` from 50ms to 100ms.
- * * 21. FIX (Indicator Spasm): Refined `handleIntersection` logic in `useSectionIntersection` to prioritize the section whose top edge is closest *below* (or slightly above) the scroll offset line, removing the less stable fallback logic.
- * * 22. FIX (Indicator Spasm Attempt 2): Increased debounce delay in `useSectionIntersection` further (100ms -> 150ms).
- * * 23. FIX (Indicator Spasm Attempt 2): Increased `BUFFER_ZONE` in `handleIntersection` (20 -> 30) to potentially reduce sensitivity near boundaries.
- * * 24. STYLE: Updated `mb` (margin-bottom) values in `sectionStyles` as requested.
- * * 25. **FIX (Indicator Spasm Attempt 3 - User Suggestions):** Increased debounce delay to 250ms.
- * * 26. **FIX (Indicator Spasm Attempt 3 - User Suggestions):** Simplified observer thresholds to `[0.25, 0.5, 0.75, 1.0]`.
- * * 27. **FIX (Indicator Spasm Attempt 3 - User Suggestions):** Increased `BUFFER_ZONE` to 50.
- * * 28. **FIX (Indicator Spasm Attempt 3 - User Suggestions):** Replaced `handleIntersection` logic with user-provided version (sorts by proximity, exits early).
- * * 29. **FIX (Indicator Spasm Attempt 3 - User Suggestions):** Adjusted observer `rootMargin` bottom value to use `-40%`.
- */
