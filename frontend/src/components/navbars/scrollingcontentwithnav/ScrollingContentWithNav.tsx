@@ -1404,7 +1404,7 @@ export const headerTitleStyles = css({
     lg: '5',
     xl: '5',
     '2xl': '6',
-    '3xl': '6'
+    '3xl': '7'
   },
 });
 
