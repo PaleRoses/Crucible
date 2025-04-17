@@ -36,6 +36,7 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
     <StyledComponentsRegistry>
       <ThemeProvider>
         <SidebarProvider>
+        <ThemeSelector />
 
           {/* Loading overlay - depends on contentReady state */}
           <div className={`loading-overlay ${contentReady ? 'content-hidden' : 'content-visible'}`}>
@@ -65,7 +66,9 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
                  {children} {/* Render the actual page content */}
               </main>
             </div>
+
           </div>
+
         </SidebarProvider>
       </ThemeProvider>
     </StyledComponentsRegistry>
