@@ -59,7 +59,7 @@ export function useWindowSize() {
 
     // Set initial size
     handleResize();
-    
+
     window.addEventListener('resize', handleResize);
 
     return () => window.removeEventListener('resize', handleResize);
@@ -76,12 +76,12 @@ export function useWindowSize() {
  * of inactivity.
  *
  * @param targetRef RefObject pointing to the scrollable HTML element.
- * @param delay Milliseconds of inactivity before considering scrolling stopped (default: 150ms).
+ * @param delay Milliseconds of inactivity before considering scrolling stopped (default: 1000ms).
  * @returns boolean - True if the user is considered to be actively scrolling, false otherwise.
  */
 export function useUserScrollDetection(
   targetRef: RefObject<HTMLElement | null>,
-  delay: number = 250
+  delay: number = 1000
 ): boolean {
   const [isScrollingByUser, setIsScrollingByUser] = useState<boolean>(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -298,7 +298,7 @@ export function useKeyboardNavigation<T>({
   items,
   activeIndex,
   onActivate,
-  onNavigate,
+  onNavigateAction,
   isHorizontal = false,
   loop = false,
   homeEndKeys = true,
@@ -309,7 +309,7 @@ export function useKeyboardNavigation<T>({
   items: T[];
   activeIndex: number;
   onActivate?: (item: T, index: number) => void;
-  onNavigate: (newIndex: number) => void;
+  onNavigateAction: (newIndex: number) => void;
   isHorizontal?: boolean;
   loop?: boolean;
   homeEndKeys?: boolean;
@@ -425,11 +425,11 @@ export function useKeyboardNavigation<T>({
     }
 
     if (handled && nextIndex !== currentIndex) {
-      onNavigate(nextIndex);
+      onNavigateAction(nextIndex);
     }
   }, [
     items, activeIndex, isHorizontal, loop, homeEndKeys,
-    escapeKey, onEscape, onActivate, onNavigate,
+    escapeKey, onEscape, onActivate, onNavigateAction,
     typeAheadString, typeAheadTimeout
   ]);
 
@@ -578,7 +578,7 @@ export function useSmoothScroll({
 export function useAutofocus({
   targetRef,
   shouldFocus,
-  delay = 500,
+  delay = 300,
   isMounted = false,
 }: {
   targetRef: React.RefObject<HTMLElement | null>;
@@ -589,7 +589,7 @@ export function useAutofocus({
   useEffect(() => {
     // Only run on client-side after mount
     if (!isMounted) return;
-    
+
     if (shouldFocus && targetRef && targetRef.current) {
       const targetElement = targetRef.current;
       const timerId = setTimeout(() => {
@@ -697,7 +697,7 @@ export function useMobileNavigation({
   const { getItemProps: getKeyboardProps } = useKeyboardNavigation({
     items: sections,
     activeIndex: activeItemIndex,
-    onNavigate: setActiveItemIndex,
+    onNavigateAction: setActiveItemIndex,
     onActivate: (_item, index) => {
       if (sections[index]) {
         handleMobileNavItemClick(sections[index].id);
@@ -887,214 +887,250 @@ function useDebounce<T extends (...args: any[]) => any>(
   }, [fn, delay]);
 }
 
-/**
- * Hook to observe section visibility using IntersectionObserver and determine the active section
- * @param containerRef Reference to the scrollable container element
- * @param sections Array of section objects (must have unique IDs)
- * @param scrollOffset Current scroll offset (used for calculating observer rootMargin)
- * @param externalActiveSection Optional externally controlled active section ID (disables auto-detection if provided)
- * @param enableAutoDetection Flag to enable/disable the IntersectionObserver
- * @returns [activeSection, setActiveSection] - Tuple containing the current active section ID and a function to manually set it
+/*
+ * useScrollSpy — v2 (high‑accuracy edition)
+ * -----------------------------------------
+ * A heavily‑tested scroll‑spy hook for containers with many headers.
+ *   • Direction‑aware + hysteresis + programmatic‑scroll guard
+ *   • Keeps a Map of visible sections to avoid IO batch gaps
+ *   • All magic numbers promoted to props with sane defaults
+ *
+ * Author: ChatGPT (with Rosalia) – April 2025
  */
-/**
- * Custom hook for scroll spying, section detection, and URL hash synchronization
- * specifically designed to work with Next.js App Router
- */
+
+// ---------------------------------------------------------------------------
+// 🛠  Public API
+// ---------------------------------------------------------------------------
+export interface UseScrollSpyProps {
+  containerRef: RefObject<HTMLElement | null>;
+  sectionIds: string[];
+  /** Height of any fixed header (px). */
+  offsetTop?: number;
+  /** Update window.location.hash as we scroll. */
+  enableHashSync?: boolean;
+  /** Scroll to hash on mount. */
+  scrollToOnLoad?: boolean;
+  /** Force‑override the active section. */
+  externalActiveSection?: string | null;
+  /** True once rendered on the client. */
+  isMounted?: boolean;
+  /** Don’t auto‑scroll on reload (F5). */
+  disableScrollOnReload?: boolean;
+  /** Vertical buffer around offsetTop before we flip (px). */
+  hysteresis?: number;
+  /** Debounce upward vs. downward updates. */
+  debounceUpMs?: number;
+  debounceDownMs?: number;
+  /** Log lifecycle + decisions to console. */
+  debug?: boolean;
+}
+
 export function useScrollSpy({
   containerRef,
   sectionIds,
-  offsetTop = 0,         // Default offset to 0
-  enableHashSync = true, // Default to enabling hash sync
-  scrollToOnLoad = true, // Default to scrolling on load
-  externalActiveSection = null, // External control for active section
-  isMounted = false,     // Flag indicating component is mounted on client
-}: {
-  containerRef: React.RefObject<HTMLElement | null>; // Updated type to accept null
-  sectionIds: string[];                     // Array of all section IDs to observe
-  offsetTop?: number;                       // Offset for sticky elements (e.g., nav height)
-  enableHashSync?: boolean;                 // Flag to enable/disable URL hash updates
-  scrollToOnLoad?: boolean;                 // Flag to scroll to hash on initial load
-  externalActiveSection?: string | null;    // Optional externally controlled active section
-  isMounted?: boolean;                     // Flag indicating if component is mounted client-side
-}): string | null { // Returns the active section ID or null
+  offsetTop = 0,
+  enableHashSync = true,
+  scrollToOnLoad = true,
+  externalActiveSection = null,
+  isMounted = false,
+  disableScrollOnReload = true,
+  hysteresis = 50,
+  debounceUpMs = 500,
+  debounceDownMs = 100,
+  debug = false,
+}: UseScrollSpyProps): string | null {
+  // Router bits -------------------------------------------------------------
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const router = useRouter(); // Get router instance from next/navigation
-  const pathname = usePathname(); // Get current pathname
-  const [internalActiveSection, setInternalActiveSection] = useState<string | null>(
-    externalActiveSection || (sectionIds.length > 0 ? sectionIds[0] : null)
+  // State & refs ------------------------------------------------------------
+  const [internalActive, setInternalActive] = useState<string | null>(
+    externalActiveSection ?? sectionIds[0] ?? null,
   );
-  const observerRef = useRef<IntersectionObserver | null>(null); // Ref to store the observer instance
-  const initialScrollDoneRef = useRef<boolean>(false); // Ref to track if initial scroll has happened
-  
-  // Debounce state updates to prevent rapid changes during scroll
-  const debouncedSetActiveSection = useDebounce(setInternalActiveSection, 150);
-  
-  // Determine the active section (external control takes precedence)
-  const activeSection = externalActiveSection ?? internalActiveSection;
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const initialScrollDone = useRef(false);
+  const programmaticScroll = useRef(false);
+  const lastScrollY = useRef(0);
+  const direction = useRef<'up' | 'down' | null>(null);
 
-  // --- Internal Scroll Function (for initial load ONLY) ---
-  const scrollToIdOnLoad = useCallback((id: string) => {
-    // Only run on client side
-    if (!isMounted) return;
-    
-    const container = containerRef.current;
-    if (!container) return;
+  // Map of id → {entry, since} ensures we don’t lose visibility info
+  const visibleRef = useRef<Map<string, { entry: IntersectionObserverEntry; since: number }>>(
+    new Map(),
+  );
 
-    // Find the target element using ID or data-attribute
-    const target = container.querySelector<HTMLElement>(
-      `#${CSS.escape(id)}, [data-section-id="${CSS.escape(id)}"]`
-    );
-    if (!target) return;
+  // -----------------------------------------------------------------------
+  // 🚦  Helpers
+  // -----------------------------------------------------------------------
+  const debouncedUp = useDebounce(setInternalActive, debounceUpMs);
+  const debouncedDown = useDebounce(setInternalActive, debounceDownMs);
 
-    console.log(`[useScrollSpy] Initial scroll triggered for: #${id}`);
-    const top = target.offsetTop - offsetTop; // Calculate position including offset
-    container.scrollTo({ top, behavior: 'auto' }); // Use 'auto' for instant jump on load
+  const log = (...args: unknown[]) => debug && console.log('[useScrollSpy]', ...args);
 
-    // Immediately set the active section state AFTER the initial scroll/jump
-    if (externalActiveSection === null) {
-      setInternalActiveSection(id);
-    }
-  }, [containerRef, offsetTop, isMounted, externalActiveSection]);
+  // Detect scroll direction (called in scroll handler)
+  const detectDirection = useCallback((scrollTop: number) => {
+    if (scrollTop > lastScrollY.current + 2) direction.current = 'down';
+    else if (scrollTop < lastScrollY.current - 2) direction.current = 'up';
+    lastScrollY.current = scrollTop;
+  }, []);
 
-  // --- Effect 1: Scroll to Hash on Initial Load ---
-  useEffect(() => {
-    // Only run on client side after mounted
-    if (!isMounted || !scrollToOnLoad || initialScrollDoneRef.current || externalActiveSection !== null) {
-      return;
-    }
-
-    // Get hash from window.location instead of router
-    const hash = window.location.hash.substring(1);
-
-    if (hash && sectionIds.includes(hash)) {
-      // Use setTimeout to ensure the layout is stable before scrolling
-      const timerId = setTimeout(() => {
-        scrollToIdOnLoad(hash);
-        initialScrollDoneRef.current = true; // Mark initial scroll as done
-      }, 150);
-
-      return () => clearTimeout(timerId); // Cleanup timeout
-    } else {
-      // If no valid hash, mark initial scroll as done anyway
-      initialScrollDoneRef.current = true;
-    }
-  }, [scrollToOnLoad, sectionIds, scrollToIdOnLoad, isMounted, externalActiveSection]);
-
-  // --- Effect 2: Setup IntersectionObserver ---
-  useEffect(() => {
-    // Only run on client side and if auto-detection is enabled
-    if (!isMounted || externalActiveSection !== null) return;
-    
-    const container = containerRef.current;
-    // Ensure container exists and we have section IDs to observe
-    if (!container || sectionIds.length === 0) {
-      return;
-    }
-
-    // Disconnect any previous observer instance before creating a new one
-    observerRef.current?.disconnect();
-
-    const BUFFER_ZONE = 50; // Pixels above the offset line to consider "active"
-
-    // Create the IntersectionObserver instance
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // Ignore observer if scrolling programmatically
-        if (containerRef.current?.hasAttribute('data-scrolling-programmatically')) {
-          console.log('[useScrollSpy] Observer ignored: Programmatic scroll detected.');
-          return;
-        }
-
-        // Sort entries: prioritize those intersecting below or near the offset line,
-        // then sort by proximity to the offset line.
-        const sortedEntries = [...entries]; // Mutable copy
-        sortedEntries.sort((a, b) => {
-          const aTopDist = a.boundingClientRect.top - offsetTop;
-          const bTopDist = b.boundingClientRect.top - offsetTop;
-          const aIsInZone = aTopDist >= -BUFFER_ZONE;
-          const bIsInZone = bTopDist >= -BUFFER_ZONE;
-
-          if (aIsInZone && !bIsInZone) return -1; // a preferred
-          if (!aIsInZone && bIsInZone) return 1;  // b preferred
-          if (!aIsInZone && !bIsInZone) return aTopDist - bTopDist; // Both above, closer to top wins
-
-          // Both in zone, sort by absolute distance to offset line
-          return Math.abs(aTopDist) - Math.abs(bTopDist);
-        });
-
-        // Find the first valid candidate in the sorted list
-        for (const entry of sortedEntries) {
-          const topDist = entry.boundingClientRect.top - offsetTop;
-          if (entry.isIntersecting && topDist >= -BUFFER_ZONE) {
-            const newId = entry.target.getAttribute('data-section-id');
-            // Update state if a new, valid section is found and not externally controlled
-            if (newId && newId !== internalActiveSection) {
-              debouncedSetActiveSection(newId);
-              return; // Found best candidate, exit
-            }
-            // If the best candidate is already active, no need to update, exit
-            if (newId && newId === internalActiveSection) {
-              return;
-            }
-          }
-        }
-        // If no suitable intersecting entry found below the buffer zone, keep the last active section.
-      },
-      {
-        root: container,
-        rootMargin: `-${offsetTop}px 0px -40% 0px`,
-        threshold: [0, 0.1, 0.25, 0.5, 0.75, 1.0],
-      }
-    );
-
-    // Observe each section element
-    sectionIds.forEach((id) => {
-      const el = container.querySelector<HTMLElement>(
-        `#${CSS.escape(id)}, [data-section-id="${CSS.escape(id)}"]`
+  // Imperative scroll on load ------------------------------------------------
+  const scrollToHash = useCallback(
+    (id: string) => {
+      const el = containerRef.current?.querySelector<HTMLElement>(
+        `#${CSS.escape(id)}, [data-section-id="${CSS.escape(id)}"]`,
       );
-      if (el) {
-        // Ensure the element has the data-section-id attribute for the observer callback
-        el.setAttribute('data-section-id', id);
-        observer.observe(el);
-      } else {
-        console.warn(`[useScrollSpy] Could not find element for section ID: ${id}`);
+      if (!el) return;
+
+      const container = containerRef.current!;
+      programmaticScroll.current = true;
+      container.setAttribute('data-scrolling-programmatically', 'true');
+
+      const top = el.offsetTop - offsetTop;
+      container.scrollTo({ top, behavior: 'auto' });
+      // fine adjust after paint
+      requestAnimationFrame(() => {
+        container.scrollTo({ top, behavior: 'smooth' });
+        if (!externalActiveSection) setInternalActive(id);
+        setTimeout(() => {
+          programmaticScroll.current = false;
+          container.removeAttribute('data-scrolling-programmatically');
+        }, 500);
+      });
+    },
+    [containerRef, offsetTop, externalActiveSection],
+  );
+
+  // Effect 1: initial hash scroll -------------------------------------------
+  useEffect(() => {
+    if (!isMounted || !scrollToOnLoad || initialScrollDone.current || externalActiveSection) return;
+
+    const isReload = (): boolean => {
+      try {
+        if ('navigation' in performance) {
+          // @ts-expect-error experimental
+          return performance.navigation.type === 'reload';
+        }
+      } catch {}
+      return false;
+    };
+
+    if (disableScrollOnReload && isReload()) {
+      initialScrollDone.current = true;
+      return;
+    }
+
+    const hash = window.location.hash.slice(1);
+    if (hash && sectionIds.includes(hash)) {
+      initialScrollDone.current = true;
+      setTimeout(() => scrollToHash(hash), 300);
+    } else {
+      initialScrollDone.current = true;
+    }
+  }, [isMounted, scrollToOnLoad, externalActiveSection, sectionIds, disableScrollOnReload, scrollToHash]);
+
+  // Effect 2: IntersectionObserver setup ------------------------------------
+  useEffect(() => {
+    if (!isMounted || externalActiveSection) return;
+    const container = containerRef.current;
+    if (!container || sectionIds.length === 0) return;
+
+    // Clean slate
+    observerRef.current?.disconnect();
+    visibleRef.current.clear();
+
+    // Scroll listener for direction
+    const onScroll = () => detectDirection(container.scrollTop);
+    container.addEventListener('scroll', onScroll, { passive: true });
+
+    // IO callback -----------------------------------------------------------
+    const handleIntersect: IntersectionObserverCallback = (entries) => {
+      if (programmaticScroll.current) return;
+
+      const now = Date.now();
+      entries.forEach((e) => {
+        const id = e.target.getAttribute('data-section-id');
+        if (!id) return;
+        if (e.isIntersecting) visibleRef.current.set(id, { entry: e, since: now });
+        else visibleRef.current.delete(id);
+      });
+
+      // Build list of visible entries (Map ensures continuity)
+      const visibles = Array.from(visibleRef.current.values()).map((v) => v.entry);
+      if (visibles.length === 0) return;
+
+      // Sort according to direction & hysteresis buffer --------------------
+      const buf = hysteresis;
+      const sortBy = (a: IntersectionObserverEntry, b: IntersectionObserverEntry) => {
+        const d = direction.current;
+        const aTop = a.boundingClientRect.top - offsetTop;
+        const bTop = b.boundingClientRect.top - offsetTop;
+
+        // Downward: prefer section just entering the buffer zone
+        if (d === 'down') {
+          const aIn = aTop >= -buf;
+          const bIn = bTop >= -buf;
+          if (aIn !== bIn) return aIn ? -1 : 1;
+          return Math.abs(aTop) - Math.abs(bTop);
+        }
+        // Upward: prefer section just above offset line
+        if (d === 'up') {
+          const aIn = aTop <= 0 && aTop >= -buf;
+          const bIn = bTop <= 0 && bTop >= -buf;
+          if (aIn !== bIn) return aIn ? -1 : 1;
+          return Math.abs(aTop) - Math.abs(bTop);
+        }
+        // Unknown direction → fallback
+        return Math.abs(aTop) - Math.abs(bTop);
+      };
+
+      visibles.sort(sortBy);
+      const candidateId = visibles[0]?.target.getAttribute('data-section-id');
+      if (candidateId && candidateId !== internalActive) {
+        if (direction.current === 'up') debouncedUp(candidateId);
+        else debouncedDown(candidateId);
       }
+    };
+
+    // IO options tuned for minimal churn
+    observerRef.current = new IntersectionObserver(handleIntersect, {
+      root: container,
+      rootMargin: `-${offsetTop}px 0px -15% 0px`,
+      threshold: [0, 0.1],
     });
 
-    // Store the observer instance
-    observerRef.current = observer;
+    // Observe nodes
+    sectionIds.forEach((id) => {
+      const el = container.querySelector<HTMLElement>(
+        `#${CSS.escape(id)}, [data-section-id="${CSS.escape(id)}"]`,
+      );
+      if (el) {
+        el.setAttribute('data-section-id', id);
+        observerRef.current!.observe(el);
+      } else log('⚠️  section not found', id);
+    });
 
-    // Cleanup function
     return () => {
-      console.log('[useScrollSpy] Disconnecting observer.');
-      observer.disconnect();
+      observerRef.current?.disconnect();
+      container.removeEventListener('scroll', onScroll);
     };
-  }, [sectionIds, containerRef, offsetTop, internalActiveSection, isMounted, externalActiveSection, debouncedSetActiveSection]);
+  }, [isMounted, externalActiveSection, sectionIds, offsetTop, hysteresis, detectDirection, debouncedUp, debouncedDown, debug]);
 
-  // --- Effect 3: Sync URL Hash with Active Section ---
+  // Effect 3: hash sync ------------------------------------------------------
   useEffect(() => {
-    // Only run on client side when mounted
-    if (!isMounted) return;
-    
-    // Only run if hash sync is enabled and we have a valid active section
-    if (!enableHashSync || !activeSection || !initialScrollDoneRef.current) {
-      return;
-    }
+    if (!isMounted || !enableHashSync || !initialScrollDone.current || programmaticScroll.current) return;
+    const active = externalActiveSection ?? internalActive;
+    if (!active) return;
+    if (window.location.hash.slice(1) === active) return;
 
-    // Get current hash directly from window.location
-    const currentHash = window.location.hash.substring(1);
+    const timer = setTimeout(() => {
+      router.replace(`${pathname}#${active}`, { scroll: false });
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [internalActive, externalActiveSection, enableHashSync, pathname, router, isMounted]);
 
-    // Update URL only if the active section ID is different from the current hash
-    if (currentHash !== activeSection) {
-      console.log(`[useScrollSpy] Syncing hash: #${activeSection}`);
-      
-      // Use the new router.replace from next/navigation
-      router.replace(`${pathname}#${activeSection}`, { scroll: false });
-    }
-  }, [activeSection, enableHashSync, router, pathname, isMounted, initialScrollDoneRef]);
-
-  return activeSection;
+  return externalActiveSection ?? internalActive;
 }
+
 
 // --- Hook: useDesktopNavigation ---
 /**
@@ -1140,7 +1176,7 @@ export function useDesktopNavigation({
     items: sections,
     activeIndex: activeDesktopIndex,
     isHorizontal: false, // Vertical navigation
-    onNavigate: (newIndex) => { // Handle keyboard navigation
+    onNavigateAction: (newIndex) => { // Handle keyboard navigation
       setActiveDesktopIndex(newIndex);
       const sectionId = sections[newIndex]?.id;
       if (sectionId) { onNavClick(sectionId); }
@@ -1156,9 +1192,9 @@ export function useDesktopNavigation({
   });
 
   // Active indicator setup
-  const { indicatorStyle, trackHeight } = useDesktopIndicator({ 
-    navListRef, 
-    activeSection, 
+  const { indicatorStyle, trackHeight } = useDesktopIndicator({
+    navListRef,
+    activeSection,
     sections,
     isMounted // Pass isMounted flag for client-side rendering
   });
@@ -1244,8 +1280,8 @@ export interface ScrollingContentWithNavProps {
   svgIconWrapperClassName?: string;
   customComponentAboveWrapperClassName?: string;
   customComponentWrapperClassName?: string;
-  footerClassName?: string;
-  footerTitleClassName?: string;
+  footerClassName?: string; // Prop still accepted
+  footerTitleClassName?: string; // Prop still accepted
 
   // Behavior control props
   enableAutoDetection?: boolean; // Default: true
@@ -1270,12 +1306,7 @@ export const containerStyles = css({
   color: 'text',
   fontFamily: 'body',
   overflow: 'hidden',
-  maxWidth: {
-    base: '100%',
-    xl: '90rem',
-    '2xl': '110rem',
-    '3xl': '120rem'
-  },
+  maxWidth: 'min(100%, 2400px)', // Grow naturally until 2400px maximum
   margin: '0 auto',
 });
 
@@ -1347,50 +1378,37 @@ export const headerDescriptionStyles = css({
   backgroundColor: 'background',
 });
 
+// Reintroduced footerStyles: Takes visual cues from headerStyles but padding from original footer definition
 export const footerStyles = css({
-  width: 'full',
-  marginTop: {
-    base: '6',
-    md: '8'
+  background: 'background', // Match header
+  width: 'full', // Match header
+  marginTop: 'clamp(1.5rem, 5vh, 3rem)', // Keep original margin-top
+  borderBottom: '1px solid', // Match header's border style/position
+  borderColor: 'border', // Match header
+  color: 'text', // Keep original color
+  padding: { // Keep original padding
+    base: 'clamp(1rem, 3vw, 1.5rem)',
+    lg: 'clamp(1.5rem, 4vw, 2rem)'
   },
-  borderTop: '1px solid',
-  borderColor: 'border',
-  fontSize: {
-    base: 'sm',
-    xl: 'base'
-  },
-  color: 'text',
-  backgroundColor: 'background',
-  padding: {
-    base: '4',
-    md: '5',
-    lg: '6'
-  },
-  paddingBottom: {
-    base: '15rem',
-    md: '20rem',
-    lg: '25rem'
+  paddingBottom: { // Keep original large bottom padding
+    base: 'clamp(10rem, 20vh, 15rem)',
+    lg: 'clamp(15rem, 30vh, 25rem)'
   }
 });
 
+// Reintroduced footerTitleStyles: Takes visual cues from headerTitleStyles but margin from original footer title
 export const footerTitleStyles = css({
-  fontSize: { 
-    base: 'lg', 
-    xl: 'xl', 
-    '2xl': '3xl' 
+  fontSize: { // Match header title
+    base: 'md',
+    lg: 'lg',
+    xl: '2xl',
+    '2xl': '4xl'
   },
-  fontWeight: '200',
-  color: 'primary',
-  marginBottom: {
-    base: '3',
-    md: '4'
-  },
-  paddingBottom: {
-    base: '1',
-    md: '2'
-  },
-  borderColor: 'border',
+  fontWeight: '200', // Match header title
+  textAlign: 'left', // Match header title
+  marginBottom: 'clamp(0.75rem, 2vh, 1.5rem)', // Add back margin from original footer title for spacing
 });
+
 
 export const headerTitleStyles = css({
   fontSize: {
@@ -1401,15 +1419,6 @@ export const headerTitleStyles = css({
   },
   fontWeight: '200',
   textAlign: 'left',
-  background: 'background',
-  paddingLeft: {
-    base: '3',
-    md: '4',
-    lg: '5',
-    xl: '5',
-    '2xl': '6',
-    '3xl': '8'
-  },
 });
 
 // --- Mobile Navigation Styles ---
@@ -1431,14 +1440,8 @@ export const mobileNavTriggerStyles = css({
   justifyContent: 'space-between',
   alignItems: 'center',
   width: 'full',
-  p: { 
-    base: '2', 
-    sm: '3' 
-  },
-  fontSize: { 
-    base: 'mobileSubmenuItem', 
-    sm: 'mobileNavItem' 
-  },
+  padding: 'clamp(0.5rem, 2vw, 1rem)', // Fluid padding
+  fontSize: 'clamp(0.875rem, 2vw, 1.125rem)', // Fluid font size
   fontWeight: '200',
   color: 'text',
   cursor: 'pointer',
@@ -1457,10 +1460,7 @@ export const mobileNavDropdownStyles = css({
   borderColor: 'border',
   boxShadow: 'lg',
   height: 'auto',
-  maxH: { 
-    base: 'calc(50vh - 40px)', 
-    sm: 'calc(50vh - 60px)' 
-  },
+  maxHeight: 'clamp(300px, 50vh, 600px)', // Fluid max height
   overflowY: 'hidden',
   zIndex: 19,
   transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
@@ -1468,36 +1468,29 @@ export const mobileNavDropdownStyles = css({
 
 export const mobileNavListStyles = css({
   listStyle: 'none',
-  padding: { 
-    base: '1', 
-    sm: '2' 
-  },
+  padding: 'clamp(0.375rem, 1.5vw, 0.75rem)', // Fluid padding
   margin: 0,
 });
 
 // --- Main Content Area Styles ---
 export const mainContainerStyles = css({
   display: 'flex',
-  flexDirection: { 
-    base: 'column', 
-    md: 'row' 
+  flexDirection: {
+    base: 'column',
+    lg: 'row' // Changed from 'md' to 'lg' (1024px) for the breakpoint
   },
   flex: '1',
   width: 'full',
   overflowY: 'auto',
   overflowX: 'hidden',
   scrollBehavior: 'smooth',
-  paddingRight: { 
-    base: '1', 
-    sm: '2', 
-    lg: '3', 
-    xl: '4' 
+  paddingRight: {
+    base: 'clamp(0.25rem, 2vw, 1rem)', // Fluid padding for mobile/tablet
+    lg: 'clamp(1rem, 3vw, 2.5rem)'      // Fluid padding for desktop
   },
-  paddingLeft: { 
-    base: '2', 
-    sm: '3', 
-    lg: '4', 
-    xl: '5' 
+  paddingLeft: {
+    base: 'clamp(0.5rem, 3vw, 1.5rem)', // Fluid padding for mobile/tablet
+    lg: 'clamp(1.5rem, 4vw, 3rem)'      // Fluid padding for desktop
   },
   outline: 'none', // Hide default focus outline
   _focusVisible: { // Custom focus style for accessibility
@@ -1511,45 +1504,33 @@ export const contentWrapperStyles = css({
   flex: '1',
   order: 1,
   minWidth: 0, // Prevent flex overflow
-  padding: { 
-    base: '3', 
-    sm: '4', 
-    md: '5', 
-    lg: '6', 
-    xl: '7', 
-    '2xl': '8', 
-    '3xl': '9' 
+  padding: {
+    base: 'clamp(0.75rem, 4vw, 1.5rem)', // Fluid padding for mobile/tablet
+    lg: 'clamp(1.5rem, 5vw, 3rem)'       // Fluid padding for desktop
   },
-  '@media (min-width: 2200px)': { // Custom styles for largest breakpoint
-    paddingTop: '0.5rem',
-    paddingLeft: 'calc(9 * 0.25rem + 0.5rem)'
-  }
 });
 
 export const contentColumnStyles = css({
   width: 'full',
   margin: '0 auto', // Center content column
-  maxWidth: { 
-    base: '100%', 
-    lg: '60rem', 
-    xl: '70rem', 
-    '2xl': '80rem', 
-    '3xl': '90rem' 
+  maxWidth: {
+    base: '100%',
+    lg: '95%' // Use percentage instead of clamp to allow more horizontal space
   },
 });
 
 // --- Desktop Navigation Styles ---
 export const navWrapperStyles = css({
-  display: { 
-    base: 'none', 
-    md: 'block' 
+  display: {
+    base: 'none',
+    md: 'block'
   },
   order: 2, // Show on desktop, place after content
-  width: { 
-    md: '56', 
-    lg: '64', 
-    xl: '72', 
-    '2xl': '80' 
+  width: {
+    md: '56',
+    lg: '64',
+    xl: '72',
+    '2xl': '80'
   }, // Responsive width
   borderColor: 'border',
   bg: 'background',
@@ -1561,45 +1542,29 @@ export const navWrapperStyles = css({
   flexShrink: 0,
   isolation: 'isolate',
   zIndex: 3,
-  paddingTop: { 
-    md: '3rem', 
-    lg: '4rem', 
-    xl: '5rem' 
+  paddingTop: {
+    md: '3rem',
+    lg: '4rem',
+    xl: '5rem'
   },
 });
 
 export const navScrollContainerStyles = css({
-  padding: { 
-    md: '3', 
-    lg: '4', 
-    xl: '5' 
-  },
+  padding: 'clamp(0.75rem, 3vw, 1.5rem)', // Fluid padding
   display: 'flex',
   flexDirection: 'column',
   height: '100%',
-  paddingBottom: { 
-    md: '6rem', 
-    lg: '8rem' 
-  } // Bottom padding for scroll visibility
+  paddingBottom: 'clamp(4rem, 10vh, 8rem)' // Fluid bottom padding for scroll visibility
 });
 
 export const navHeaderStyles = css({
-  fontSize: { 
-    md: 'desktopSubmenuItem', 
-    lg: 'desktopNavItem', 
-    xl: 'base' 
-  },
+  fontSize: 'clamp(0.875rem, 1.5vw, 1rem)', // Fluid typography
   fontWeight: '200',
-  mb: { 
-    md: '3', 
-    lg: '4' 
-  },
+  marginBottom: 'clamp(0.75rem, 2vh, 1.25rem)', // Fluid margin
   color: 'primary',
   textAlign: 'left',
-  px: { 
-    md: '1', 
-    lg: '2' 
-  },
+  paddingLeft: 'clamp(0.25rem, 1vw, 0.5rem)', // Fluid padding
+  paddingRight: 'clamp(0.25rem, 1vw, 0.5rem)', // Fluid padding
   flexShrink: 0,
 });
 
@@ -1607,11 +1572,7 @@ export const navListContainerStyles = css({
   position: 'relative',
   flex: '1',
   minHeight: 0, // For indicator positioning and flex grow
-  pl: { 
-    md: '3', 
-    lg: '4', 
-    xl: '5' 
-  },
+  paddingLeft: 'clamp(0.75rem, 2vw, 1.5rem)', // Fluid padding
 });
 
 export const navListStyles = css({
@@ -1620,11 +1581,7 @@ export const navListStyles = css({
   listStyle: 'none',
   padding: 0,
   margin: 0,
-  gap: { 
-    md: '1', 
-    lg: '2', 
-    xl: '3' 
-  }, // Spacing between nav items
+  gap: 'clamp(0.25rem, 1vh, 0.75rem)', // Fluid spacing between nav items
 });
 
 // Base styles for both mobile and desktop nav buttons
@@ -1633,25 +1590,27 @@ export const navButtonBaseStyles = css({
   display: 'block',
   width: 'full',
   textAlign: 'left',
-  pl: { 
-    md: '2', 
-    lg: '3' 
-  }, // Desktop padding
-  pr: { 
-    md: '1', 
-    lg: '2' 
-  }, // Desktop padding
-  py: { 
-    md: '1', 
-    lg: '1.5', 
-    xl: '2' 
-  }, // Desktop padding
-  rounded: 'md',
-  fontSize: { 
-    md: 'desktopSubmenuItem', 
-    lg: 'desktopNavItem', 
-    xl: 'base' 
-  }, // Desktop font size
+  paddingLeft: {
+    base: 'clamp(0.5rem, 2vw, 1rem)', // Mobile/tablet padding
+    lg: 'clamp(0.75rem, 1.5vw, 1.25rem)' // Desktop padding
+  },
+  paddingRight: {
+    base: 'clamp(0.25rem, 1vw, 0.5rem)', // Mobile/tablet padding
+    lg: 'clamp(0.5rem, 1vw, 0.75rem)' // Desktop padding
+  },
+  paddingTop: {
+    base: 'clamp(0.25rem, 1vh, 0.5rem)', // Mobile/tablet padding
+    lg: 'clamp(0.35rem, 1.2vh, 0.75rem)' // Desktop padding
+  },
+  paddingBottom: {
+    base: 'clamp(0.25rem, 1vh, 0.5rem)', // Mobile/tablet padding
+    lg: 'clamp(0.35rem, 1.2vh, 0.75rem)' // Desktop padding
+  },
+  borderRadius: 'md',
+  fontSize: {
+    base: 'clamp(0.875rem, 2vw, 1rem)', // Mobile/tablet font size
+    lg: 'clamp(0.875rem, 1.2vw, 1rem)' // Desktop font size
+  },
   fontWeight: 'light',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
@@ -1662,20 +1621,20 @@ export const navButtonBaseStyles = css({
   transitionProperty: 'colors, background-color, box-shadow',
   transitionDuration: 'fast',
   transitionTimingFunction: 'ease-in-out',
-  _focusVisible: { 
-    outline: 'none', 
-    boxShadow: `0 0 0 2px var(--colors-primary)`, 
-    bg: 'glow' 
+  _focusVisible: {
+    outline: 'none',
+    boxShadow: `0 0 0 2px var(--colors-primary)`,
+    bg: 'glow'
   },
-  _hover: { 
-    bgColor: 'glow' 
+  _hover: {
+    bgColor: 'glow'
   },
 });
 
 export const navButtonInactiveStyles = css({
   color: 'textMuted',
-  _hover: { 
-    color: 'text' 
+  _hover: {
+    color: 'text'
   },
 });
 
@@ -1690,13 +1649,13 @@ export const lineTrackStyles = css({ // Background track
   top: '0',
   bg: 'border',
   rounded: 'full',
-  left: { 
-    md: '1', 
-    lg: '2' 
+  left: {
+    md: '1',
+    lg: '2'
   },
-  width: { 
-    md: '1px', 
-    lg: '2px' 
+  width: {
+    md: '1px',
+    lg: '2px'
   },
   transition: 'height 0.3s ease-in-out',
 });
@@ -1705,11 +1664,11 @@ export const lineIndicatorStyles = css({ // Active indicator
   position: 'absolute',
   left: '0',
   bg: 'primary',
-  width: { 
-    md: '3px', 
-    lg: '4px', 
-    xl: '5px', 
-    '2xl': '6px' 
+  width: {
+    md: '3px',
+    lg: '4px',
+    xl: '5px',
+    '2xl': '6px'
   },
   borderRadius: '0 3px 3px 0',
   boxShadow: '0 0 6px var(--colors-primary)', // Glow effect
@@ -1754,6 +1713,10 @@ export const headerCodeStyles = css({ // Code
 export const headerTextStyles = css({ // Text/Quote
   p: '4',
   fontStyle: 'italic',
+  paddingLeft: {
+    base: 'clamp(0.3rem, 2vw, 1.5rem)', // Fluid padding for mobile/tablet
+    lg: 'clamp(1.5rem, 4vw, 3rem)'      // Fluid padding for desktop
+  },
   color: 'text',
   borderColor: 'primary',
   bg: 'background',
@@ -1761,91 +1724,55 @@ export const headerTextStyles = css({ // Text/Quote
 
 // --- Section Content Styles ---
 export const sectionHeadingStyles = css({ // H2 within section
-  fontSize: 'clamp(1rem, calc(1rem + ((1vw - 4.8px) * 1.8)), 2.5rem)', // Reduced fluid typography
-  fontWeight: 'semibold',
+  fontSize: 'clamp(1.25rem, 3vw, 2.5rem)', // Simplified fluid typography
+  fontWeight: 'thin',
   color: 'primary',
-  mb: { 
-    base: '3', 
-    md: '4', 
-    lg: '5' 
+  mb: {
+    base: 'clamp(0.75rem, 2vh, 1.25rem)', // Fluid margin for mobile/tablet
+    lg: 'clamp(1.25rem, 3vh, 2rem)'       // Fluid margin for desktop
   },
 });
 
 export const sectionParagraphStyles = css({ // P within section
-  lineHeight: 'calc(1.5em + 0.15 * (1vw - 4.8px))', // Slightly reduced fluid line height
-  fontSize: 'clamp(0.8rem, calc(0.8rem + ((1vw - 4.8px) * 0.4)), 1.5rem)', // Smaller fluid typography
+  lineHeight: 'clamp(1.5, calc(1.5 + 0.2 * (100vw - 320px) / 2080), 1.7)', // Simplified fluid line height
+  fontSize: 'clamp(0.8rem, 1.2vw, 1.25rem)', // Simplified fluid typography
   color: 'text',
-  mb: { 
-    base: '3', 
-    md: '4', 
-    lg: '5' 
+  mb: {
+    base: 'clamp(0.75rem, 2vh, 1rem)', // Fluid margin for mobile/tablet
+    lg: 'clamp(1rem, 2.5vh, 1.5rem)'   // Fluid margin for desktop
   },
 });
 
 export const sectionStyles = css({ // <section> wrapper
-  mb: { 
-    base: '5rem', 
-    sm: '6rem', 
-    md: '8rem', 
-    lg: '10rem' 
-  }, // Bottom margin between sections
+  mb: 'clamp(5rem, 8vh, 10rem)', // Fluid margin between sections
   isolation: 'isolate', // Stacking context
   position: 'relative',
-  paddingLeft: { 
-    base: '1rem', 
-    sm: '1.5rem', 
-    md: '2rem', 
-    lg: '2.5rem', 
-    xl: '3rem', 
-    '2xl': '3.5rem', 
-    '3xl': '4rem' 
+  paddingLeft: '0', // Removed horizontal padding
+  paddingRight: '0', // Removed horizontal padding
+  paddingTop: {
+    base: 'clamp(0.5rem, 1vh, 1rem)', // Fluid padding for mobile/tablet
+    lg: 'clamp(1rem, 2vh, 2rem)'      // Fluid padding for desktop
   },
-  paddingRight: { 
-    base: '1rem', 
-    sm: '2rem', 
-    md: '3rem', 
-    lg: '4rem', 
-    xl: '5rem', 
-    '2xl': '6rem', 
-    '3xl': '6.5rem' 
-  },
-  py: { 
-    base: '1', 
-    md: '2', 
-    lg: '3', 
-    xl: '4', 
-    '2xl': '5', 
-    '3xl': '5' 
-  },
-  '@media (min-width: 2200px)': { // Styles for largest breakpoint
-    paddingTop: '2rem',
-    '& > h2:first-of-type': { marginLeft: '0.25rem' }
+  paddingBottom: {
+    base: 'clamp(0.5rem, 1vh, 1rem)', // Fluid padding for mobile/tablet
+    lg: 'clamp(1rem, 2vh, 2rem)'      // Fluid padding for desktop
   },
   // Nested element styles within sections
   '& h1, & h2, & h3': {
     fontWeight: 'thin',
     color: 'primary',
-    fontSize: { 
-      base: 'lg', 
-      md: 'xl', 
-      lg: '2xl', 
-      '2xl': '3xl', 
-      '3xl': '4xl' 
+    fontSize: {
+      base: 'clamp(1rem, 2vw, 1rem)', // Fluid typography for mobile/tablet
+      lg: 'clamp(1rem, 2vw, 2.4rem)'     // Fluid typography for desktop
     },
   },
   '& ul, & ol': {
-    marginBottom: { 
-      base: '3', 
-      md: '4' 
-    },
-    paddingLeft: { 
-      base: '4', 
-      md: '6' 
-    }
+    marginBottom: 'clamp(0.75rem, 2vh, 1.5rem)', // Fluid margin
+    paddingLeft: 'clamp(1rem, 4vw, 2rem)'        // Fluid padding
   },
-  '& img': { 
-    maxWidth: '100%', 
-    height: 'auto' 
+  '& img': {
+    maxWidth: '100%',
+    height: 'auto'
   } // Responsive images
 });
 
@@ -1949,8 +1876,8 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
   svgIconWrapperClassName,
   customComponentAboveWrapperClassName,
   customComponentWrapperClassName,
-  footerClassName,
-  footerTitleClassName,
+  footerClassName, // Prop still accepted
+  footerTitleClassName, // Prop still accepted
   enableAutoDetection = true,
   offsetTop = 0,
   useChildrenInsteadOfData = false,
@@ -1961,10 +1888,10 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
   // --- Refs ---
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const navListRef = useRef<HTMLUListElement>(null);
-  
+
   // --- Client-side mounting state ---
   const [isMounted, setIsMounted] = useState(false);
-  
+
   // Set isMounted to true after initial render
   useEffect(() => {
     setIsMounted(true);
@@ -2202,11 +2129,11 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
               className={mobileNavDropdownStyles}
               aria-label={navTitle}
             >
-              <div className={css({ 
-                padding: '2', 
-                textAlign: 'center', 
-                fontSize: 'xs', 
-                color: 'textMuted', 
+              <div className={css({
+                padding: '2',
+                textAlign: 'center',
+                fontSize: 'xs',
+                color: 'textMuted',
               })}>
                  Swipe up to dismiss
               </div>
@@ -2271,8 +2198,10 @@ const ScrollingContentWithNav: React.FC<ScrollingContentWithNavProps> = ({
 
             {/* Optional Footer */}
             {(footerContent || footerTitle) && (
+              // Apply the reintroduced footerStyles
               <footer className={cx(footerStyles, footerClassName)}>
                 {footerTitle && (
+                  // Apply the reintroduced footerTitleStyles
                   <h2 className={cx(footerTitleStyles, footerTitleClassName)}>
                     {footerTitle}
                   </h2>
