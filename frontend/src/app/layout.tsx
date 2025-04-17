@@ -35,8 +35,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
     <html lang="en">
       <head>
         {/* Static head elements */}
-        <style dangerouslySetInnerHTML={{ __html: criticalStyles }} />
         <ThemeScript />
+        
+        <style dangerouslySetInnerHTML={{ __html: criticalStyles }} />
         <link rel="preload" href="https://use.typekit.net/hcw7ssx.css" as="style" />
         <link rel="stylesheet" href="https://use.typekit.net/hcw7ssx.css" />
         <link rel="preconnect" href="https://use.typekit.net" crossOrigin="anonymous" />
