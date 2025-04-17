@@ -895,7 +895,6 @@ function useDebounce<T extends (...args: any[]) => any>(
  *   • Keeps a Map of visible sections to avoid IO batch gaps
  *   • All magic numbers promoted to props with sane defaults
  *
- * Author: ChatGPT (with Rosalia) – April 2025
  */
 
 // ---------------------------------------------------------------------------
