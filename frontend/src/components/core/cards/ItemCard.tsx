@@ -2,13 +2,15 @@
 
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, HTMLMotionProps } from 'framer-motion';
 import { css, cx } from "../../../../styled-system/css"; // Adjust path as needed
+
+// Type to handle motion.button props correctly
+type MotionButtonProps = HTMLMotionProps<"button">;
 
 // ==========================================================
 // TYPES & INTERFACES
 // ==========================================================
-
 export interface NavigationItem {
   id: string;
   label: string;
@@ -18,11 +20,38 @@ export interface NavigationItem {
   color?: string; // For theming the card
 }
 
+// Use native React button event types instead of hand-rolling our own
+type NativeButtonEvents = React.ButtonHTMLAttributes<HTMLButtonElement>;
+type CombinedEventHandlersResult = Omit<NativeButtonEvents, 'style' | 'className'>;
+
+// Update all event handler interfaces to use HTMLButtonElement consistently
+interface MouseEventHandlerProps {
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  onMouseDown?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  onMouseUp?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  onMouseEnter?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  onMouseLeave?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  onMouseMove?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+}
+
+interface TouchEventHandlerProps {
+  onTouchStart?: (event: React.TouchEvent<HTMLButtonElement>) => void;
+  onTouchEnd?: (event: React.TouchEvent<HTMLButtonElement>) => void;
+}
+
+interface FocusEventHandlerProps {
+    onFocus?: (event: React.FocusEvent<HTMLButtonElement>) => void;
+    onBlur?: (event: React.FocusEvent<HTMLButtonElement>) => void;
+}
+
+
 export interface ItemCardProps {
   /** The data for the navigation item */
   item: NavigationItem;
   /** Optional click handler. If not provided and item.href exists, it will navigate. */
   onClick?: (item: NavigationItem) => void;
+  /** Visual style variant of the card */
+  variant?: 'transparent' | 'glass' | 'solid';
   /** Is the card displayed in a mobile context? Affects animations/styles. */
   isMobile?: boolean;
   /** Is the page currently scrolling? Disables some effects. */
@@ -31,8 +60,6 @@ export interface ItemCardProps {
   showDescription?: boolean;
   /** Should the icon glow effect be shown on hover/focus? */
   showGlowEffect?: boolean;
-  /** Use a transparent background instead of the solid variant? */
-  isTransparent?: boolean;
   /** Optional className to pass to the outer container */
   className?: string;
   /** Optional style object for the outer container */
@@ -53,229 +80,599 @@ export interface ItemCardProps {
   height?: string;
   /** Optional minimum height of the card */
   minHeight?: string;
-  /** Optional card elevation/shadow level (0-5). Aligns with MUI's elevation concept (Section 4.1) */
+  /** Optional card elevation/shadow level (0-5). */
   elevation?: 0 | 1 | 2 | 3 | 4 | 5;
   /** Optional padding override */
   padding?: string;
+  /** Duration for the press-and-hold animation in milliseconds */
+  pressAnimationDuration?: number;
+  /** Initial height of the golden tab indicator (as percentage) */
+  initialTabHeight?: string;
+  /** Minimum height the tab can shrink to when pressed (as percentage) */
+  minTabHeight?: string;
 }
 
-// ==========================================================
-// ANIMATION VARIANTS (Framer Motion)
-// Aligns with MUI's "Motion Provides Meaning" principle (Section 4.3)
-// ==========================================================
+// Input type for useComponentStyling
+interface ComponentStylingOptions {
+    width?: string;
+    minWidth?: string;
+    maxWidth?: string;
+    height?: string;
+    minHeight?: string;
+    padding?: string;
+    elevation?: ItemCardProps['elevation'];
+    isPressed?: boolean;
+    shouldShowDescription?: boolean;
+    isHovered?: boolean;
+    isFocused?: boolean;
+    variant?: ItemCardProps['variant'];
+}
 
+// Return type for useComponentStyling
+interface ComponentStylingResult {
+    customElementStyles: React.CSSProperties;
+    shadowStyle: React.CSSProperties;
+    backgroundStyles: React.CSSProperties;
+    zIndex: number;
+}
+
+// Input type for useAnimationVariants
+interface AnimationVariantsOptions {
+    motionIsReduced?: boolean;
+    isMobile?: boolean;
+    isScrolling?: boolean;
+    isFocused?: boolean;
+    initialAnimation?: boolean;
+    showDescription?: boolean;
+    hasDescription?: boolean;
+}
+
+// Return type for useAnimationVariants
+interface AnimationVariantsResult {
+    descriptionInitialVariant: string;
+    itemVariant: string;
+    hoverVariant: string | undefined;
+}
+
+// Input type for useCombinedEventHandlers
+interface CombinedEventHandlersOptions {
+    baseEventHandlers: CombinedEventHandlersResult; // Use updated type (no keyboard)
+    triggerRipple: (event: React.MouseEvent<HTMLButtonElement>) => void; // Updated to HTMLButtonElement
+    handleActivation: () => void; // Still needed for ripple + custom logic
+}
+
+// Return type for useCombinedEventHandlers is CombinedEventHandlersResult
+
+// Animation variant literal types for better type safety
+type AnimationVariant = "initial" | "hover" | "press";
+
+// Return type for useItemInteractionState
+interface ItemInteractionStateResult {
+    isHovered: boolean;
+    isFocused: boolean;
+    isPressed: boolean;
+    pressProgress: number;
+    tabStyles: { height: string; top: string };
+    getAnimationVariant: (componentType: string) => AnimationVariant;
+    eventHandlers: CombinedEventHandlersResult; // Uses NativeButtonEvents
+    showHoverEffects: boolean;
+}
+
+
+// ==========================================================
+// ANIMATION VARIANTS (Keep as is)
+// ==========================================================
 const ANIMATIONS = {
   item: {
-    hidden: { opacity: 0, y: 0, scale: 1, rotateX: '0deg' },
-    visible: { y: 0, opacity: 1, scale: 1, rotateX: '0deg', transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1.0], boxShadow: { duration: 0.4, ease: "easeOut" } } },
-    visibleMobile: { y: 0, opacity: 1, scale: 1, rotateX: '0deg', transition: { duration: 0.3, ease: "easeOut", opacity: { duration: 0.2, ease: "easeOut" } } },
-    staticMobile: { y: 0, opacity: 1, scale: 1, rotateX: '0deg', transition: { duration: 0 } },
-    hover: { scale: 1.04, boxShadow: "0px 10px 25px rgba(0, 0, 0, 0.1)" },
-    hoverMobile: { scale: 1.02 },
-    tap: { scale: 0.97, transition: { duration: 0.1, ease: [0.19, 1, 0.22, 1] } }
+    hidden: { 
+      opacity: 0, 
+      y: 0, 
+      scale: 1, 
+      rotateX: '0deg' 
+    },
+    visible: { 
+      y: 0, 
+      opacity: 1, 
+      scale: 1, 
+      rotateX: '0deg', 
+      transition: { 
+        duration: 0.4, 
+        ease: [0.25, 0.1, 0.25, 1.0], 
+        boxShadow: { 
+          duration: 0.4, 
+          ease: "easeOut" 
+        } 
+      } 
+    },
+    visibleMobile: { 
+      y: 0, 
+      opacity: 1, 
+      scale: 1, 
+      rotateX: '0deg', 
+      transition: { 
+        duration: 0.3, 
+        ease: "easeOut", 
+        opacity: { 
+          duration: 0.2, 
+          ease: "easeOut" 
+        } 
+      } 
+    },
+    staticMobile: { 
+      y: 0, 
+      opacity: 1, 
+      scale: 1, 
+      rotateX: '0deg', 
+      transition: { 
+        duration: 0 
+      } 
+    },
+    hover: { 
+      scale: 1.04, 
+      boxShadow: "0px 10px 25px rgba(0, 0, 0, 0.1)" 
+    },
+    hoverMobile: { 
+      scale: 1.02 
+    },
+    tap: { 
+      scale: 0.97, 
+      transition: { 
+        duration: 0.1, 
+        ease: [0.19, 1, 0.22, 1] 
+      } 
+    }
   },
   icon: {
-    initial: { scale: 1, rotate: 0 },
-    hover: { scale: 1.1, rotate: 5, transition: { duration: 0.4, ease: [0.34, 1.56, 0.64, 1], scale: { type: "spring", stiffness: 400, damping: 10 }, rotate: { duration: 0.4, ease: [0.34, 1.56, 0.64, 1] } } }
+    initial: { 
+      scale: 1, 
+      rotate: 0 
+    },
+    hover: { 
+      scale: 1.1, 
+      rotate: 5, 
+      transition: { 
+        duration: 0.4, 
+        ease: [0.34, 1.56, 0.64, 1], 
+        scale: { 
+          type: "spring", 
+          stiffness: 400, 
+          damping: 10 
+        }, 
+        rotate: { 
+          duration: 0.4, 
+          ease: [0.34, 1.56, 0.64, 1] 
+        } 
+      } 
+    },
+    press: { 
+      scale: 0.95, 
+      rotate: 0, 
+      transition: { 
+        duration: 0.3, 
+        ease: [0.19, 1, 0.22, 1] 
+      } 
+    }
   },
   glow: {
-    initial: { opacity: 0, scale: 0.6 },
-    hover: { opacity: 1, scale: 1, transition: { opacity: { duration: 0.8, ease: [0.19, 1, 0.22, 1] }, scale: { duration: 0.9, ease: [0.34, 1.56, 0.64, 1] } } },
-    exit: { opacity: 0, scale: 0.6, transition: { opacity: { duration: 0.5, ease: "easeOut" }, scale: { duration: 0.5, ease: "easeOut" } } }
+    initial: { 
+      opacity: 0, 
+      scale: 0.6 
+    },
+    hover: { 
+      opacity: 1, 
+      scale: 1, 
+      transition: { 
+        opacity: { 
+          duration: 0.8, 
+          ease: [0.19, 1, 0.22, 1] 
+        }, 
+        scale: { 
+          duration: 0.9, 
+          ease: [0.34, 1.56, 0.64, 1] 
+        } 
+      } 
+    },
+    press: { 
+      opacity: 0.7, 
+      scale: 0.9, 
+      transition: { 
+        duration: 0.3 
+      } 
+    },
+    exit: { 
+      opacity: 0, 
+      scale: 0.6, 
+      transition: { 
+        opacity: { 
+          duration: 0.5, 
+          ease: "easeOut" 
+        }, 
+        scale: { 
+          duration: 0.5, 
+          ease: "easeOut" 
+        } 
+      } 
+    }
   },
   label: {
-    initial: { y: 0 },
-    hover: { y: -3, transition: { duration: 0.3, ease: "easeOut" } }
+    initial: { 
+      y: 0 
+    },
+    hover: { 
+      y: -3, 
+      transition: { 
+        duration: 0.3, 
+        ease: "easeOut" 
+      } 
+    },
+    press: { 
+      y: 1, 
+      transition: { 
+        duration: 0.2, 
+        ease: "easeOut" 
+      } 
+    }
   },
   goldenTab: {
-    initial: { height: '20%', top: '40%', opacity: 0.9 },
-    hover: { height: '70%', top: '15%', opacity: 1, transition: { height: { type: "spring", stiffness: 300, damping: 20, duration: 0.5 }, top: { type: "spring", stiffness: 300, damping: 20, duration: 0.5 }, opacity: { duration: 0.3 } } }
+    initial: { 
+      height: '20%', 
+      top: '40%', 
+      opacity: 0.9 
+    },
+    hover: { 
+      height: '70%', 
+      top: '15%', 
+      opacity: 1, 
+      transition: { 
+        height: { 
+          type: "spring", 
+          stiffness: 300, 
+          damping: 20, 
+          duration: 0.5 
+        }, 
+        top: { 
+          type: "spring", 
+          stiffness: 300, 
+          damping: 20, 
+          duration: 0.5 
+        }, 
+        opacity: { 
+          duration: 0.3 
+        } 
+      } 
+    },
+    press: { 
+      opacity: 0.7, 
+      transition: { 
+        opacity: { 
+          duration: 0.3 
+        } 
+      } 
+    }
   },
   tabGlow: {
-    initial: { opacity: 0.2, width: '100%', height: '100%' },
-    hover: { opacity: 0.4, width: '100%', height: '100%', transition: { opacity: { duration: 0.3, ease: "easeOut" } } }
+    initial: { 
+      opacity: 0.2, 
+      width: '100%', 
+      height: '100%' 
+    },
+    hover: { 
+      opacity: 0.4, 
+      width: '100%', 
+      height: '100%', 
+      transition: { 
+        opacity: { 
+          duration: 0.3, 
+          ease: "easeOut" 
+        } 
+      } 
+    },
+    press: { 
+      opacity: 0.2, 
+      width: '100%', 
+      height: '100%', 
+      transition: { 
+        opacity: { 
+          duration: 0.2 
+        } 
+      } 
+    }
   },
   description: {
-    initial: { opacity: 0, height: 0, marginTop: 0 },
-    initialVisible: { opacity: 0, height: 'auto', marginTop: '0.7rem' },
-    visible: { opacity: 1, height: 'auto', marginTop: '0.7rem', transition: { opacity: { duration: 0.4, ease: "easeOut" }, height: { duration: 0.35, type: "spring", stiffness: 300, damping: 25 }, marginTop: { duration: 0.3, ease: "easeOut" } } },
-    exit: { opacity: 0, height: 0, marginTop: 0, transition: { opacity: { duration: 0.2, ease: "easeIn" }, height: { duration: 0.25, ease: "easeIn" }, marginTop: { duration: 0.2, ease: "easeIn" } } }
+    initial: { 
+      opacity: 0, 
+      height: 0, 
+      marginTop: 0 
+    },
+    initialVisible: { 
+      opacity: 0, 
+      height: 'auto', 
+      marginTop: '0.7rem' 
+    },
+    visible: { 
+      opacity: 1, 
+      height: 'auto', 
+      marginTop: '0.7rem', 
+      transition: { 
+        opacity: { 
+          duration: 0.4, 
+          ease: "easeOut" 
+        }, 
+        height: { 
+          duration: 0.35, 
+          type: "spring", 
+          stiffness: 300, 
+          damping: 25 
+        }, 
+        marginTop: { 
+          duration: 0.3, 
+          ease: "easeOut" 
+        } 
+      } 
+    },
+    exit: { 
+      opacity: 0, 
+      height: 0, 
+      marginTop: 0, 
+      transition: { 
+        opacity: { 
+          duration: 0.2, 
+          ease: "easeIn" 
+        }, 
+        height: { 
+          duration: 0.25, 
+          ease: "easeIn" 
+        }, 
+        marginTop: { 
+          duration: 0.2, 
+          ease: "easeIn" 
+        } 
+      } 
+    }
   }
 };
 
 // ==========================================================
-// STYLE DEFINITIONS (PandaCSS)
+// STYLES (Updated to use CSS Variables & Button Resets)
 // ==========================================================
+const fluid = {
+  // Spacing values - adjusted for more subtle scaling to match reduced font sizes
+  space: {
+    '2xs': 'clamp(0.25rem, 0.225rem + 0.1vw, 0.375rem)',   // Reduced scaling
+    'xs': 'clamp(0.5rem, 0.425rem + 0.15vw, 0.75rem)',     // Reduced scaling
+    'sm': 'clamp(0.75rem, 0.65rem + 0.2vw, 1rem)',         // Reduced scaling
+    'md': 'clamp(1rem, 0.85rem + 0.3vw, 1.375rem)',        // Reduced scaling
+    'lg': 'clamp(1.5rem, 1.25rem + 0.4vw, 2rem)',          // Reduced scaling
+    'xl': 'clamp(2rem, 1.75rem + 0.5vw, 2.75rem)',         // Reduced scaling
+  },
 
-// Focus ring styles - Important for Accessibility (Section 6.3)
+  // Fluid typography system - adjusted for faster scaling up to 22px
+  text: {
+    'xs': 'clamp(0.75rem, 0.6rem + 0.5vw, 1.15rem)',       // Faster scaling, larger max
+    'sm': 'clamp(0.825rem, 0.7rem + 0.6vw, 1.25rem)',      // Faster scaling, larger max
+    'base': 'clamp(0.925rem, 0.75rem + 0.7vw, 1.375rem)',  // 14.8px to 22px
+    'lg': 'clamp(1rem, 0.85rem + 0.8vw, 1.5rem)',          // Faster scaling, larger max
+    'xl': 'clamp(1.125rem, 0.9rem + 0.9vw, 1.75rem)',      // Faster scaling, larger max
+    'label': 'clamp(0.925rem, 0.75rem + 0.7vw, 1.375rem)', // 14.8px to 22px for desktop
+    'description': 'clamp(0.8125rem, 0.65rem + 0.6vw, 1.25rem)', // Proportionally adjusted
+  },
+
+  // Border radiuses - subtle scaling
+  radius: {
+    'sm': 'clamp(4px, 3px + 0.2vw, 6px)',                 // 4px to 6px
+    'md': 'clamp(8px, 6px + 0.3vw, 12px)',                // 8px to 12px
+    'lg': 'clamp(12px, 9px + 0.4vw, 16px)',               // 12px to 16px
+  },
+
+  // Icon and element sizes - adjusted for more subtle scaling
+  size: {
+    'xs': 'clamp(16px, 14px + 0.4vw, 24px)',              // Reduced scaling
+    'sm': 'clamp(24px, 21px + 0.5vw, 36px)',              // Reduced scaling
+    'md': 'clamp(32px, 28px + 0.6vw, 48px)',              // Reduced scaling
+    'lg': 'clamp(48px, 40px + 0.8vw, 64px)',              // Reduced scaling
+  },
+
+  // Letter spacing - adjusted for more subtle scaling
+  letterSpacing: {
+    'tight': 'clamp(0.01em, 0.005em + 0.01vw, 0.025em)',  // Reduced scaling
+    'normal': 'clamp(0.03em, 0.025em + 0.02vw, 0.05em)',  // Reduced scaling
+    'wide': 'clamp(0.05em, 0.04em + 0.03vw, 0.09em)',     // Reduced scaling for headings/labels
+  },
+
+  // Line heights - adjusted for more subtle scaling
+  lineHeight: {
+    'tight': 'clamp(1.1, 1.05 + 0.05vw, 1.2)',            // Reduced scaling for headings
+    'normal': 'clamp(1.4, 1.35 + 0.1vw, 1.5)',            // Reduced scaling for body text
+    'loose': 'clamp(1.6, 1.5 + 0.1vw, 1.7)',              // Reduced scaling for description text
+  },
+
+  // Border widths - very subtle scaling
+  border: {
+    'thin': 'clamp(0.5px, 0.25px + 0.05vw, 1px)',         // 0.5px to 1px
+    'normal': 'clamp(1px, 0.75px + 0.05vw, 1.5px)',       // 1px to 1.5px
+    'thick': 'clamp(1.5px, 1px + 0.1vw, 2.5px)',          // 1.5px to 2.5px
+    'feature': 'clamp(2px, 1.5px + 0.15vw, 4px)',         // 2px to 4px (accent borders, like golden tab)
+  },
+
+  // Blur effects
+  blur: {
+    'sm': 'clamp(4px, 3px + 0.3vw, 8px)',                 // 4px to 8px
+    'md': 'clamp(8px, 6px + 0.5vw, 15px)',                // 8px to 15px
+    'lg': 'clamp(16px, 12px + 0.8vw, 28px)',              // 16px to 28px
+  }
+};
+const getShadow = (level: 'sm' | 'md' | 'lg' | 'xl' | 'focus') => {
+  switch(level) {
+    case 'sm':
+      return `0 ${fluid.space['2xs']} ${fluid.space.xs} rgba(0, 0, 0, 0.05)`;
+    case 'md':
+      return `0 ${fluid.space.xs} ${fluid.space.sm} rgba(0, 0, 0, 0.1)`;
+    case 'lg':
+      return `0 ${fluid.space.sm} ${fluid.space.md} rgba(0, 0, 0, 0.15), 0 ${fluid.space['2xs']} ${fluid.space.xs} rgba(0, 0, 0, 0.08)`;
+    case 'xl':
+      return `0 ${fluid.space.md} ${fluid.space.lg} rgba(0, 0, 0, 0.2), 0 ${fluid.space.xs} ${fluid.space.md} rgba(0, 0, 0, 0.15)`;
+    case 'focus':
+      // Use CSS variable for focus color
+      return `0 0 0 ${fluid.space.xs} var(--card-focus-shadow-color)`;
+    default:
+      return `0 ${fluid.space.xs} ${fluid.space.sm} rgba(0, 0, 0, 0.1)`;
+  }
+};
 const focusRingStyles = css({
-  outline: 'none',
+  // Base styles for focus state (applied via inline style logic now)
+  outline: 'none', // Base outline removal
   position: 'relative',
-  zIndex: '10',
-  transform: 'translateY(-2px) scale(1.03)',
-  transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
+  zIndex: '10', // Ensure focus state is prominent
+  // Transform is now handled conditionally in the component's style prop
+  transition: 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)', // Keep transition
 });
-
-// Card styles - base
 const cardStyle = css({
-  position: 'relative', // Needed for ripple positioning
-  backgroundColor: 'transparent',
-  borderRadius: '12px',
-  padding: '0.85rem 1rem',
-  overflow: 'hidden', // Changed from 'visible' to contain ripple effect
+  // Button Resets
+  appearance: 'none',
+  border: 'none', // Reset border before applying custom border
+  background: 'transparent', // Reset background before applying variant background
+  font: 'inherit',
+  color: 'inherit',
+  textAlign: 'inherit', // Reset text align
+
+  // Original Card Styles
+  position: 'relative',
+  borderRadius: fluid.radius.md,
+  // Reduced left padding to bring content closer to golden tab
+  padding: `clamp(0.85rem, 0.75rem + 0.2vw, 1.15rem) ${fluid.space.sm} clamp(0.85rem, 0.75rem + 0.2vw, 1.15rem) clamp(1.5rem, 1.25rem + 0.4vw, 2rem)`,
+  overflow: 'hidden',
   display: 'flex',
   flexDirection: 'row',
   alignItems: 'center',
   justifyContent: 'flex-start',
-  minHeight: '54px',
-  width: '100%',
-  textAlign: 'left',
+  minHeight: 'clamp(64px, 56px + 0.8vw, 80px)', // Maintained height
+  width: '100%', // Ensure button takes full width
   cursor: 'pointer',
-  borderWidth: '0.1px',
+  borderWidth: fluid.border.thin,
   borderStyle: 'solid',
-  borderColor: 'primary', // Uses theme token
-  boxShadow: 'rgba(0, 0, 0, 0.05) 0px 2px 6px 0px, rgba(27, 31, 35, 0.08) 0px 0px 0px 1px',
-  willChange: 'transform, opacity, box-shadow',
-  transform: 'translateZ(0)', // Promotes to composite layer for animations
+  borderColor: 'var(--card-border-color)', // Use CSS variable
+  boxShadow: getShadow('sm'), // Base shadow, elevation prop overrides this
+  willChange: 'transform, opacity, box-shadow, background-color',
+  transform: 'translateZ(0)', // Base transform
   backfaceVisibility: 'hidden',
   transformOrigin: 'center center',
-  borderLeftWidth: '4px',
-  outline: 'none',
+  borderLeftWidth: 'clamp(3px, 2.5px + 0.15vw, 5px)',
+  borderLeftColor: 'var(--card-border-color)', // Use CSS variable
+  outline: 'none', // Ensure outline is none by default
   transition: 'all 0.3s ease-out',
-  // Responsive styles using standard CSS media queries (Section 2.3)
-  // Note: MUI defaults are xs: 0, sm: 600, md: 900, lg: 1200, xl: 1536 (Section 2.2)
-  // These values (1400px, 640px) might be project-specific.
-  '@media (min-width: 1400px)': {
-    padding: 'clamp(0.9rem, calc(0.6rem + 0.5vw), 1.1rem) clamp(1.25rem, calc(0.9rem + 0.6vw), 1.5rem)',
-    minHeight: 'clamp(60px, calc(4px + 4vw), 100px)',
-    borderLeftWidth: 'clamp(4px, calc(3px + 0.167vw), 5px)',
-  },
-  '@media (max-width: 640px)': {
-    padding: '0.75rem',
-    minHeight: '50px',
-    opacity: '1',
-    borderWidth: '0.2px',
-    borderLeftWidth: '4px',
-    boxShadow: 'rgba(0, 0, 0, 0.05) 0px 1px 3px 0px',
-  },
-});
 
-// Styles for card with description visible
+  // Pressed State (applies to button)
+  '&[data-pressed="true"]': { // Use data attribute selector
+    transform: 'translateZ(0) scale(0.985)',
+    transition: 'transform 0.2s cubic-bezier(0.19, 1, 0.22, 1)'
+  }
+});
 const cardWithDescriptionStyle = css({
   flexDirection: 'column',
   alignItems: 'flex-start',
   height: 'auto',
-  minHeight: '120px',
-  boxShadow: '0 6px 20px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.06)',
+  minHeight: 'clamp(120px, 100px + 1.2vw, 160px)', // Maintained height
+  // Reduced left padding to match standard card
+  padding: `clamp(1.1rem, 0.95rem + 0.3vw, 1.5rem) ${fluid.space.sm} clamp(1.1rem, 0.95rem + 0.3vw, 1.5rem) clamp(1.5rem, 1.25rem + 0.4vw, 2rem)`,
 });
-
-// Solid card variant styles
-const cardSolidStyle = css({
-  background: 'backgroundAlt', // Uses theme token
-  backdropFilter: 'blur(10px)',
-  boxShadow: '0 6px 22px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.08)',
-});
-
-// Golden tab indicator styles
 const goldenTabStyle = css({
   position: 'absolute',
-  left: '10px',
+  // Moved the tab closer to the content
+  left: 'clamp(0.75rem, 0.65rem + 0.97vw, 1rem)',
   top: '40%',
-  width: '4px',
-  height: '20%',
-  background: 'primary', // Uses theme token
-  borderTopRightRadius: '6px',
-  borderBottomRightRadius: '6px',
-  boxShadow: '0 0 6px 0 rgba(var(--colors-primary-rgb), 0.3)', // Assuming primary-rgb token exists
+  width: 'clamp(3px, 2.5px + 0.2vw, 5px)',
+  height: '20%', // Dynamic height controlled by animation
+  background: 'var(--card-tab-color)', // Use CSS variable
+  borderTopRightRadius: fluid.radius.sm,
+  borderBottomRightRadius: fluid.radius.sm,
+  boxShadow: `0 0 ${fluid.space['2xs']} 0 rgba(var(--colors-primary-rgb), 0.3)`,
   transition: 'all 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)',
-  pointerEvents: 'none', // Ensure it doesn't interfere with clicks
-  zIndex: 1, // Below content but above background
+  pointerEvents: 'none',
+  zIndex: 1,
   _before: {
     content: '""',
     position: 'absolute',
-    left: '-2px',
+    left: `calc(-1 * ${fluid.border.thin})`,
     top: '-50%',
-    width: '8px',
+    width: `calc(1.8 * ${fluid.border.feature})`,
     height: '200%',
-    background: 'linear-gradient(to bottom, transparent, var(--colors-primary), transparent)',
+    background: 'linear-gradient(to bottom, transparent, var(--card-tab-color), transparent)', // Use CSS variable
     opacity: '0.2',
-    filter: 'blur(3px)',
+    filter: `blur(${fluid.blur.sm})`,
     transition: 'opacity 0.5s ease',
   },
-  '@media (min-width: 1400px)': {
-    left: 'clamp(10px, calc(5px + 0.83vw), 15px)',
-    width: 'clamp(4px, calc(3px + 0.167vw), 5px)',
-  },
+  // Use data attribute selectors for hover/press on parent button
   '[data-hovered="true"] &': {
-    boxShadow: '0 0 12px 3px rgba(var(--colors-primary-rgb), 0.4), 0 0 4px 1px rgba(var(--colors-primary-rgb), 0.6)',
+    boxShadow: `0 0 ${fluid.space.xs} ${fluid.space['2xs']} rgba(var(--colors-primary-rgb), 0.4)`,
     _before: {
       opacity: '0.7',
     },
   },
+  '[data-pressed="true"] &': {
+    boxShadow: `0 0 ${fluid.space['2xs']} ${fluid.border.thin} rgba(var(--colors-primary-rgb), 0.3)`,
+    _before: {
+      opacity: '0.3',
+    },
+    transition: 'all 0.2s ease-out'
+  }
 });
-
-// Tab glow container styles
 const tabGlowContainerStyle = css({
   position: 'absolute',
   left: '0px',
   top: '0',
-  borderRadius: '8px',
-  width: '20px',
+  borderRadius: fluid.radius.sm,
+  width: 'clamp(12px, 12px + 0.5vw, 20px)',
   height: '100%',
   overflow: 'hidden',
-  zIndex: '0', // Behind content
+  zIndex: '0',
   pointerEvents: 'none',
 });
-
-// Tab glow effect styles
 const tabGlowStyle = css({
   position: 'absolute',
-  left: '-5px',
+  left: `calc(-1 * ${fluid.space['2xs']})`,
   top: '0',
-  width: '10px',
+  width: 'clamp(6px, 4px + 0.2vw, 8px)',
   height: '100%',
-  background: 'var(--colors-primary)', // Uses theme token
-  filter: 'blur(8px)',
-  opacity: '0.3',
+  background: 'var(--card-tab-color)', // Use CSS variable
+  filter: `blur(${fluid.blur.sm})`,
+  opacity: '0.25',
   zIndex: '-1',
   pointerEvents: 'none',
 });
-
-// Container for the header content (icon + label)
 const headerContainerStyle = css({
+  // This container holds icon and label within the button
   display: 'flex',
   flexDirection: 'row',
   alignItems: 'center',
   width: '100%',
-  minHeight: '26px',
-  zIndex: '5', // Ensure header is above description and effects
+  minHeight: 'auto',
+  paddingTop: fluid.space.xs,
+  marginBottom: '0',
+  zIndex: '5', // Ensure header is above background/glows
+  pointerEvents: 'none', // Allow clicks to pass through to the button
+  '& + div': { // Adjust spacing if description follows
+    marginTop: '-0.3rem',
+  }
 });
-
-// Icon container styles
 const iconContainerStyle = css({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  width: '26px',
-  height: '26px',
-  marginRight: '0.8rem',
-  marginLeft: '1rem',
-  color: 'primary', // Uses theme token
+  width: 'clamp(20px, 18px + 0.3vw, 26px)', // Maintained size
+  height: 'clamp(20px, 18px + 0.3vw, 26px)', // Maintained size
+  // Reduced right margin to bring text closer to icon
+  marginRight: 'clamp(0.6rem, 0.5rem + 0.2vw, 0.9rem)', 
+  // Reduced left margin to bring icon closer to tab
+  marginLeft: 'clamp(0.875rem, 0.75rem + 0.25vw, 1.25rem)', 
+  color: 'var(--card-icon-color)', // Use CSS variable
   position: 'relative',
-  zIndex: '2',
+  zIndex: '2', // Above tab/glows
   '& svg': {
     width: '100%',
     height: '100%',
-  },
-  '@media (min-width: 1400px)': {
-    width: 'clamp(28px, calc(20px + 1.33vw), 36px)',
-    height: 'clamp(28px, calc(20px + 1.33vw), 36px)',
-    marginRight: 'clamp(0.8rem, calc(0.6rem + 0.33vw), 1rem)',
-    marginLeft: 'clamp(1rem, calc(0.8rem + 0.33vw), 1.2rem)',
+    display: 'block', // Prevent extra space below SVG
   },
 });
-
-// Glow effect styles (for hover) - Aligns with MUI's motion principles
 const glowEffectStyle = css({
   position: 'absolute',
   inset: '0',
@@ -285,418 +682,995 @@ const glowEffectStyle = css({
   alignItems: 'center',
   justifyContent: 'center',
   pointerEvents: 'none',
-  zIndex: '10',
+  zIndex: '10', // Above other decorative elements
+  color: 'var(--card-glow-color)', // Use CSS variable for base color
   '&::after': {
     content: '""',
     position: 'absolute',
     width: '50%',
     height: '50%',
     borderRadius: '50%',
-    filter: 'blur(20px)',
-    background: 'currentColor',
+    filter: `blur(${fluid.blur.lg})`,
+    background: 'currentColor', // Inherits color from parent
     opacity: '0.4',
   },
 });
-
-// Text container styles
-const textContainerStyle = css({
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'flex-start',
-  justifyContent: 'center',
-  zIndex: '2',
-  position: 'relative',
-  overflow: 'visible',
-  width: '100%',
-  whiteSpace: 'normal',
-  wordBreak: 'break-word',
-  overflowWrap: 'break-word',
-});
-
-// Label styles
+// textContainerStyle removed - no longer used
 const labelStyle = css({
-  fontFamily: 'var(--font-heading, "system-ui")', // Uses theme token potentially
-  fontSize: 'clamp(0.75rem, 0.7rem + 0.25vw, 0.9rem)',
+  fontFamily: 'var(--font-heading, "system-ui")',
+  fontSize: 'clamp(0.8rem, 0.5rem + 1.2vw, 1.4rem)',
   fontWeight: '300',
   textTransform: 'uppercase',
-  letterSpacing: '0.1em',
-  color: 'text', // Uses theme token
+  letterSpacing: fluid.letterSpacing.wide,
+  lineHeight: '1',
+  color: 'var(--card-text-color)', // Use CSS variable
   position: 'relative',
   zIndex: '2',
-  '@media (min-width: 1400px)': {
-    fontSize: 'clamp(0.9rem, calc(0.7rem + 0.33vw), 1.1rem)',
-  }
+  marginBottom: '-0.15rem',
+  display: 'flex',
+  alignItems: 'center',
 });
-
-// Description styles
 const descriptionStyle = css({
-  fontSize: 'clamp(0.65rem, 0.6rem + 0.25vw, 0.75rem)',
-  color: 'textMuted', // Uses theme token
-  lineHeight: '1.5',
+  // Styles for the description div itself
+  fontSize: 'clamp(0.8rem, 1.2vw, 1.25rem)', // Simplified fluid typography
+  color: 'var(--card-muted-text-color)', // Use CSS variable
+  lineHeight: '1.15',
   width: '100%',
-  paddingLeft: '0.4rem',
-  paddingRight: '0.4rem',
-  zIndex: '2',
+  paddingLeft: fluid.space.sm, // Add padding within the description div
+  paddingRight: fluid.space.xs,
+  zIndex: '2', // Ensure description is above background elements
   wordWrap: 'break-word',
   overflowWrap: 'break-word',
   whiteSpace: 'normal',
-  '@media (min-width: 1400px)': {
-    fontSize: 'clamp(0.75rem, calc(0.6rem + 0.25vw), 0.9rem)',
-  },
+  marginTop: '0',
+  paddingTop: '0',
+  pointerEvents: 'none', // Allow clicks on button below
 });
-
-// Expanded description style (used when description is visible)
 const expandedDescriptionStyle = css({
-  position: 'relative',
+  // Styles applied when description is expanded
+  position: 'relative', // Keep relative positioning within the flow
   top: 'auto',
-  paddingTop: '0.5rem',
-  paddingBottom: '0.5rem',
-  marginBottom: '0.3rem',
+  paddingTop: '0',
+  paddingBottom: fluid.space.xs,
+  marginTop: '0', // Ensure no extra margin when expanded
   opacity: '1',
   width: '100%',
   display: 'block',
 });
-
-// Generate elevation shadows - Aligns with MUI's Elevation concept (Section 4.1)
-const getElevationShadow = (level: number): string => {
-  // These shadow values aim to replicate standard material elevation levels.
+const getElevationShadow = (level: ItemCardProps['elevation']): string => {
+  // These shadow values use our fluid space system for responsive scaling
   switch(level) {
-    case 0: return 'none';
-    case 1: return '0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12)';
-    case 2: return '0px 3px 3px -2px rgba(0,0,0,0.2), 0px 2px 6px 0px rgba(0,0,0,0.14), 0px 1px 8px 0px rgba(0,0,0,0.12)';
-    case 3: return '0px 5px 5px -3px rgba(0,0,0,0.2), 0px 3px 14px 2px rgba(0,0,0,0.14), 0px 3px 16px 2px rgba(0,0,0,0.12)';
-    case 4: return '0px 8px 10px -5px rgba(0,0,0,0.2), 0px 6px 30px 5px rgba(0,0,0,0.14), 0px 6px 28px 8px rgba(0,0,0,0.12)';
-    case 5: return '0px 11px 15px -7px rgba(0,0,0,0.2), 0px 9px 46px 8px rgba(0,0,0,0.14), 0px 8px 38px 7px rgba(0,0,0,0.12)';
-    default: return '0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12)'; // Default to level 1
+    case 0:
+      return 'none';
+    case 1:
+      return `0 ${fluid.space['2xs']} ${fluid.space.xs} -${fluid.space['2xs']} rgba(0,0,0,0.2),
+              0 ${fluid.border.thin} ${fluid.border.normal} 0 rgba(0,0,0,0.14),
+              0 ${fluid.border.normal} ${fluid.space['2xs']} 0 rgba(0,0,0,0.12)`;
+    case 2:
+      return `0 ${fluid.space.xs} ${fluid.space.xs} -${fluid.space['2xs']} rgba(0,0,0,0.2),
+              0 ${fluid.space['2xs']} ${fluid.space.sm} 0 rgba(0,0,0,0.14),
+              0 ${fluid.border.normal} ${fluid.space.xs} 0 rgba(0,0,0,0.12)`;
+    case 3:
+      return `0 ${fluid.space.sm} ${fluid.space.sm} -${fluid.space.xs} rgba(0,0,0,0.2),
+              0 ${fluid.space.xs} ${fluid.space.md} ${fluid.space['2xs']} rgba(0,0,0,0.14),
+              0 ${fluid.space.xs} ${fluid.space.md} ${fluid.space['2xs']} rgba(0,0,0,0.12)`;
+    case 4:
+      return `0 ${fluid.space.sm} ${fluid.space.md} -${fluid.space.sm} rgba(0,0,0,0.2),
+              0 ${fluid.space.sm} ${fluid.space.lg} ${fluid.space.sm} rgba(0,0,0,0.14),
+              0 ${fluid.space.sm} ${fluid.space.lg} ${fluid.space.sm} rgba(0,0,0,0.12)`;
+    case 5:
+      return `0 ${fluid.space.md} ${fluid.space.md} -${fluid.space.md} rgba(0,0,0,0.2),
+              0 ${fluid.space.md} ${fluid.space.xl} ${fluid.space.md} rgba(0,0,0,0.14),
+              0 ${fluid.space.sm} ${fluid.space.lg} ${fluid.space.md} rgba(0,0,0,0.12)`;
+    default: // Default to elevation 1 if undefined or invalid
+      return `0 ${fluid.space['2xs']} ${fluid.space.xs} -${fluid.space['2xs']} rgba(0,0,0,0.2),
+              0 ${fluid.border.thin} ${fluid.border.normal} 0 rgba(0,0,0,0.14),
+              0 ${fluid.border.normal} ${fluid.space['2xs']} 0 rgba(0,0,0,0.12)`;
   }
 };
 
-// Ripple effect styles - Added based on MUI standard for interaction feedback (Section 4.2)
-const rippleStyle = css({
-  position: 'absolute',
-  borderRadius: '50%',
-  transform: 'scale(0)',
-  animation: 'ripple 600ms linear',
-  backgroundColor: 'rgba(var(--colors-primary-rgb, 0, 0, 0), 0.3)', // Use primary color with alpha, fallback to black
-  pointerEvents: 'none', // Ensure ripple doesn't interfere with events
-  zIndex: 5, // Above content but below potential absolute positioned children
-});
-
-// Ripple animation keyframes
-// Note: PandaCSS doesn't directly support `@keyframes` in `css()`.
-// This would typically be defined globally or injected via GlobalStyles/css prop.
-// For this example, we assume `@keyframes ripple` is defined elsewhere, e.g., in global CSS:
-/*
-@keyframes ripple {
-  to {
-    transform: scale(4);
-    opacity: 0;
-  }
-}
-*/
-
 // ==========================================================
-// CUSTOM HOOKS
+// CORE/UTILITY CUSTOM HOOKS (Types updated)
 // ==========================================================
-
-// Media query hook (already present, aligns with MUI's useMediaQuery concept - Section 2.3)
 const useMediaQuery = (query: string): boolean => {
   const [matches, setMatches] = useState(false);
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    
     const media = window.matchMedia(query);
     const updateMatch = () => setMatches(media.matches);
-    updateMatch();
-    media.addEventListener('change', updateMatch);
-    return () => media.removeEventListener('change', updateMatch);
+    
+    updateMatch(); // Initial check
+    
+    // Safari ≤ 14 compatibility check
+    if (typeof media.addEventListener === 'function') {
+      // Modern browsers including Safari 14+
+      media.addEventListener('change', updateMatch);
+      return () => media.removeEventListener('change', updateMatch);
+    } else {
+      // Older browsers including Safari ≤ 14
+      media.addListener(updateMatch);
+      return () => media.removeListener(updateMatch);
+    }
   }, [query]);
+  
   return matches;
 };
-
-// Reduced motion hook (already present)
 const useReducedMotion = (override?: boolean): boolean => {
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   return override !== undefined ? override : prefersReducedMotion;
 };
+const usePressAndHold = (
+  options: {
+    initialHeight: string;
+    minHeight: string;
+    duration: number; // milliseconds for complete animation
+  }
+) => {
+  const { initialHeight, minHeight, duration } = options;
+  const [isPressed, setIsPressed] = useState(false);
+  const [pressProgress, setPressProgress] = useState(0); // 0 to 1
+  const animationRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number | null>(null);
+  const progressRef = useRef(0); // Use ref to track progress without re-renders
+  const lastProgressRef = useRef(0); // Store last progress value that triggered a state update
 
-// Hover effects hook (already present)
+  // Optimized animation function that throttles state updates
+  const animate = useCallback(() => {
+    if (!startTimeRef.current || !isPressed) return;
+
+    const elapsed = Date.now() - startTimeRef.current;
+    progressRef.current = Math.min(1, elapsed / duration);
+    
+    // Only update state when progress changes significantly (throttle)
+    // This reduces re-renders while maintaining animation smoothness
+    if (Math.abs(progressRef.current - lastProgressRef.current) > 0.02) {
+      lastProgressRef.current = progressRef.current;
+      setPressProgress(progressRef.current);
+    }
+
+    if (progressRef.current < 1 && isPressed) {
+      animationRef.current = requestAnimationFrame(animate);
+    }
+  }, [duration, isPressed]);
+
+  // Press event handlers with immediate animation start
+  const handleMouseDown = useCallback(() => {
+    // Reset and start everything immediately
+    progressRef.current = 0;
+    setPressProgress(0);
+    startTimeRef.current = Date.now();
+
+    setIsPressed(true);
+
+    // Start animation immediately, don't wait for effect
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+    }
+    animationRef.current = requestAnimationFrame(animate);
+  }, [animate]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsPressed(false);
+    progressRef.current = 0;
+    setPressProgress(0);
+
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+    startTimeRef.current = null;
+  }, []);
+
+  // Secondary effect to handle cleanup and global events
+  useEffect(() => {
+    // Handle global mouse up to catch releases outside the element
+    if (isPressed) {
+      const handleGlobalMouseUp = () => handleMouseUp();
+      window.addEventListener('mouseup', handleGlobalMouseUp);
+      window.addEventListener('touchend', handleGlobalMouseUp);
+
+      return () => {
+        window.removeEventListener('mouseup', handleGlobalMouseUp);
+        window.removeEventListener('touchend', handleGlobalMouseUp);
+      };
+    }
+
+    // Clean up on unmount
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isPressed, handleMouseUp]);
+
+  // Calculate current height based on animation progress
+  const calculateTabHeight = useCallback(() => {
+    const initialValue = parseFloat(initialHeight);
+    const minValue = parseFloat(minHeight);
+    const current = initialValue - (pressProgress * (initialValue - minValue));
+    return `${current}%`;
+  }, [initialHeight, minHeight, pressProgress]);
+
+  // Calculate current top position to keep tab centered
+  const calculateTabTop = useCallback(() => {
+    const initialTop = 40; // Starting position (40%)
+    const pressedTop = 45; // Ending position when fully pressed (45%)
+    const current = initialTop + (pressProgress * (pressedTop - initialTop));
+    return `${current}%`;
+  }, [pressProgress]);
+
+  // Return specific event handlers
+  const eventHandlers: MouseEventHandlerProps & TouchEventHandlerProps = useMemo(() => ({
+      onMouseDown: handleMouseDown,
+      onMouseUp: handleMouseUp,
+      onTouchStart: handleMouseDown, // Map touch to mouse
+      onTouchEnd: handleMouseUp,     // Map touch to mouse
+  }), [handleMouseDown, handleMouseUp]);
+
+
+  return {
+    isPressed,
+    pressProgress,
+    tabStyles: {
+      height: calculateTabHeight(),
+      top: calculateTabTop(),
+    },
+    eventHandlers // Return the specific handlers
+  };
+};
 const useItemHoverEffects = (
-  ref: React.RefObject<HTMLDivElement | null>,
+  ref: React.RefObject<HTMLButtonElement | null>, // Updated ref type
   options: { isMobile?: boolean; isScrolling?: boolean; disableHoverOnScroll?: boolean; trackMouseMoveOnMobile?: boolean; } = {}
 ) => {
   const { isMobile = false, isScrolling = false, disableHoverOnScroll = true, trackMouseMoveOnMobile = false } = options;
   const [isHovered, setIsHovered] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
-  const handleMouseEnter = useCallback(() => { if (!(isScrolling && disableHoverOnScroll)) setIsHovered(true); }, [isScrolling, disableHoverOnScroll]);
-  const handleMouseLeave = useCallback(() => { setIsHovered(false); setMousePosition({ x: 0, y: 0 }); }, []);
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
+  const handleMouseEnter = useCallback(() => {
+    if (!(isScrolling && disableHoverOnScroll)) setIsHovered(true);
+  }, [isScrolling, disableHoverOnScroll]);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsHovered(false);
+    setMousePosition({ x: 0, y: 0 });
+  }, []);
+
+  const rafRef = useRef<number | null>(null);
+  const pendingMoveRef = useRef<{ x: number, y: number } | null>(null);
+  
+  // Process mouse move with requestAnimationFrame to batch updates
+  const processMouseMove = useCallback(() => {
+    if (pendingMoveRef.current) {
+      setMousePosition(pendingMoveRef.current);
+      pendingMoveRef.current = null;
+    }
+    rafRef.current = null;
+  }, []);
+  
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     if (!isHovered || (!trackMouseMoveOnMobile && isMobile) || !ref.current) {
       if (mousePosition.x !== 0 || mousePosition.y !== 0) setMousePosition({ x: 0, y: 0 });
       return;
     }
+    
     const rect = ref.current.getBoundingClientRect();
-    const x = e.clientX - rect.left; const y = e.clientY - rect.top;
-    const normalizedX = Math.min(1, Math.max(0, x / rect.width)); const normalizedY = Math.min(1, Math.max(0, y / rect.height));
-    setMousePosition({ x: normalizedX, y: normalizedY });
-  }, [isHovered, isMobile, trackMouseMoveOnMobile, ref, mousePosition.x, mousePosition.y]);
-
-  useEffect(() => { if (isHovered && isScrolling && disableHoverOnScroll) { setIsHovered(false); setMousePosition({ x: 0, y: 0 }); } }, [isScrolling, disableHoverOnScroll, isHovered]);
-
-  return { isHovered, mousePosition, eventHandlers: { onMouseEnter: handleMouseEnter, onMouseLeave: handleMouseLeave, onMouseMove: handleMouseMove } };
-};
-
-// Dynamic style hook for tab (already present)
-const useDynamicStyle = (
-  options: { isHovered: boolean; mousePosition: { x: number; y: number }; isMobile: boolean; isScrolling: boolean; config?: { baseHeight: string; baseTop: string; mobileHeight: string; mobileTop: string; desktopBaseHeight: number; desktopHeightRange: number; desktopMinTop: number; desktopMaxTop: number; }; }
-): { height: string; top: string } => {
-  const { isHovered, mousePosition, isMobile, isScrolling, config = { baseHeight: '20%', baseTop: '40%', mobileHeight: '60%', mobileTop: '20%', desktopBaseHeight: 60, desktopHeightRange: 10, desktopMinTop: 15, desktopMaxTop: 85 } } = options;
-  return useMemo(() => {
-    if (!isHovered || isScrolling) return { height: config.baseHeight, top: config.baseTop };
-    if (isMobile) return { height: config.mobileHeight, top: config.mobileTop };
-    const calculatedHeight = `${config.desktopBaseHeight + (mousePosition.y * config.desktopHeightRange)}%`;
-    const effectiveHeight = parseFloat(calculatedHeight);
-    const maxPossibleTop = config.desktopMaxTop - effectiveHeight;
-    const rawPosition = Math.max(config.desktopMinTop, Math.min(maxPossibleTop, mousePosition.y * 100));
-    return { height: calculatedHeight, top: `${rawPosition}%` };
-  }, [isHovered, mousePosition.y, isMobile, isScrolling, config]);
-};
-
-// Animation variants hook (already present)
-const useItemAnimationVariants = (isMobile: boolean, isScrolling: boolean) => {
-  const animateVariant = useMemo(() => {
-    const base = isMobile ? "visibleMobile" : "visible";
-    return isMobile && isScrolling ? "staticMobile" : base;
-  }, [isMobile, isScrolling]);
-  const hoverVariant = useMemo(() => {
-    const base = isMobile ? "hoverMobile" : "hover";
-    return isScrolling ? undefined : base;
-  }, [isMobile, isScrolling]);
-  return { animateVariant, hoverVariant };
-};
-
-// ==========================================================
-// MAIN COMPONENT (ItemCard)
-// ==========================================================
-
-const ItemCard: React.FC<ItemCardProps> = React.memo((props) => {
-  const {
-    item, onClick, isMobile = false, isScrolling = false, showDescription = false,
-    showGlowEffect = true, isTransparent = true, className, style, initialAnimation = true,
-    animationDelay = 0, reducedMotion: reducedMotionOverride, width, minWidth, maxWidth,
-    height, minHeight, elevation = 1, padding,
-  } = props;
-
-  const router = useRouter();
-  const itemRef = useRef<HTMLDivElement>(null);
-  const [hasDomFocus, setHasDomFocus] = useState(false);
-  const isInitialRender = useRef(true);
-  const [ripples, setRipples] = useState<React.CSSProperties[]>([]); // State for ripple elements
-
-  // --- Effect for initial render flag ---
+    // Bail early if element is detached
+    if (rect.width === 0) return;
+    
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const normalizedX = Math.min(1, Math.max(0, x / rect.width));
+    const normalizedY = Math.min(1, Math.max(0, y / rect.height));
+    
+    // Store the pending position
+    pendingMoveRef.current = { x: normalizedX, y: normalizedY };
+    
+    // Schedule an update if one isn't already pending
+    if (!rafRef.current) {
+      rafRef.current = requestAnimationFrame(processMouseMove);
+    }
+  }, [isHovered, isMobile, trackMouseMoveOnMobile, ref, mousePosition.x, mousePosition.y, processMouseMove]);
+  
+  // Clean up any pending animation frames on unmount
   useEffect(() => {
-    const timer = setTimeout(() => { isInitialRender.current = false; }, 0);
-    return () => clearTimeout(timer);
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
   }, []);
 
-  const motionIsReduced = useReducedMotion(reducedMotionOverride);
-  const { isHovered, mousePosition, eventHandlers } = useItemHoverEffects(itemRef, { isMobile, isScrolling, disableHoverOnScroll: true, trackMouseMoveOnMobile: false });
-  const handleFocus = useCallback(() => setHasDomFocus(true), []);
-  const handleBlur = useCallback(() => setHasDomFocus(false), []);
-  const shouldShowDescription = useMemo(() => showDescription && item.description, [showDescription, item.description]);
+  useEffect(() => {
+    if (isHovered && isScrolling && disableHoverOnScroll) {
+      setIsHovered(false);
+      setMousePosition({ x: 0, y: 0 });
+    }
+  }, [isScrolling, disableHoverOnScroll, isHovered]);
 
-  // --- Ripple Effect Logic ---
-  const createRipple = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!itemRef.current || motionIsReduced) return;
+  // Return specific event handlers
+  const eventHandlers: MouseEventHandlerProps = useMemo(() => ({
+      onMouseEnter: handleMouseEnter,
+      onMouseLeave: handleMouseLeave,
+      onMouseMove: handleMouseMove
+  }), [handleMouseEnter, handleMouseLeave, handleMouseMove]);
+
+
+  return {
+    isHovered,
+    mousePosition,
+    eventHandlers // Return the specific handlers
+  };
+};
+const useItemInteractionState = (
+  ref: React.RefObject<HTMLButtonElement | null>, // Updated ref type
+  options: {
+    isMobile?: boolean;
+    isScrolling?: boolean;
+    initialTabHeight?: string;
+    minTabHeight?: string;
+    pressAnimationDuration?: number;
+  } = {}
+): ItemInteractionStateResult => { // Return type uses CombinedEventHandlersResult
+  const {
+    isMobile = false,
+    isScrolling = false,
+    initialTabHeight = '20%',
+    minTabHeight = '10%',
+    pressAnimationDuration = 800,
+  } = options;
+
+  // Focus state tracking
+  const [hasDomFocus, setHasDomFocus] = useState(false);
+  const focusEventHandlers: FocusEventHandlerProps = useMemo(() => ({
+      onFocus: () => setHasDomFocus(true),
+      onBlur: () => setHasDomFocus(false),
+  }), []);
+
+
+  // Hover state tracking
+  const { isHovered, mousePosition, eventHandlers: hoverHandlers } =
+    useItemHoverEffects(ref, { isMobile, isScrolling });
+
+  // Press-and-hold state tracking
+  const {
+    isPressed,
+    pressProgress,
+    tabStyles: pressTabStyles,
+    eventHandlers: pressHandlers // Contains mouse & touch handlers
+  } = usePressAndHold({
+    initialHeight: initialTabHeight,
+    minHeight: minTabHeight,
+    duration: pressAnimationDuration,
+  });
+
+  // Combine all event handlers (No keyboard handlers needed here)
+  const combinedHandlers: CombinedEventHandlersResult = useMemo(() => ({
+    ...hoverHandlers,
+    ...pressHandlers,
+    ...focusEventHandlers,
+  }), [hoverHandlers, pressHandlers, focusEventHandlers]);
+
+  // Calculate final tab styles based on interaction state priority
+  const tabStyles = useMemo(() => {
+    // Press state has highest priority
+    if (isPressed) {
+      return pressTabStyles;
+    }
+    // Focus state has next priority
+    if (hasDomFocus) {
+      return { height: '70%', top: '15%' };
+    }
+    // Hover state next
+    if (isHovered && !isScrolling) {
+      if (isMobile) {
+        return { height: '60%', top: '20%' };
+      }
+      // Desktop hover with mouse position effect
+      const baseHeight = 60;
+      const heightRange = 10;
+      const calculatedHeight = `${baseHeight + (mousePosition.y * heightRange)}%`;
+      const effectiveHeight = baseHeight + (mousePosition.y * heightRange);
+      const minTop = 15;
+      const maxTop = 85 - effectiveHeight;
+      const rawPosition = Math.max(minTop, Math.min(maxTop, mousePosition.y * 100));
+      return { height: calculatedHeight, top: `${rawPosition}%` };
+    }
+    // Default/idle state
+    return { height: initialTabHeight, top: '40%' };
+  }, [
+    isPressed, pressTabStyles, hasDomFocus, isHovered,
+    isScrolling, isMobile, mousePosition.y, initialTabHeight
+  ]);
+
+  // Generate the appropriate animation variant name
+  const getAnimationVariant = useCallback((componentType: string): AnimationVariant => {
+    if (isPressed) return "press";
+    if (hasDomFocus || isHovered) return "hover";
+    return "initial";
+  }, [isPressed, hasDomFocus, isHovered]);
+
+  // Calculate showHoverEffects based on internal state
+  const showHoverEffects = useMemo(() => isHovered && !hasDomFocus && !isScrolling && !isPressed,
+    [isHovered, hasDomFocus, isScrolling, isPressed]
+  );
+
+  return {
+    isHovered,
+    isFocused: hasDomFocus,
+    isPressed,
+    pressProgress,
+    tabStyles,
+    getAnimationVariant,
+    eventHandlers: combinedHandlers, // Return combined handlers (mouse, touch, focus)
+    showHoverEffects,
+  };
+};
+
+// ==========================================================
+// FEATURE-SPECIFIC CUSTOM HOOKS (Types updated)
+// ==========================================================
+const useRippleEffect = (
+  itemRef: React.RefObject<HTMLButtonElement | null>, // Updated ref type
+  options: {
+    color?: string;
+    duration?: number; // ms
+    isEnabled?: boolean; // To easily disable ripples
+    scaleFactor?: number; // For fluid scaling
+  } = {}
+) => {
+  const {
+    color,
+    duration = 600,
+    isEnabled = true,
+    scaleFactor = 1
+  } = options;
+
+  // Enhanced ripple type with ID and creation timestamp
+  interface Ripple {
+    id: number;
+    style: React.CSSProperties;
+    created: number;
+  }
+  
+  const [ripples, setRipples] = useState<Ripple[]>([]);
+
+  // Track ripples with IDs for better cleanup management
+  const rippleIdCounter = useRef(0);
+  
+  // Function to create a new ripple
+  const createRipple = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!isEnabled || !itemRef.current) return;
 
     const rect = itemRef.current.getBoundingClientRect();
-    const size = Math.max(rect.width, rect.height);
+    const size = Math.max(rect.width, rect.height) * scaleFactor;
     const x = event.clientX - rect.left - size / 2;
     const y = event.clientY - rect.top - size / 2;
 
-    const newRipple: React.CSSProperties = {
-      top: y + 'px',
-      left: x + 'px',
-      height: size + 'px',
-      width: size + 'px',
-      // Use item color for ripple if available, otherwise default
-      backgroundColor: item.color ? `${item.color}4D` : 'rgba(var(--colors-primary-rgb, 0, 0, 0), 0.3)',
+    const computedColor = getComputedStyle(itemRef.current).getPropertyValue('--card-tab-color').trim() || color || 'rgba(0, 0, 0, 0.3)';
+    let rippleBgColor = 'rgba(0, 0, 0, 0.1)';
+    try {
+        if (computedColor.startsWith('rgb') || computedColor.startsWith('#')) {
+            if (computedColor.startsWith('#')) {
+                const r = parseInt(computedColor.slice(1, 3), 16);
+                const g = parseInt(computedColor.slice(3, 5), 16);
+                const b = parseInt(computedColor.slice(5, 7), 16);
+                rippleBgColor = `rgba(${r}, ${g}, ${b}, 0.3)`;
+            } else {
+                rippleBgColor = computedColor.replace('rgb(', 'rgba(').replace(')', ', 0.3)');
+            }
+        } else {
+             rippleBgColor = color ? `${color}4D` : 'rgba(var(--colors-primary-rgb, 0, 0, 0), 0.3)';
+        }
+    } catch (e) {
+        console.error("Could not parse ripple color:", computedColor, e);
+         rippleBgColor = color ? `${color}4D` : 'rgba(var(--colors-primary-rgb, 0, 0, 0), 0.3)';
+    }
+
+    // Generate a unique ID for this ripple
+    const rippleId = rippleIdCounter.current++;
+    
+    const newRipple = {
+      id: rippleId,
+      style: {
+        top: y + 'px',
+        left: x + 'px',
+        height: size + 'px',
+        width: size + 'px',
+        backgroundColor: rippleBgColor,
+        position: 'absolute',
+        borderRadius: '50%',
+        transform: 'scale(0)',
+        animation: `ripple ${duration}ms linear`,
+        pointerEvents: 'none',
+        zIndex: 5,
+      } as React.CSSProperties,
+      created: Date.now(),
     };
 
     setRipples(prev => [...prev, newRipple]);
-  };
+    
+    // Schedule removal of this specific ripple
+    setTimeout(() => {
+      setRipples(prev => prev.filter(r => r.id !== rippleId));
+    }, duration);
+    
+  }, [itemRef, isEnabled, color, duration, scaleFactor]);
 
-  // Clean up ripples after animation
+  // Single cleanup effect that runs on unmount
   useEffect(() => {
-    if (ripples.length > 0) {
-      const timer = setTimeout(() => {
-        setRipples(prev => prev.slice(1));
-      }, 600); // Match animation duration
-      return () => clearTimeout(timer);
-    }
-  }, [ripples]);
-
-  // --- Activation Logic ---
-  const handleActivation = useCallback(() => {
-    const performAction = () => {
-      if (onClick) onClick(item);
-      else if (item.href) router.push(item.href);
-      itemRef.current?.blur(); // Blur after action
+    return () => {
+      // Clean up any timers if needed on unmount
+      rippleIdCounter.current = 0;
     };
+  }, []);
 
-    if (isMobile && itemRef.current) {
-      itemRef.current.style.transform = 'scale(0.98)';
-      setTimeout(() => { if (itemRef.current) itemRef.current.style.transform = ''; }, 100);
-      setTimeout(performAction, 100); // Delay action slightly for visual feedback
-    } else {
-      performAction(); // Perform action immediately on desktop
-    }
-  }, [item, onClick, router, isMobile]);
+  return { ripples, triggerRipple: createRipple };
+};
+const useFluidScaleFactor = (
+    minViewport = 400,
+    maxViewport = 2400,
+    minScale = 0.8,
+    maxScale = 1.5
+) => {
+    const calculateScale = useCallback(() => {
+        if (typeof window === 'undefined') return 1; // Default for SSR
+        const viewportWidth = window.innerWidth;
+        const viewportRange = maxViewport - minViewport;
+        const scaleRange = maxScale - minScale;
+        const clampedWidth = Math.max(minViewport, Math.min(maxViewport, viewportWidth));
+        const progress = viewportRange === 0 ? 0 : (clampedWidth - minViewport) / viewportRange;
+        const scaleFactor = minScale + progress * scaleRange;
+        return scaleFactor;
+    }, [minViewport, maxViewport, minScale, maxScale]);
 
-  // Combined interaction props including ripple trigger
-  const combinedInteractionProps = useMemo(() => ({
-    ...eventHandlers,
-    onClick: (e: React.MouseEvent<HTMLDivElement>) => {
-      createRipple(e); // Create ripple on click
-      handleActivation(); // Then handle the main activation logic
-    },
-    onFocus: handleFocus,
-    onBlur: handleBlur,
-    onKeyDown: (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        // Optionally trigger a visual cue for keyboard activation if desired
-        handleActivation();
-      }
-    }
-  }), [eventHandlers, handleActivation, handleFocus, handleBlur, createRipple]); // Added createRipple
+    const [scaleFactor, setScaleFactor] = useState(calculateScale);
 
-  const tabStyles = useDynamicStyle({ isHovered, mousePosition, isMobile, isScrolling });
-  const { animateVariant, hoverVariant } = useItemAnimationVariants(isMobile, isScrolling);
-  const shouldShowFocusStyles = hasDomFocus;
-  const showHoverEffects = useMemo(() => isHovered && !shouldShowFocusStyles && !isScrolling, [isHovered, shouldShowFocusStyles, isScrolling]);
-  const zIndex = useMemo(() => (isHovered || shouldShowFocusStyles || shouldShowDescription) ? 5 : 1, [isHovered, shouldShowFocusStyles, shouldShowDescription]);
+    useEffect(() => {
+        let rafId: number | null = null;
+        
+        // Use requestAnimationFrame to debounce resize events
+        const handleResize = () => {
+            if (rafId === null) {
+                rafId = requestAnimationFrame(() => {
+                    setScaleFactor(calculateScale());
+                    rafId = null;
+                });
+            }
+        };
+        
+        // Initial calculation
+        setScaleFactor(calculateScale());
+        
+        window.addEventListener('resize', handleResize);
+        
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            if (rafId !== null) {
+                cancelAnimationFrame(rafId);
+            }
+        };
+    }, [calculateScale]);
 
-  const customElementStyles = useMemo(() => {
-    const styles: React.CSSProperties = {};
-    if (width) styles.width = width;
-    if (minWidth) styles.minWidth = minWidth;
-    if (maxWidth) styles.maxWidth = maxWidth;
-    if (!shouldShowDescription && height) styles.height = height;
-    if (minHeight) styles.minHeight = minHeight;
-    if (padding) styles.padding = padding;
-    return styles;
-  }, [width, minWidth, maxWidth, height, minHeight, padding, shouldShowDescription]);
+    return scaleFactor;
+};
+const useActivationHandler = (
+    item: NavigationItem,
+    onClick?: (item: NavigationItem) => void,
+    options: {
+        isMobile?: boolean;
+        itemRef?: React.RefObject<HTMLButtonElement | null>; // Updated ref type
+        mobileFeedbackDuration?: number; // ms
+    } = {}
+) => {
+    const { isMobile = false, itemRef, mobileFeedbackDuration = 100 } = options;
+    const router = useRouter();
 
-  const shadowStyle = useMemo(() => ({ boxShadow: getElevationShadow(elevation) }), [elevation]);
+    const handleActivationCallback = useCallback(() => {
+        const performAction = () => {
+            if (onClick) {
+                onClick(item);
+            } else if (item.href) {
+                router.push(item.href);
+            }
+            itemRef?.current?.blur(); // Blur after activation
+        };
 
-  const descriptionInitialVariant = useMemo(() => {
-    if (initialAnimation && !motionIsReduced && showDescription && item.description && isInitialRender.current) {
-      return "initialVisible";
-    }
-    return "initial";
-  }, [initialAnimation, motionIsReduced, showDescription, item.description]);
+        if (isMobile && itemRef?.current) {
+            const element = itemRef.current;
+            // Mobile feedback might need adjustment now that it's a button
+            element.style.transform = 'scale(0.98)';
+            setTimeout(() => {
+                if (element) element.style.transform = '';
+            }, mobileFeedbackDuration);
+            setTimeout(performAction, mobileFeedbackDuration / 2);
+        } else {
+            performAction();
+        }
+    }, [item, onClick, router, isMobile, itemRef, mobileFeedbackDuration]);
 
-  // Developer Accessibility Responsibility Note (Section 6.3):
-  // Ensure sufficient color contrast when setting `item.color` and that `item.label`
-  // provides a meaningful accessible name. For icon-only cards, ensure `item.label` is still provided.
+    return handleActivationCallback;
+};
 
+// ==========================================================
+// EXTRACTED: COMPONENT-SPECIFIC LOGIC HOOKS (Updated)
+// ==========================================================
+
+/**
+ * Calculates dynamic styling for the card element based on props and state.
+ */
+const useComponentStyling = (options: ComponentStylingOptions): ComponentStylingResult => {
+    const {
+        width, minWidth, maxWidth, height, minHeight, padding,
+        elevation = 1,
+        variant = 'transparent',
+        isPressed = false, shouldShowDescription = false,
+        isHovered = false, isFocused = false
+    } = options;
+
+    // Custom width/height/padding styles
+    const customElementStyles = useMemo(() => {
+        const styles: React.CSSProperties = {};
+        if (width) styles.width = width;
+        if (minWidth) styles.minWidth = minWidth;
+        if (maxWidth) styles.maxWidth = maxWidth;
+        if (!shouldShowDescription && height) styles.height = height;
+        if (minHeight) styles.minHeight = minHeight;
+        if (padding) styles.padding = padding;
+        return styles;
+    }, [width, minWidth, maxWidth, height, minHeight, padding, shouldShowDescription]);
+
+    // Outer shadow based on elevation and press state
+    const shadowStyle = useMemo(() => ({
+        boxShadow: isPressed
+            ? getElevationShadow(Math.max(0, (elevation ?? 1) - 1) as ItemCardProps['elevation'])
+            : getElevationShadow(elevation)
+    }), [elevation, isPressed]);
+
+    // Background styles based on variant (Glass only adds inset shadow now)
+    const backgroundStyles = useMemo(() => {
+        switch (variant) {
+            case 'glass':
+                return {
+                    background: 'var(--colors-backgroundAlt, rgba(255, 255, 255, 0.1))',
+                    backdropFilter: `blur(${fluid.blur.sm})`,
+                    // Only inset shadow here
+                    boxShadow: `inset 0 ${fluid.border.thin} ${fluid.border.thin} rgba(255, 255, 255, 0.08)`,
+                };
+            case 'solid':
+                return {
+                    background: 'var(--colors-background, #ffffff)',
+                    backdropFilter: 'none',
+                };
+            case 'transparent':
+            default:
+                return {
+                    background: 'transparent',
+                    backdropFilter: 'none',
+                };
+        }
+    }, [variant]);
+
+
+    // Z-index based on interaction
+    const zIndex = useMemo(() => (isHovered || isFocused || shouldShowDescription || isPressed) ? 5 : 1,
+        [isHovered, isFocused, shouldShowDescription, isPressed]
+    );
+
+    // Combine outer shadow and background shadow (if any)
+    const combinedShadow = useMemo(() => {
+        // If glass variant has an inset shadow, combine it with the outer shadow
+        if (variant === 'glass' && backgroundStyles.boxShadow) {
+            // Ensure outer shadow exists before prepending comma
+            return `${shadowStyle.boxShadow ? shadowStyle.boxShadow + ', ' : ''}${backgroundStyles.boxShadow}`;
+        }
+        // Otherwise, just use the outer shadow
+        return shadowStyle.boxShadow;
+    }, [variant, backgroundStyles.boxShadow, shadowStyle.boxShadow]);
+
+
+    return {
+        customElementStyles,
+        shadowStyle: { boxShadow: combinedShadow }, // Return combined shadow here
+        backgroundStyles: { // Return background styles without shadow
+             background: backgroundStyles.background,
+             backdropFilter: backgroundStyles.backdropFilter
+        },
+        zIndex
+    };
+};
+
+/**
+ * Determines the appropriate animation variants for Framer Motion elements.
+ */
+const useAnimationVariants = (options: AnimationVariantsOptions): AnimationVariantsResult => {
+    const {
+        motionIsReduced = false, isMobile = false, isScrolling = false, isFocused = false,
+        initialAnimation = true, showDescription = false, hasDescription = false
+    } = options;
+
+    const isInitialRender = useRef(true);
+    useEffect(() => {
+        const timer = setTimeout(() => { isInitialRender.current = false; }, 0);
+        return () => clearTimeout(timer);
+    }, []);
+
+    const descriptionInitialVariant = useMemo(() => {
+        if (initialAnimation && !motionIsReduced && showDescription && hasDescription && isInitialRender.current) {
+            return "initialVisible";
+        }
+        return "initial";
+    }, [initialAnimation, motionIsReduced, showDescription, hasDescription]);
+
+    const itemVariant = useMemo(() => {
+        if (motionIsReduced) return isMobile ? "staticMobile" : "visible";
+        if (isScrolling) return isMobile ? "staticMobile" : "visible";
+        return isMobile ? "visibleMobile" : "visible";
+    }, [isMobile, isScrolling, motionIsReduced]);
+
+    const hoverVariant = useMemo(() => {
+        if (motionIsReduced || isScrolling || isFocused) return undefined;
+        return isMobile ? "hoverMobile" : "hover";
+    }, [isMobile, isScrolling, motionIsReduced, isFocused]);
+
+    return { descriptionInitialVariant, itemVariant, hoverVariant };
+};
+
+/**
+ * Combines base event handlers with activation and ripple triggers.
+ * (Keyboard handler removed)
+ */
+const useCombinedEventHandlers = (options: CombinedEventHandlersOptions): CombinedEventHandlersResult => {
+    const { baseEventHandlers, triggerRipple, handleActivation } = options;
+
+    // Merges interaction handlers with activation/ripple logic
+    const combinedInteractionProps: CombinedEventHandlersResult = useMemo(() => {
+        const handlers: CombinedEventHandlersResult = {
+            ...baseEventHandlers, // Includes mouse, touch, focus handlers
+            onClick: (e: React.MouseEvent<HTMLButtonElement>) => {
+                // Trigger ripple and activation logic on click
+                triggerRipple(e);
+                handleActivation();
+                if (baseEventHandlers.onClick) baseEventHandlers.onClick(e);
+            },
+            // onKeyDown is removed - handled by <button>
+        };
+        
+        return handlers;
+    }, [baseEventHandlers, handleActivation, triggerRipple]);
+
+    return combinedInteractionProps;
+};
+
+
+// ==========================================================
+// MAIN COMPONENT (ItemCard) - Final Refinements Applied
+// ==========================================================
+const ItemCard: React.FC<ItemCardProps> = React.memo((props) => {
+  const {
+    item,
+    onClick,
+    variant = 'transparent',
+    isMobile = false,
+    isScrolling = false,
+    showDescription = false,
+    showGlowEffect = true,
+    className,
+    style,
+    initialAnimation = true,
+    animationDelay = 0,
+    reducedMotion: reducedMotionOverride,
+    width, minWidth, maxWidth, height, minHeight,
+    elevation = 1,
+    padding,
+    pressAnimationDuration = 800,
+    initialTabHeight = '20%',
+    minTabHeight = '10%',
+  } = props;
+
+  // --- Refs (Renamed to 'ref') ---
+  const ref = useRef<HTMLButtonElement>(null); // Changed ref type to HTMLButtonElement
+
+  // --- Core Hooks ---
+  const motionIsReduced = useReducedMotion(reducedMotionOverride);
+  const scaleFactor = useFluidScaleFactor();
+
+  // --- Interaction State Hook ---
+  const {
+    isHovered, isFocused, isPressed, pressProgress, tabStyles, getAnimationVariant, eventHandlers,
+    showHoverEffects
+  } = useItemInteractionState(ref, { // Pass renamed ref
+    isMobile, isScrolling, initialTabHeight, minTabHeight, pressAnimationDuration,
+  });
+
+  // --- UI Effect Hooks ---
+  const { ripples, triggerRipple } = useRippleEffect(ref, { // Pass renamed ref
+      color: item.color,
+      isEnabled: !motionIsReduced,
+      scaleFactor: scaleFactor,
+  });
+
+  // --- Activation Hook ---
+  const handleActivation = useActivationHandler(item, onClick, {
+      isMobile: isMobile,
+      itemRef: ref // Pass renamed ref
+  });
+
+  // --- Derived State ---
+  const shouldShowDescription = useMemo(() => !!(showDescription && item.description), [showDescription, item.description]);
+  const descriptionId = useMemo(() => item.id + "-desc", [item.id]);
+
+  // --- Component Styling Hook ---
+  const { customElementStyles, shadowStyle, backgroundStyles, zIndex } = useComponentStyling({
+      width, minWidth, maxWidth, height, minHeight, padding,
+      elevation, variant, isPressed, shouldShowDescription,
+      isHovered, isFocused
+  });
+
+  // --- Animation Variants Hook ---
+  const { descriptionInitialVariant, itemVariant, hoverVariant } = useAnimationVariants({
+      motionIsReduced, isMobile, isScrolling, isFocused, initialAnimation,
+      showDescription, hasDescription: !!item.description
+  });
+
+  // --- Combined Event Handlers Hook ---
+  const combinedInteractionProps = useCombinedEventHandlers({
+      baseEventHandlers: eventHandlers, // Pass mouse, touch, focus handlers
+      triggerRipple: triggerRipple,
+      handleActivation: handleActivation
+  });
+
+   // --- CSS Variables for Inline Styling ---
+   const cssVariables = useMemo(() => ({
+        '--card-border-color': item.color || 'var(--colors-primary)',
+        '--card-focus-outline-color': item.color || 'var(--colors-primary)', // Already derived correctly
+        '--card-focus-shadow-color': item.color ? `${item.color}40` : 'rgba(var(--colors-primary-rgb), 0.25)',
+        '--card-focus-background': 'rgba(var(--colors-primary-rgb, 255, 255, 255), 0.08)',
+        '--card-text-color': item.color || 'var(--colors-text)',
+        '--card-muted-text-color': item.color ? `${item.color}99` : 'var(--colors-textMuted)',
+        '--card-icon-color': item.color || 'var(--colors-primary)',
+        '--card-tab-color': item.color || 'var(--colors-primary)',
+        '--card-glow-color': item.color || 'var(--colors-primary)',
+   } as React.CSSProperties), [item.color]);
+
+
+  // --- Render ---
   return (
+    // Outer container for layout and motion
     <motion.div
       className={className}
-      style={{ ...style, zIndex }}
-      variants={ANIMATIONS.item}
-      initial={initialAnimation && !motionIsReduced ? "hidden" : animateVariant}
-      animate={animateVariant}
-      whileHover={shouldShowFocusStyles || motionIsReduced ? undefined : hoverVariant}
+      style={{ ...style, zIndex }} // Apply zIndex here
+      variants={{
+        ...ANIMATIONS.item,
+        // Override transform in variants to prevent conflicts with inline styles
+        hover: {
+          ...ANIMATIONS.item.hover,
+          scale: isFocused ? undefined : ANIMATIONS.item.hover.scale, // Don't apply scale if focused
+        },
+        tap: {
+          ...ANIMATIONS.item.tap,
+          scale: undefined, // Remove scale from tap variant to avoid conflicts
+        }
+      }}
+      initial={initialAnimation && !motionIsReduced ? "hidden" : itemVariant}
+      animate={itemVariant}
+      whileHover={hoverVariant}
       whileTap={motionIsReduced ? undefined : "tap"}
       transition={{ delay: initialAnimation ? animationDelay : 0, duration: 0.4, ease: [0.25, 0.1, 0.25, 1.0] }}
       layout={!motionIsReduced}
     >
-      {/* Inner div: The actual card element */}
-      <div
-        ref={itemRef}
+      {/* Use motion.button as the interactive element with proper typing */}
+      <motion.button
+        ref={ref} // Use renamed ref
+        type="button" // Explicit button type
         className={cx(
-          cardStyle,
+          cardStyle, // Base styles including resets
           shouldShowDescription && cardWithDescriptionStyle,
-          !isTransparent && cardSolidStyle,
-          shouldShowFocusStyles && focusRingStyles,
+          // focusRingStyles class is not needed as styles are inline
           'item-card'
         )}
         style={{
+          ...cssVariables,
           ...customElementStyles,
-          ...shadowStyle,
-          borderColor: item.color || 'var(--colors-primary)', // Theming (Section 3)
-          borderLeftColor: item.color || 'var(--colors-primary)',
-          ...(shouldShowFocusStyles && { // Accessibility: Visible focus state (Section 6.3)
-            outline: `2px solid ${item.color || 'var(--colors-primary)'}`,
-            boxShadow: `0 0 0 4px ${item.color ? `${item.color}40` : 'rgba(var(--colors-primary-rgb), 0.25)'}, ${getElevationShadow(elevation + 2)}`, // Slightly increased shadow on focus
-            background: 'rgba(var(--colors-primary-rgb, 255, 255, 255), 0.08)', // Slight background highlight
-          })
+          ...backgroundStyles, // Background/backdrop only
+          ...shadowStyle, // Combined outer + inset shadows
+          // Conditional transform: Press overrides focus
+          transform: isPressed
+                ? 'translateZ(0) scale(0.985)' // Press transform
+                : isFocused
+                ? `translateY(calc(-1 * ${fluid.space['2xs']})) scale(1.03)` // Focus transform
+                : undefined, // Default transform (from cardStyle or motion)
+          // Conditional focus outline/shadow: Press state shadow overrides focus shadow
+          ...(isFocused && !isPressed && { // Apply only if focused BUT NOT pressed
+            outline: `2px solid var(--card-focus-outline-color)`,
+            // Combine focus ring shadow with the existing shadow (outer or outer+inset)
+            boxShadow: `0 0 0 4px var(--card-focus-shadow-color), ${shadowStyle.boxShadow || getElevationShadow(elevation)}`,
+            background: 'var(--card-focus-background)', // Apply focus background if needed (might override variant)
+          }),
         }}
-        {...combinedInteractionProps}
+        // Convert event handlers to MotionButtonProps compatible handlers
+        {...(combinedInteractionProps as unknown as MotionButtonProps)}
         data-hovered={isHovered}
-        data-focused={shouldShowFocusStyles}
-        tabIndex={0} // Accessibility: Keyboard navigable (Section 6.2)
-        role="button" // Accessibility: ARIA role (Section 6.2)
-        aria-pressed={shouldShowFocusStyles} // Accessibility: ARIA state (Section 6.2)
-        aria-label={item.label} // Accessibility: Ensure label provides accessible name (Section 6.3)
+        data-focused={isFocused}
+        data-pressed={isPressed}
+        // tabIndex removed (default for button)
+        // role removed (default for button)
+        aria-pressed={isPressed} // Only reflect actual press state
+        aria-label={item.label}
+        aria-describedby={shouldShowDescription ? descriptionId : undefined}
       >
         {/* Ripple Container */}
-        {ripples.map((style, index) => (
-          <span key={index} className={rippleStyle} style={style} />
+        {ripples.map((ripple) => (
+          <span key={ripple.id} style={ripple.style} aria-hidden="true" />
         ))}
 
         {/* Icon Glow Effect */}
         <AnimatePresence>
-          {showGlowEffect && !shouldShowDescription && !motionIsReduced && (showHoverEffects || shouldShowFocusStyles) && item.icon && (
+           {showGlowEffect && !shouldShowDescription && !motionIsReduced &&
+            (showHoverEffects || isFocused || isPressed) && item.icon && (
             <motion.div
               className={glowEffectStyle}
-              style={{ color: item.color || 'var(--colors-primary)' }}
-              variants={ANIMATIONS.glow} initial="initial" animate="hover" exit="exit"
+              style={{
+                opacity: isPressed ? 0.5 : 1,
+                scale: isPressed ? 0.9 : 1
+              }}
+              variants={ANIMATIONS.glow}
+              initial="initial"
+              animate={getAnimationVariant("glow")}
+              exit="exit"
+              aria-hidden="true"
             />
           )}
         </AnimatePresence>
 
         {/* Golden Tab Indicator */}
         <motion.div
-          className={goldenTabStyle}
-          style={{
-            background: item.color || 'var(--colors-primary)',
-            height: shouldShowFocusStyles || motionIsReduced ? '70%' : tabStyles.height,
-            top: shouldShowFocusStyles || motionIsReduced ? '15%' : tabStyles.top,
-          }}
-          variants={ANIMATIONS.goldenTab} initial="initial"
-          animate={(showHoverEffects || shouldShowFocusStyles) && !motionIsReduced ? "hover" : "initial"}
+            className={goldenTabStyle}
+            style={{
+              height: motionIsReduced ?
+                (isFocused ? '70%' : initialTabHeight) :
+                tabStyles.height,
+              top: motionIsReduced ?
+                (isFocused ? '15%' : '40%') :
+                tabStyles.top,
+              opacity: isPressed ?
+                0.7 + (0.3 * (1 - pressProgress)) :
+                1,
+            }}
+            variants={ANIMATIONS.goldenTab}
+            initial="initial"
+            animate={getAnimationVariant("goldenTab")}
+            aria-hidden="true"
         />
 
         {/* Subtle Tab Edge Glow */}
-        <div className={tabGlowContainerStyle}>
+        <div className={tabGlowContainerStyle} aria-hidden="true">
           <motion.div
             className={tabGlowStyle}
-            style={{ background: item.color || 'var(--colors-primary)' }}
-            variants={ANIMATIONS.tabGlow} initial="initial"
-            animate={(showHoverEffects || shouldShowFocusStyles) && !motionIsReduced ? "hover" : "initial"}
+            variants={ANIMATIONS.tabGlow}
+            initial="initial"
+            animate={getAnimationVariant("tabGlow")}
           />
         </div>
 
-        {/* Header Container (icon + label) */}
-        <div className={headerContainerStyle}>
+        {/* Header Container (Wraps Icon and Label) */}
+        {/* Pointer events none allows button underneath to capture clicks */}
+        <div className={headerContainerStyle} aria-hidden="true">
           {item.icon && (
             <motion.div
               className={iconContainerStyle}
-              style={{ color: item.color || 'var(--colors-primary)' }}
-              variants={ANIMATIONS.icon} initial="initial"
-              animate={(showHoverEffects || shouldShowFocusStyles) && !motionIsReduced ? "hover" : "initial"}
+              variants={ANIMATIONS.icon}
+              initial="initial"
+              animate={getAnimationVariant("icon")}
             >
               {item.icon}
             </motion.div>
           )}
           <motion.div
             className={labelStyle}
-            style={{ color: item.color || 'var(--colors-text)' }} // Theming
-            variants={ANIMATIONS.label} initial="initial"
-            animate={(showHoverEffects || shouldShowFocusStyles) && !motionIsReduced ? "hover" : "initial"}
+            variants={ANIMATIONS.label}
+            initial="initial"
+            animate={getAnimationVariant("label")}
           >
             {item.label}
           </motion.div>
@@ -707,13 +1681,15 @@ const ItemCard: React.FC<ItemCardProps> = React.memo((props) => {
           <AnimatePresence>
             {shouldShowDescription && !motionIsReduced && (
               <motion.div
-                key={item.id + "-desc"}
+                key={descriptionId} // Use stable key
+                id={descriptionId}
                 className={cx(descriptionStyle, expandedDescriptionStyle)}
-                style={{ color: item.color ? `${item.color}99` : 'var(--colors-textMuted)' }} // Theming
+                style={{ opacity: isPressed ? 0.8 : 1 }}
                 variants={ANIMATIONS.description}
                 initial={descriptionInitialVariant}
                 animate="visible"
                 exit="exit"
+                aria-hidden="true" // Hide from AT as it's described-by parent
               >
                 {item.description}
               </motion.div>
@@ -721,30 +1697,23 @@ const ItemCard: React.FC<ItemCardProps> = React.memo((props) => {
           </AnimatePresence>
         )}
 
-        {/* Description - Static version for reduced motion */}
+        {/* Description - Static version */}
         {item.description && shouldShowDescription && motionIsReduced && (
           <div
+            id={descriptionId}
             className={cx(descriptionStyle, expandedDescriptionStyle)}
-            style={{ color: item.color ? `${item.color}99` : 'var(--colors-textMuted)', marginTop: '0.7rem' }}
+            style={{ marginTop: '0.7rem' }}
+            aria-hidden="true" // Hide from AT as it's described-by parent
           >
             {item.description}
           </div>
         )}
-      </div>
-    </motion.div>
+
+      </motion.button> {/* Close motion.button */}
+    </motion.div> // Close outer motion.div
   );
 });
 
 ItemCard.displayName = 'ItemCard';
 
 export default ItemCard;
-
-// Global Keyframes needed for ripple (define in your global CSS or inject via PandaCSS global styles)
-/*
-@keyframes ripple {
-  to {
-    transform: scale(4);
-    opacity: 0;
-  }
-}
-*/

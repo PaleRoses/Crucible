@@ -1639,7 +1639,7 @@ export const navButtonInactiveStyles = css({
 
 export const navButtonActiveStyles = css({
   color: 'primary',
-  fontWeight: 'medium',
+  fontWeight: 'thin',
 });
 
 // --- Desktop Indicator Line Styles ---
@@ -1723,7 +1723,7 @@ export const headerTextStyles = css({ // Text/Quote
 
 // --- Section Content Styles ---
 export const sectionHeadingStyles = css({ // H2 within section
-  fontSize: 'clamp(1.25rem, 3vw, 2.5rem)', // Simplified fluid typography
+  fontSize: 'clamp(0.8rem, 0.5rem + 1.2vw, 1.4rem)',
   fontWeight: 'thin',
   color: 'primary',
   mb: {
@@ -1734,7 +1734,7 @@ export const sectionHeadingStyles = css({ // H2 within section
 
 export const sectionParagraphStyles = css({ // P within section
   lineHeight: 'clamp(1.5, calc(1.5 + 0.2 * (100vw - 320px) / 2080), 1.7)', // Simplified fluid line height
-  fontSize: 'clamp(0.8rem, 1.2vw, 1.25rem)', // Simplified fluid typography
+    fontSize: 'clamp(0.8rem, 1.2vw, 1.25rem)', // Simplified fluid typography
   color: 'text',
   mb: {
     base: 'clamp(0.75rem, 2vh, 1rem)', // Fluid margin for mobile/tablet
@@ -1762,7 +1762,7 @@ export const sectionStyles = css({ // <section> wrapper
     color: 'primary',
     fontSize: {
       base: 'clamp(1rem, 2vw, 1rem)', // Fluid typography for mobile/tablet
-      lg: 'clamp(1rem, 2vw, 2.4rem)'     // Fluid typography for desktop
+      lg: 'clamp(0.9rem, 0.5rem + 1.2vw, 2.2rem)',
     },
   },
   '& ul, & ol': {
