@@ -47,28 +47,8 @@ const NavLayout: React.FC = () => {
     return null;
   };
 
-  // Calculate the height in pixels based on your NavigationBar height
-  const navHeightInPixels = 45; // Convert from "45px" to number 45
-
-  // Add theme colors to the style object
-  const spacerCustomStyle: React.CSSProperties = {
-    pointerEvents: 'auto', // Allow interaction with navigation elements
-    userSelect: 'none', // Prevent text selection
-    overflow: 'hidden', // Prevent scrolling
-    touchAction: 'none', // Prevent mobile scroll/zoom gestures
-    scrollbarWidth: 'none', // Hide scrollbars in Firefox
-    msOverflowStyle: 'none', // Hide scrollbars in IE/Edge
-    WebkitUserSelect: 'none', // Cross-browser user selection prevention
-    MozUserSelect: 'none',
-    msUserSelect: 'none',
-    WebkitOverflowScrolling: 'auto', // Use valid value - normal scrolling
-    WebkitTapHighlightColor: 'transparent', // Remove tap highlight on mobile
-    
-  };
-  
   
   return (
-
       <NavigationBarTyped
         items={currentNavItems}
         logo={<MoonIcon />}

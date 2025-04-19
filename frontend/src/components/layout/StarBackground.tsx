@@ -92,14 +92,14 @@ const Background: React.FC<BackgroundProps> = ({ config = {} }) => {
     colors: {
       // Non-optional stars array
       stars: [
-        'var(--color-cosmic1)',
-        'var(--color-cosmic2)',
-        'var(--color-cosmic3)',
+        'var(--color-accent1)',
+        'var(--color-accent2)',
+        'var(--color-accent3)',
       ],
       // Non-optional background object with required properties
       background: {
         topColor: 'var(--color-background)',
-        bottomColor: 'var(--color-background)',
+        bottomColor: 'var(--color-background-alt)',
       }
     },
     colorResolutionOptions: {

@@ -519,7 +519,7 @@ export const cosmicSidebarItem = defineRecipe({
           backgroundColor: 'transparent',
 
           '& .sidebar-item-text': {
-            fontWeight: 'medium',
+            fontWeight: 'thin',
           },
         },
 

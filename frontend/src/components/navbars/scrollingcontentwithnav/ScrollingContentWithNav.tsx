@@ -1310,7 +1310,6 @@ export const containerStyles = css({
 });
 
 export const headerStyles = css({
-  background: 'background',
   width: '100%',
   flexShrink: 0,
   display: 'block',
@@ -1341,7 +1340,6 @@ export const headerContentContainerStyles = css({
     lg: '8rem',
     xl: '8rem',
     '2xl': '10rem',
-    '3xl': '10rem'
   },
   display: 'flex',
   justifyContent: 'space-between',
@@ -1374,12 +1372,10 @@ export const headerDescriptionStyles = css({
     xl: 'loose'
   },
   width: 'full',
-  backgroundColor: 'background',
 });
 
 // Reintroduced footerStyles: Takes visual cues from headerStyles but padding from original footer definition
 export const footerStyles = css({
-  background: 'background', // Match header
   width: 'full', // Match header
   marginTop: 'clamp(1.5rem, 5vh, 3rem)', // Keep original margin-top
   borderBottom: '1px solid', // Match header's border style/position
@@ -1425,7 +1421,6 @@ export const mobileNavWrapperStyles = css({
   display: { base: 'block', md: 'none' },
   position: 'sticky',
   top: '0',
-  bg: 'background',
   borderColor: 'border',
   flexShrink: 0,
   isolation: 'isolate',
@@ -1532,7 +1527,6 @@ export const navWrapperStyles = css({
     '2xl': '80'
   }, // Responsive width
   borderColor: 'border',
-  bg: 'background',
   position: 'sticky',
   top: 0,
   alignSelf: 'flex-start',
@@ -1696,14 +1690,12 @@ export const headerCardStyles = css({ // Card
   borderColor: 'border',
   borderRadius: 'md',
   boxShadow: 'sm',
-  bg: 'background',
 });
 
 export const headerCodeStyles = css({ // Code
   p: '4',
   fontFamily: 'mono',
   fontSize: 'sm',
-  bg: 'background',
   color: 'text',
   borderRadius: 'md',
   overflow: 'auto',
@@ -1718,7 +1710,6 @@ export const headerTextStyles = css({ // Text/Quote
   },
   color: 'text',
   borderColor: 'primary',
-  bg: 'background',
 });
 
 // --- Section Content Styles ---

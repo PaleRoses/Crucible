@@ -1,103 +1,155 @@
 // moonlight-ui/panda.config/text-styles.ts
 import { defineTextStyles } from '@pandacss/dev'
 
+/**
+ * Defines semantic text styles using the design tokens.
+ * These styles combine font properties like family, size, weight,
+ * line height, and letter spacing for consistent typography.
+ */
 export const textStyles = defineTextStyles({
   // --- Semantic Heading Styles ---
   h1: {
-    description: 'Style for primary page headings (e.g., <h1>)',
+    description: 'Primary page heading',
     value: {
-      fontFamily: 'heading', // Assumes 'heading' token exists in theme.tokens.fonts
-      fontWeight: 'bold',    // Assumes 'bold' token exists in theme.tokens.fontWeights
-      fontSize: '4xl',       // Assumes '4xl' token exists in theme.tokens.fontSizes
-      lineHeight: 'tight',     // Assumes 'tight' token exists in theme.tokens.lineHeights
-      letterSpacing: 'tight',  // Assumes 'tight' token exists in theme.tokens.letterSpacings
-      textTransform: 'none',
-      textDecoration: 'none',
+      fontFamily: 'heading',
+      fontWeight: 'thin',
+      fontSize: '5xl',
+      lineHeight: 'snug',
+      letterSpacing: 'extraWide',
+      fontOpticalSizing: 'none', // Specific property for h1
     }
   },
   h2: {
-    description: 'Style for secondary headings (e.g., <h2>)',
+    description: 'Secondary section heading',
     value: {
       fontFamily: 'heading',
-      fontWeight: 'semibold', // Assumes 'semibold' token exists
-      fontSize: '3xl',       // Assumes '3xl' token exists
-      lineHeight: 'snug',      // Assumes 'snug' token exists
-      letterSpacing: 'tight',
-      textTransform: 'none',
-      textDecoration: 'none',
+      fontWeight: 'normal',
+      fontSize: '4xl',
+      lineHeight: 'snug',
+      letterSpacing: 'wider',
     }
   },
   h3: {
-    description: 'Style for tertiary headings (e.g., <h3>)',
+    description: 'Tertiary heading or prominent element title',
+    value: {
+      fontFamily: 'heading',
+      fontWeight: 'thin',
+      fontSize: '3xl',
+      lineHeight: 'normal',
+      letterSpacing: 'wide',
+    }
+  },
+
+  // --- Body & Content Styles ---
+  body: {
+    description: 'Default body text for paragraphs and long-form content',
+    value: {
+      fontFamily: 'body',
+      fontWeight: 'normal',
+      fontSize: 'base',
+      lineHeight: 'default',
+      letterSpacing: 'normal',
+    }
+  },
+  caption: {
+    description: 'Smaller text for captions, descriptions, helper text',
+    value: {
+      fontFamily: 'body',
+      fontWeight: 'normal',
+      fontSize: 'sm',
+      lineHeight: 'base',
+      letterSpacing: 'relaxed',
+    }
+  },
+
+  // --- UI Element Styles ---
+  label: {
+    description: 'Text for UI element labels (e.g., form inputs)',
+    value: {
+      fontFamily: 'heading',
+      fontWeight: 'thin',
+      fontSize: 'sm',
+      lineHeight: 'base',
+      letterSpacing: 'wider',
+      textTransform: 'uppercase',
+    }
+  },
+  button: {
+    description: 'Text specifically for button elements',
     value: {
       fontFamily: 'heading',
       fontWeight: 'semibold',
-      fontSize: '2xl',       // Assumes '2xl' token exists
-      lineHeight: 'normal',    // Assumes 'normal' token exists
-      letterSpacing: 'normal', // Assumes 'normal' token exists
-      textTransform: 'none',
-      textDecoration: 'none',
+      fontSize: 'base',
+      lineHeight: 'tight',
+      letterSpacing: 'widest',
+      textTransform: 'uppercase',
     }
   },
 
-  // --- Body and Paragraph Styles ---
-  body: {
-    description: 'Default body text style for paragraphs (e.g., <p>)',
+  // --- Navigation Styles ---
+  navItem: {
+    description: 'Primary navigation item text (e.g., top bar)',
     value: {
-      fontFamily: 'body', // Assumes 'body' token exists in theme.tokens.fonts
-      fontWeight: 'normal', // Assumes 'normal' token exists
-      fontSize: 'md',    // Assumes 'md' token exists
-      lineHeight: 'relaxed', // Assumes 'relaxed' token exists
-      letterSpacing: 'normal',
-      textTransform: 'none',
-      textDecoration: 'none',
+      fontFamily: 'heading',
+      fontWeight: 'thin',
+      fontSize: 'desktopNavItem', // Corresponds to 0.95rem
+      lineHeight: 'tight',
+      letterSpacing: 'extraWide',
+      textTransform: 'uppercase',
     }
   },
-  lead: {
-    description: 'Larger text style for introductory paragraphs or lead text',
+  navSubItem: {
+    description: 'Navigation submenu item text',
     value: {
-      fontFamily: 'body',
-      fontWeight: 'normal',
-      fontSize: 'lg',    // Assumes 'lg' token exists
-      lineHeight: 'relaxed',
-      letterSpacing: 'normal',
-      textTransform: 'none',
-      textDecoration: 'none',
+      fontFamily: 'heading',
+      fontWeight: 'thin',
+      fontSize: 'desktopSubmenuItem', // Corresponds to 0.85rem
+      lineHeight: 'base',
+      letterSpacing: 'extraWide',
+    }
+  },
+  navDense: {
+    description: 'Compact navigation item text (e.g., sidebars)',
+    value: {
+      fontFamily: 'body', // Using body font for potential density/readability
+      fontWeight: 'thin',
+      fontSize: 'sm',
+      lineHeight: 'base',
+      letterSpacing: 'wide',
     }
   },
 
-  // --- Utility Text Styles ---
-  caption: {
-    description: 'Smaller text style for captions or tertiary information',
+  // --- Miscellaneous Styles ---
+  overline: {
+    description: 'Small, uppercase text above headings or for category indicators',
     value: {
-      fontFamily: 'body',
-      fontWeight: 'normal',
-      fontSize: 'sm',    // Assumes 'sm' token exists
-      lineHeight: 'normal',
-      letterSpacing: 'normal',
-      textTransform: 'none',
-      textDecoration: 'none',
+      fontFamily: 'heading',
+      fontWeight: 'semibold',
+      fontSize: 'tooltip', // Corresponds to 0.75rem
+      lineHeight: 'tight',
+      letterSpacing: 'ultraWide',
+      textTransform: 'uppercase',
     }
   },
   link: {
-    description: 'Base style for links (inherits size/family, adds decoration)',
-    value: {
-      // Typically inherits font family, size, weight from context
-      textDecoration: 'underline',
-      // Optionally define hover/focus states here if not handled elsewhere
-      // _hover: { textDecoration: 'none' } // Example
-    }
-  },
-  buttonLabel: {
-    description: 'Text style specifically for button labels',
+    description: 'Base style for inline text links (color/decoration applied separately)',
     value: {
       fontFamily: 'body',
-      fontWeight: 'medium', // Assumes 'medium' token exists
-      fontSize: 'md',
-      lineHeight: 'none', // Buttons often control their own height/padding
-      letterSpacing: 'wide', // Assumes 'wide' token exists
-      textTransform: 'none',
-      textDecoration: 'none',
+      fontWeight: 'normal', // Slightly heavier than body text
+      fontSize: 'base',
+      lineHeight: 'default',
+      letterSpacing: 'normal',
+      // textDecoration: 'underline' // Note: Decoration often applied via component or utility class
     }
-  }
+  },
+  tooltip: {
+    description: 'Text style specifically for tooltips',
+    value: {
+      fontFamily: 'body',
+      fontWeight: 'normal',
+      fontSize: 'tooltip', // Corresponds to 0.75rem
+      lineHeight: 'form', // Using 'form' line height token (1.4)
+      letterSpacing: 'wide',
+    }
+  },
 })
