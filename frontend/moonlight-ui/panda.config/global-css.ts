@@ -33,6 +33,8 @@ export const globalCss = defineGlobalStyles({
     '--transition-medium': 'durations.medium easings.default',
     '--transition-slow': 'durations.slow easings.default',
 
+    
+
 // Shadow definitions
     '--shadow-glow': 'colors.glow 0 0 15px 1px',
     '--shadow-medium': '0 4px 8px colors.border',

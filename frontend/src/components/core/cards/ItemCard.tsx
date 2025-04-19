@@ -4,6 +4,10 @@ import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, HTMLMotionProps } from 'framer-motion';
 import { css, cx } from "../../../../styled-system/css"; // Adjust path as needed
+import { usePressAndHold } from '../../../../moonlight-ui/hooks/usePressAndHold'; // Import the extracted hook
+import { useRippleEffect } from "../../../../moonlight-ui/hooks/useRippleEffect"; // Updated import without Ripple type
+import { useHoverEffects } from '../../../../moonlight-ui/hooks/useHoverEffects'; // Import the hover effects hook
+import { useActivationHandler } from "../../../../moonlight-ui/hooks/useActivationHandler"; // Import the new hook
 
 // Type to handle motion.button props correctly
 type MotionButtonProps = HTMLMotionProps<"button">;
@@ -435,6 +439,20 @@ const ANIMATIONS = {
 // ==========================================================
 // STYLES (Updated to use CSS Variables & Button Resets)
 // ==========================================================
+// Add CSS variable for responsive ripple scaling
+const rippleScaleCSS = `
+:root {
+  --ripple-scale: clamp(0.8, 0.8 + ((100vw - 400px) * 0.7 / 2000), 1.5);
+}
+`;
+
+// Add the CSS to the document head
+if (typeof document !== 'undefined') {
+  const styleEl = document.createElement('style');
+  styleEl.textContent = rippleScaleCSS;
+  document.head.appendChild(styleEl);
+}
+
 const fluid = {
   // Spacing values - adjusted for more subtle scaling to match reduced font sizes
   space: {
@@ -800,208 +818,6 @@ const useReducedMotion = (override?: boolean): boolean => {
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   return override !== undefined ? override : prefersReducedMotion;
 };
-const usePressAndHold = (
-  options: {
-    initialHeight: string;
-    minHeight: string;
-    duration: number; // milliseconds for complete animation
-  }
-) => {
-  const { initialHeight, minHeight, duration } = options;
-  const [isPressed, setIsPressed] = useState(false);
-  const [pressProgress, setPressProgress] = useState(0); // 0 to 1
-  const animationRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number | null>(null);
-  const progressRef = useRef(0); // Use ref to track progress without re-renders
-  const lastProgressRef = useRef(0); // Store last progress value that triggered a state update
-
-  // Optimized animation function that throttles state updates
-  const animate = useCallback(() => {
-    if (!startTimeRef.current || !isPressed) return;
-
-    const elapsed = Date.now() - startTimeRef.current;
-    progressRef.current = Math.min(1, elapsed / duration);
-    
-    // Only update state when progress changes significantly (throttle)
-    // This reduces re-renders while maintaining animation smoothness
-    if (Math.abs(progressRef.current - lastProgressRef.current) > 0.02) {
-      lastProgressRef.current = progressRef.current;
-      setPressProgress(progressRef.current);
-    }
-
-    if (progressRef.current < 1 && isPressed) {
-      animationRef.current = requestAnimationFrame(animate);
-    }
-  }, [duration, isPressed]);
-
-  // Press event handlers with immediate animation start
-  const handleMouseDown = useCallback(() => {
-    // Reset and start everything immediately
-    progressRef.current = 0;
-    setPressProgress(0);
-    startTimeRef.current = Date.now();
-
-    setIsPressed(true);
-
-    // Start animation immediately, don't wait for effect
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-    }
-    animationRef.current = requestAnimationFrame(animate);
-  }, [animate]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsPressed(false);
-    progressRef.current = 0;
-    setPressProgress(0);
-
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-      animationRef.current = null;
-    }
-    startTimeRef.current = null;
-  }, []);
-
-  // Secondary effect to handle cleanup and global events
-  useEffect(() => {
-    // Handle global mouse up to catch releases outside the element
-    if (isPressed) {
-      const handleGlobalMouseUp = () => handleMouseUp();
-      window.addEventListener('mouseup', handleGlobalMouseUp);
-      window.addEventListener('touchend', handleGlobalMouseUp);
-
-      return () => {
-        window.removeEventListener('mouseup', handleGlobalMouseUp);
-        window.removeEventListener('touchend', handleGlobalMouseUp);
-      };
-    }
-
-    // Clean up on unmount
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [isPressed, handleMouseUp]);
-
-  // Calculate current height based on animation progress
-  const calculateTabHeight = useCallback(() => {
-    const initialValue = parseFloat(initialHeight);
-    const minValue = parseFloat(minHeight);
-    const current = initialValue - (pressProgress * (initialValue - minValue));
-    return `${current}%`;
-  }, [initialHeight, minHeight, pressProgress]);
-
-  // Calculate current top position to keep tab centered
-  const calculateTabTop = useCallback(() => {
-    const initialTop = 40; // Starting position (40%)
-    const pressedTop = 45; // Ending position when fully pressed (45%)
-    const current = initialTop + (pressProgress * (pressedTop - initialTop));
-    return `${current}%`;
-  }, [pressProgress]);
-
-  // Return specific event handlers
-  const eventHandlers: MouseEventHandlerProps & TouchEventHandlerProps = useMemo(() => ({
-      onMouseDown: handleMouseDown,
-      onMouseUp: handleMouseUp,
-      onTouchStart: handleMouseDown, // Map touch to mouse
-      onTouchEnd: handleMouseUp,     // Map touch to mouse
-  }), [handleMouseDown, handleMouseUp]);
-
-
-  return {
-    isPressed,
-    pressProgress,
-    tabStyles: {
-      height: calculateTabHeight(),
-      top: calculateTabTop(),
-    },
-    eventHandlers // Return the specific handlers
-  };
-};
-const useItemHoverEffects = (
-  ref: React.RefObject<HTMLButtonElement | null>, // Updated ref type
-  options: { isMobile?: boolean; isScrolling?: boolean; disableHoverOnScroll?: boolean; trackMouseMoveOnMobile?: boolean; } = {}
-) => {
-  const { isMobile = false, isScrolling = false, disableHoverOnScroll = true, trackMouseMoveOnMobile = false } = options;
-  const [isHovered, setIsHovered] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
-  const handleMouseEnter = useCallback(() => {
-    if (!(isScrolling && disableHoverOnScroll)) setIsHovered(true);
-  }, [isScrolling, disableHoverOnScroll]);
-
-  const handleMouseLeave = useCallback(() => {
-    setIsHovered(false);
-    setMousePosition({ x: 0, y: 0 });
-  }, []);
-
-  const rafRef = useRef<number | null>(null);
-  const pendingMoveRef = useRef<{ x: number, y: number } | null>(null);
-  
-  // Process mouse move with requestAnimationFrame to batch updates
-  const processMouseMove = useCallback(() => {
-    if (pendingMoveRef.current) {
-      setMousePosition(pendingMoveRef.current);
-      pendingMoveRef.current = null;
-    }
-    rafRef.current = null;
-  }, []);
-  
-  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
-    if (!isHovered || (!trackMouseMoveOnMobile && isMobile) || !ref.current) {
-      if (mousePosition.x !== 0 || mousePosition.y !== 0) setMousePosition({ x: 0, y: 0 });
-      return;
-    }
-    
-    const rect = ref.current.getBoundingClientRect();
-    // Bail early if element is detached
-    if (rect.width === 0) return;
-    
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const normalizedX = Math.min(1, Math.max(0, x / rect.width));
-    const normalizedY = Math.min(1, Math.max(0, y / rect.height));
-    
-    // Store the pending position
-    pendingMoveRef.current = { x: normalizedX, y: normalizedY };
-    
-    // Schedule an update if one isn't already pending
-    if (!rafRef.current) {
-      rafRef.current = requestAnimationFrame(processMouseMove);
-    }
-  }, [isHovered, isMobile, trackMouseMoveOnMobile, ref, mousePosition.x, mousePosition.y, processMouseMove]);
-  
-  // Clean up any pending animation frames on unmount
-  useEffect(() => {
-    return () => {
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (isHovered && isScrolling && disableHoverOnScroll) {
-      setIsHovered(false);
-      setMousePosition({ x: 0, y: 0 });
-    }
-  }, [isScrolling, disableHoverOnScroll, isHovered]);
-
-  // Return specific event handlers
-  const eventHandlers: MouseEventHandlerProps = useMemo(() => ({
-      onMouseEnter: handleMouseEnter,
-      onMouseLeave: handleMouseLeave,
-      onMouseMove: handleMouseMove
-  }), [handleMouseEnter, handleMouseLeave, handleMouseMove]);
-
-
-  return {
-    isHovered,
-    mousePosition,
-    eventHandlers // Return the specific handlers
-  };
-};
 const useItemInteractionState = (
   ref: React.RefObject<HTMLButtonElement | null>, // Updated ref type
   options: {
@@ -1030,9 +846,9 @@ const useItemInteractionState = (
 
   // Hover state tracking
   const { isHovered, mousePosition, eventHandlers: hoverHandlers } =
-    useItemHoverEffects(ref, { isMobile, isScrolling });
+    useHoverEffects(ref, { isMobile, isScrolling });
 
-  // Press-and-hold state tracking
+  // Press-and-hold state tracking using the imported hook
   const {
     isPressed,
     pressProgress,
@@ -1110,187 +926,8 @@ const useItemInteractionState = (
 // ==========================================================
 // FEATURE-SPECIFIC CUSTOM HOOKS (Types updated)
 // ==========================================================
-const useRippleEffect = (
-  itemRef: React.RefObject<HTMLButtonElement | null>, // Updated ref type
-  options: {
-    color?: string;
-    duration?: number; // ms
-    isEnabled?: boolean; // To easily disable ripples
-    scaleFactor?: number; // For fluid scaling
-  } = {}
-) => {
-  const {
-    color,
-    duration = 600,
-    isEnabled = true,
-    scaleFactor = 1
-  } = options;
-
-  // Enhanced ripple type with ID and creation timestamp
-  interface Ripple {
-    id: number;
-    style: React.CSSProperties;
-    created: number;
-  }
-  
-  const [ripples, setRipples] = useState<Ripple[]>([]);
-
-  // Track ripples with IDs for better cleanup management
-  const rippleIdCounter = useRef(0);
-  
-  // Function to create a new ripple
-  const createRipple = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    if (!isEnabled || !itemRef.current) return;
-
-    const rect = itemRef.current.getBoundingClientRect();
-    const size = Math.max(rect.width, rect.height) * scaleFactor;
-    const x = event.clientX - rect.left - size / 2;
-    const y = event.clientY - rect.top - size / 2;
-
-    const computedColor = getComputedStyle(itemRef.current).getPropertyValue('--card-tab-color').trim() || color || 'rgba(0, 0, 0, 0.3)';
-    let rippleBgColor = 'rgba(0, 0, 0, 0.1)';
-    try {
-        if (computedColor.startsWith('rgb') || computedColor.startsWith('#')) {
-            if (computedColor.startsWith('#')) {
-                const r = parseInt(computedColor.slice(1, 3), 16);
-                const g = parseInt(computedColor.slice(3, 5), 16);
-                const b = parseInt(computedColor.slice(5, 7), 16);
-                rippleBgColor = `rgba(${r}, ${g}, ${b}, 0.3)`;
-            } else {
-                rippleBgColor = computedColor.replace('rgb(', 'rgba(').replace(')', ', 0.3)');
-            }
-        } else {
-             rippleBgColor = color ? `${color}4D` : 'rgba(var(--colors-primary-rgb, 0, 0, 0), 0.3)';
-        }
-    } catch (e) {
-        console.error("Could not parse ripple color:", computedColor, e);
-         rippleBgColor = color ? `${color}4D` : 'rgba(var(--colors-primary-rgb, 0, 0, 0), 0.3)';
-    }
-
-    // Generate a unique ID for this ripple
-    const rippleId = rippleIdCounter.current++;
-    
-    const newRipple = {
-      id: rippleId,
-      style: {
-        top: y + 'px',
-        left: x + 'px',
-        height: size + 'px',
-        width: size + 'px',
-        backgroundColor: rippleBgColor,
-        position: 'absolute',
-        borderRadius: '50%',
-        transform: 'scale(0)',
-        animation: `ripple ${duration}ms linear`,
-        pointerEvents: 'none',
-        zIndex: 5,
-      } as React.CSSProperties,
-      created: Date.now(),
-    };
-
-    setRipples(prev => [...prev, newRipple]);
-    
-    // Schedule removal of this specific ripple
-    setTimeout(() => {
-      setRipples(prev => prev.filter(r => r.id !== rippleId));
-    }, duration);
-    
-  }, [itemRef, isEnabled, color, duration, scaleFactor]);
-
-  // Single cleanup effect that runs on unmount
-  useEffect(() => {
-    return () => {
-      // Clean up any timers if needed on unmount
-      rippleIdCounter.current = 0;
-    };
-  }, []);
-
-  return { ripples, triggerRipple: createRipple };
-};
-const useFluidScaleFactor = (
-    minViewport = 400,
-    maxViewport = 2400,
-    minScale = 0.8,
-    maxScale = 1.5
-) => {
-    const calculateScale = useCallback(() => {
-        if (typeof window === 'undefined') return 1; // Default for SSR
-        const viewportWidth = window.innerWidth;
-        const viewportRange = maxViewport - minViewport;
-        const scaleRange = maxScale - minScale;
-        const clampedWidth = Math.max(minViewport, Math.min(maxViewport, viewportWidth));
-        const progress = viewportRange === 0 ? 0 : (clampedWidth - minViewport) / viewportRange;
-        const scaleFactor = minScale + progress * scaleRange;
-        return scaleFactor;
-    }, [minViewport, maxViewport, minScale, maxScale]);
-
-    const [scaleFactor, setScaleFactor] = useState(calculateScale);
-
-    useEffect(() => {
-        let rafId: number | null = null;
-        
-        // Use requestAnimationFrame to debounce resize events
-        const handleResize = () => {
-            if (rafId === null) {
-                rafId = requestAnimationFrame(() => {
-                    setScaleFactor(calculateScale());
-                    rafId = null;
-                });
-            }
-        };
-        
-        // Initial calculation
-        setScaleFactor(calculateScale());
-        
-        window.addEventListener('resize', handleResize);
-        
-        return () => {
-            window.removeEventListener('resize', handleResize);
-            if (rafId !== null) {
-                cancelAnimationFrame(rafId);
-            }
-        };
-    }, [calculateScale]);
-
-    return scaleFactor;
-};
-const useActivationHandler = (
-    item: NavigationItem,
-    onClick?: (item: NavigationItem) => void,
-    options: {
-        isMobile?: boolean;
-        itemRef?: React.RefObject<HTMLButtonElement | null>; // Updated ref type
-        mobileFeedbackDuration?: number; // ms
-    } = {}
-) => {
-    const { isMobile = false, itemRef, mobileFeedbackDuration = 100 } = options;
-    const router = useRouter();
-
-    const handleActivationCallback = useCallback(() => {
-        const performAction = () => {
-            if (onClick) {
-                onClick(item);
-            } else if (item.href) {
-                router.push(item.href);
-            }
-            itemRef?.current?.blur(); // Blur after activation
-        };
-
-        if (isMobile && itemRef?.current) {
-            const element = itemRef.current;
-            // Mobile feedback might need adjustment now that it's a button
-            element.style.transform = 'scale(0.98)';
-            setTimeout(() => {
-                if (element) element.style.transform = '';
-            }, mobileFeedbackDuration);
-            setTimeout(performAction, mobileFeedbackDuration / 2);
-        } else {
-            performAction();
-        }
-    }, [item, onClick, router, isMobile, itemRef, mobileFeedbackDuration]);
-
-    return handleActivationCallback;
-};
+// useActivationHandler has been moved to its own file:
+// ../../../../moonlight-ui/hooks/useActivationHandler
 
 // ==========================================================
 // EXTRACTED: COMPONENT-SPECIFIC LOGIC HOOKS (Updated)
@@ -1473,7 +1110,6 @@ const ItemCard: React.FC<ItemCardProps> = React.memo((props) => {
 
   // --- Core Hooks ---
   const motionIsReduced = useReducedMotion(reducedMotionOverride);
-  const scaleFactor = useFluidScaleFactor();
 
   // --- Interaction State Hook ---
   const {
@@ -1484,16 +1120,24 @@ const ItemCard: React.FC<ItemCardProps> = React.memo((props) => {
   });
 
   // --- UI Effect Hooks ---
-  const { ripples, triggerRipple } = useRippleEffect(ref, { // Pass renamed ref
+  const { triggerRipple } = useRippleEffect(ref, { // Pass renamed ref
       color: item.color,
       isEnabled: !motionIsReduced,
-      scaleFactor: scaleFactor,
+      colorVariable: '--card-tab-color',
+      opacity: 0.8, // Increased from default 0.2
+      duration: 600, // Increased from default 600ms
+      zIndex: 10, // Higher z-index for more prominence
+      autoTrigger: false // Disable automatic trigger on pointerdown
   });
 
   // --- Activation Hook ---
-  const handleActivation = useActivationHandler(item, onClick, {
-      isMobile: isMobile,
-      itemRef: ref // Pass renamed ref
+  const handleActivation = useActivationHandler({
+      item,
+      onClick,
+      isMobile,
+      elementRef: ref as React.RefObject<HTMLElement>, // Type assertion to fix type compatibility
+      feedbackDuration: 100,
+      blurAfterActivation: true
   });
 
   // --- Derived State ---
@@ -1599,10 +1243,8 @@ const ItemCard: React.FC<ItemCardProps> = React.memo((props) => {
         aria-label={item.label}
         aria-describedby={shouldShowDescription ? descriptionId : undefined}
       >
-        {/* Ripple Container */}
-        {ripples.map((ripple) => (
-          <span key={ripple.id} style={ripple.style} aria-hidden="true" />
-        ))}
+        {/* Ripple effects are now handled directly by the useRippleEffect hook */}
+        {/* No need to render ripple elements manually */}
 
         {/* Icon Glow Effect */}
         <AnimatePresence>

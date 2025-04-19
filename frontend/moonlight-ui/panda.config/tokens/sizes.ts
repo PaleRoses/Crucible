@@ -6,6 +6,7 @@ import { defineTokens } from '@pandacss/dev';
  */
 export const sizes = defineTokens.sizes({
   navbarHeight: { value: '45px' }, // Example token for navbar height
+  rippleScale: { value: '2.5' },
 
   // Example container tokens (maps to max-width)
   container: {
@@ -52,6 +53,7 @@ export const radii = defineTokens.radii({
   sm: { value: '2px' },
   md: { value: '4px' },
   lg: { value: '8px' },
+
   full: { value: '9999px' },
 });
 
