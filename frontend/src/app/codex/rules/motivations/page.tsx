@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import ScrollingContentWithNav from '../../../../components/navbars/scrollingcontentwithnav/ScrollingContentWithNav'; // Adjust path as needed
-import ItemCard, { NavigationItem } from '@/components/core/cards/ItemCard'; // Adjust path as needed
+import ItemCard, { NavigationItem } from '@/components/core/cards/itemCard/ItemCard'; // Adjust path as needed
 
 // Icons - Replace with your actual icon imports
 import { 
@@ -66,8 +66,6 @@ const motivationsItems = [
           <Brain size={24} />
         )}
         showDescription={true}
-        showGlowEffect={true}
-        elevation={2}
       />
     )
   },
@@ -86,9 +84,7 @@ const motivationsItems = [
           kinshipExample,
           <Heart size={24} />
         )}
-        showDescription={true}
-        showGlowEffect={true}
-        elevation={2}
+        showDescription={false}
       />
     )
   },
@@ -108,8 +104,6 @@ const motivationsItems = [
           <Shield size={24} />
         )}
         showDescription={true}
-        showGlowEffect={true}
-        elevation={2}
       />
     )
   },
@@ -129,8 +123,6 @@ const motivationsItems = [
           <Star size={24} />
         )}
         showDescription={true}
-        showGlowEffect={true}
-        elevation={2}
       />
     )
   },
@@ -150,8 +142,6 @@ const motivationsItems = [
           <Scale size={24} />
         )}
         showDescription={true}
-        showGlowEffect={true}
-        elevation={2}
       />
     )
   },
@@ -171,8 +161,6 @@ const motivationsItems = [
           <Layers size={24} />
         )}
         showDescription={true}
-        showGlowEffect={true}
-        elevation={2}
       />
     )
   },
@@ -192,8 +180,6 @@ const motivationsItems = [
           <Worm size={24} />
         )}
         showDescription={true}
-        showGlowEffect={true}
-        elevation={2}
       />
     )
   },
@@ -213,8 +199,6 @@ const motivationsItems = [
           <Wind size={24} />
         )}
         showDescription={true}
-        showGlowEffect={true}
-        elevation={2}
       />
     )
   },

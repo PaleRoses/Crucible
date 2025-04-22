@@ -23,6 +23,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/components/navbars/ElementCard.tsx", "src/lib/registry.tsx", "src/components/navbars/ConstellationNavigation.jsx", "next.config.mjs", "src/components/effects/cosmic/DarkMoon.tsx", "src/components/navbars/navbarstyles/MobileNavigation.styles.ts.", "src/components/layout/layoutdata/IconComponents.tsx"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/components/navbars/ElementCard.tsx", "src/lib/registry.tsx", "src/components/navbars/ConstellationNavigation.jsx", "next.config.mjs", "src/components/effects/cosmic/DarkMoon.tsx", "src/components/navbars/navbarstyles/MobileNavigation.styles.ts.", "src/components/layout/layoutdata/IconComponents.tsx", "src/components/core/cards/itemCard"],
   "exclude": ["node_modules"]
 }

@@ -6,8 +6,18 @@ export const globalCss = defineGlobalStyles({
     // CSS Variables - keep these for reference elsewhere
     ":root": {
         // Font variablesa
-        "--fonts-loaded": "0",
-      
+"--fonts-loaded": "0",
+
+
+// Ripple effect variables
+"--ripple-x":       "0px",     // default center X :contentReference[oaicite:0]{index=0}
+"--ripple-y":       "0px",     // default center Y :contentReference[oaicite:1]{index=1}
+"--ripple-size":    "0px",     // default diameter :contentReference[oaicite:2]{index=2}
+"--ripple-opacity": "0",       // default opacity :contentReference[oaicite:3]{index=3}
+"--ripple-scale": 'clamp(0.8, 0.8 + ((100vw - 400px) * 0.7 / 2000), 1.5)',
+"--ripple-duration":"600ms",   // default animation length :contentReference[oaicite:4]{index=4}
+
+
        // Color variables mapping to tokens - direct reference 
 '--color-primary': 'colors.primary',
 '--color-secondary': 'colors.secondary',
@@ -164,4 +174,18 @@ export const globalCss = defineGlobalStyles({
         letterSpacing: "wider",
         padding: "2 4",
         },
+
+        '@keyframes rippleEntry': {
+          '0%':   { transform: 'scale(0)',                  opacity: 'var(--ripple-opacity)' },
+          '100%': { transform: 'scale(var(--ripple-scale))', opacity: '0' }
+        },
+        '@keyframes rippleExit': {
+          '0%':   { opacity: 'var(--ripple-opacity)' },
+          '100%': { opacity: '0' }
+        },
+        '@keyframes ripplePulse': {
+          '0%':   { transform: 'scale(0.8)',                   opacity: 'calc(var(--ripple-opacity) * .7)' },
+          '50%':  { transform: 'scale(1)',                     opacity: 'var(--ripple-opacity)' },
+          '100%': { transform: 'scale(0.8)',                   opacity: 'calc(var(--ripple-opacity) * .7)' }
+        }
 })

@@ -3,6 +3,7 @@
 import { fonts, fontWeights, fontSizes, lineHeight, letterSpacings } from "./fonts"
 import { colors, shadows } from "./colors"
 import { sizes, spacing, radii, zIndices } from "./sizes"
+import { borders, borderWidths } from "./borders"
 import { defineTokens } from '@pandacss/dev'
 
 
@@ -38,4 +39,6 @@ export const tokens = defineTokens({
     spacing,
     radii,
     zIndices,
+    borders,
+    borderWidths,
 })

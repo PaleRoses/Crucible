@@ -23,10 +23,10 @@ export const textStyles = defineTextStyles({
     description: 'Secondary section heading',
     value: {
       fontFamily: 'heading',
-      fontWeight: 'normal',
+      fontWeight: 'thin',
       fontSize: '4xl',
-      lineHeight: 'snug',
-      letterSpacing: 'wider',
+      lineHeight: 'normal',
+      letterSpacing: 'widest',
     }
   },
   h3: {
@@ -34,9 +34,10 @@ export const textStyles = defineTextStyles({
     value: {
       fontFamily: 'heading',
       fontWeight: 'thin',
-      fontSize: '3xl',
-      lineHeight: 'normal',
-      letterSpacing: 'wide',
+      fontSize: 'label',
+      lineHeight: 'base',
+      letterSpacing: 'widest',
+      textTransform: 'uppercase',
     }
   },
 
@@ -68,9 +69,9 @@ export const textStyles = defineTextStyles({
     value: {
       fontFamily: 'heading',
       fontWeight: 'thin',
-      fontSize: 'sm',
+      fontSize: 'label',
       lineHeight: 'base',
-      letterSpacing: 'wider',
+      letterSpacing: 'widest',
       textTransform: 'uppercase',
     }
   },

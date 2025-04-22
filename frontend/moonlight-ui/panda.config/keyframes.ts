@@ -1,12 +1,27 @@
 // moonlight-ui/panda.config/keyframes.ts
 
+// src/styles/keyframes.ts
+import { defineKeyframes } from '@pandacss/dev'
+
+export const rippleKeyframes = defineKeyframes({
+  ripple: {
+    'from': { transform: 'scale(0)', opacity: '1' },
+    'to':   { transform: 'scale(4)', opacity: '0' }
+  }
+})
+
+
 export const keyframes = { 
-        ripple: {
-          'to': {
-            transform: 'scale(4)',
-            opacity: '0'
-          }
-        },
+  ripple: {
+    '0%': { // Use 0% instead of 'from'
+      transform: 'scale(0)',
+      opacity: 'var(--ripple-opacity)' // Use the variable here
+    },
+    '100%': { // Use 100% instead of 'to'
+      transform: 'scale(4)', // Note: Still hardcoded scale(4)
+      opacity: '0'
+    }
+  },
         fadeIn: {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' }

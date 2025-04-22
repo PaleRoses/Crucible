@@ -20,7 +20,7 @@ import React, {
   import useRippleEffect, {
     RippleEffectOptions,
     RippleEffectResult,
-  } from '../hooks/useRippleEffect';
+  } from '../hooks/effecthooks/useRippleEffect';
   
   // ========== Constants ==========
   const RIPPLE_BASE_CLASS = 'ml-ui-ripple-container';

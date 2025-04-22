@@ -6,6 +6,7 @@ import { keyframes } from "./moonlight-ui/panda.config/keyframes";
 import { breakpoints } from "./moonlight-ui/panda.config/breakpoints"
 import { globalCss } from "./moonlight-ui/panda.config/global-css";
 import { recipes } from './panda.config/recipes';
+import { textStyles } from './moonlight-ui/panda.config/text-styles';
 import { defineUtility } from '@pandacss/dev';
 
 export default defineConfig({
@@ -26,6 +27,7 @@ export default defineConfig({
     extend: {
       tokens,
       breakpoints,
+      textStyles: textStyles,
       // @ts-ignore
       recipes,
       keyframes,

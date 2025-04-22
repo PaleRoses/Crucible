@@ -1322,7 +1322,6 @@ export const headerStyles = css({
     base: '2',
     md: '3',
     xl: '6',
-    '2xl': '12'
   },
   paddingRight: {
     base: '2',
@@ -1381,10 +1380,6 @@ export const footerStyles = css({
   borderBottom: '1px solid', // Match header's border style/position
   borderColor: 'border', // Match header
   color: 'text', // Keep original color
-  padding: { // Keep original padding
-    base: 'clamp(1rem, 3vw, 1.5rem)',
-    lg: 'clamp(1.5rem, 4vw, 2rem)'
-  },
   paddingBottom: { // Keep original large bottom padding
     base: 'clamp(10rem, 20vh, 15rem)',
     lg: 'clamp(15rem, 30vh, 25rem)'
@@ -1427,6 +1422,9 @@ export const mobileNavWrapperStyles = css({
   zIndex: 3,
   borderBottom: '1px solid',
   boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+  paddingTop: {
+    md: '3rem',
+  },
 });
 
 export const mobileNavTriggerStyles = css({
@@ -1498,10 +1496,6 @@ export const contentWrapperStyles = css({
   flex: '1',
   order: 1,
   minWidth: 0, // Prevent flex overflow
-  padding: {
-    base: 'clamp(0.75rem, 4vw, 1.5rem)', // Fluid padding for mobile/tablet
-    lg: 'clamp(1.5rem, 5vw, 3rem)'       // Fluid padding for desktop
-  },
 });
 
 export const contentColumnStyles = css({
@@ -1522,9 +1516,6 @@ export const navWrapperStyles = css({
   order: 2, // Show on desktop, place after content
   width: {
     md: '56',
-    lg: '64',
-    xl: '72',
-    '2xl': '80'
   }, // Responsive width
   borderColor: 'border',
   position: 'sticky',
@@ -1535,11 +1526,6 @@ export const navWrapperStyles = css({
   flexShrink: 0,
   isolation: 'isolate',
   zIndex: 3,
-  paddingTop: {
-    md: '3rem',
-    lg: '4rem',
-    xl: '5rem'
-  },
 });
 
 export const navScrollContainerStyles = css({
@@ -1556,7 +1542,6 @@ export const navHeaderStyles = css({
   marginBottom: 'clamp(0.75rem, 2vh, 1.25rem)', // Fluid margin
   color: 'primary',
   textAlign: 'left',
-  paddingLeft: 'clamp(0.25rem, 1vw, 0.5rem)', // Fluid padding
   paddingRight: 'clamp(0.25rem, 1vw, 0.5rem)', // Fluid padding
   flexShrink: 0,
 });
@@ -1609,7 +1594,6 @@ export const navButtonBaseStyles = css({
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
   cursor: 'pointer',
-  border: 'none',
   bg: 'transparent',
   transitionProperty: 'colors, background-color, box-shadow',
   transitionDuration: 'fast',
@@ -1640,8 +1624,9 @@ export const navButtonActiveStyles = css({
 export const lineTrackStyles = css({ // Background track
   position: 'absolute',
   top: '0',
-  bg: 'border',
   rounded: 'full',
+
+  bg: 'accent1',
   left: {
     md: '1',
     lg: '2'
@@ -1704,10 +1689,6 @@ export const headerCodeStyles = css({ // Code
 export const headerTextStyles = css({ // Text/Quote
   p: '4',
   fontStyle: 'italic',
-  paddingLeft: {
-    base: 'clamp(0.3rem, 2vw, 1.5rem)', // Fluid padding for mobile/tablet
-    lg: 'clamp(1.5rem, 4vw, 3rem)'      // Fluid padding for desktop
-  },
   color: 'text',
   borderColor: 'primary',
 });
@@ -1737,29 +1718,6 @@ export const sectionStyles = css({ // <section> wrapper
   mb: 'clamp(5rem, 8vh, 10rem)', // Fluid margin between sections
   isolation: 'isolate', // Stacking context
   position: 'relative',
-  paddingLeft: '0', // Removed horizontal padding
-  paddingRight: '0', // Removed horizontal padding
-  paddingTop: {
-    base: 'clamp(0.5rem, 1vh, 1rem)', // Fluid padding for mobile/tablet
-    lg: 'clamp(1rem, 2vh, 2rem)'      // Fluid padding for desktop
-  },
-  paddingBottom: {
-    base: 'clamp(0.5rem, 1vh, 1rem)', // Fluid padding for mobile/tablet
-    lg: 'clamp(1rem, 2vh, 2rem)'      // Fluid padding for desktop
-  },
-  // Nested element styles within sections
-  '& h1, & h2, & h3': {
-    fontWeight: 'thin',
-    color: 'primary',
-    fontSize: {
-      base: 'clamp(1rem, 2vw, 1rem)', // Fluid typography for mobile/tablet
-      lg: 'clamp(0.9rem, 0.5rem + 1.2vw, 2.2rem)',
-    },
-  },
-  '& ul, & ol': {
-    marginBottom: 'clamp(0.75rem, 2vh, 1.5rem)', // Fluid margin
-    paddingLeft: 'clamp(1rem, 4vw, 2rem)'        // Fluid padding
-  },
   '& img': {
     maxWidth: '100%',
     height: 'auto'
